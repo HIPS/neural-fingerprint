@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage{nips14submit_e,times}
+\usepackage{hyperref}
+\usepackage{natbib}
+\include{preamble}
+\usepackage[margin=1.25in]{geometry}
+
+\title{Learning Molecular Fingerprints}
+
+
+\author{
+TBD
+\And
+TBD
+\And
+Ryan P. Adams\\
+Harvard University
+\And
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\nipsfinalcopy % Uncomment for camera-ready version
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+Predicting the properties of new compounds requires a representation of molecules that allows generalization.
+Currently, such representations are based on hand-coded features such as the Morgan circular fingerprints, which have [various limitations].
+We introduce a set of fingerprints based on convolutional neural nets which generalize commonly-used fingerprints.
+\end{abstract}
+
+
+
+\section{Related work}
+
+\subsubsection{Fingerprints}
+
+\citet{ECFP} developed extended circular fingerprints.
+
+
+\subsubsection*{Acknowledgements}
+
+\bibliographystyle{plainnat}
+\bibliography{references.bib}
+
+
+\end{document}

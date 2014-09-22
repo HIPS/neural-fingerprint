@@ -1,0 +1,303 @@
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{datetime}
+\renewcommand{\tabularxcolumn}[1]{>{\arraybackslash}m{#1}}
+\usepackage{relsize}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,textcomp}
+\usepackage{nicefrac}
+\usepackage{amsthm}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usetikzlibrary{calc}
+\usepackage{nth}
+\usepackage{rotating}
+\usepackage{array}
+\usepackage{fp}
+\usepackage{cleveref}   % Note: this package sometimes causes the page counter to reset.
+\crefname{equation}{equation}{equations}
+\crefname{figure}{figure}{figures}
+
+\definecolor{mydarkblue}{rgb}{0.00,0.08,0.45}
+\usepackage{url}
+    \hypersetup{
+      plainpages=false,
+      pdfstartview=FitV, 
+      pdftoolbar=true, 
+      pdfmenubar=true,
+      bookmarksopen=true,
+      bookmarksnumbered=true,
+      breaklinks=true,
+      linktocpage, 
+      colorlinks=true, 
+      anchorcolor=black,
+      linkcolor=mydarkblue, 
+      urlcolor=mydarkblue,
+      citecolor=mydarkblue, 
+    }
+ 
+\usepackage[hyperpageref]{backref}
+% Setup to show (pages 4 and 9) sort of thing in the bibliography - DD
+\newcommand{\comfyfill}[1]{% = Thorsten Donig's \signed
+  \unskip\hspace*{0.1em plus 1fill}
+  \nolinebreak[3]%
+  \hspace*{\fill}\mbox{#1}
+  \parfillskip0pt\par
+}
+\newcommand\foo[1]{{\comfyfill{\mbox{#1}}}}
+%\newcommand\foo[1]{{\mbox{#1}}}
+\renewcommand*{\backref}[1]{}
+\renewcommand*{\backrefalt}[4]{%
+\ifcase #1 %
+%
+\or
+\foo{(page #2)}%
+\else
+\foo{(pages #2)}%
+\fi
+}
+
+\usepackage{stringstrings}
+
+
+% HUMBLE WORDS: shown slightly smaller when in normal text
+% Christian Steinruecken
+%
+\makeatletter%
+%\def\@humbleformat#1{{\fontsize{}{1em}\selectfont #1}}
+%\def\@humbleformat#1{\textsmaller{#1}}%
+\newlength{\nonHumbleHeight}
+\def\@humbleformat#1{{\settoheight{\nonHumbleHeight}{#1}\resizebox{!}{0.94\nonHumbleHeight}{#1}}}%
+\def\@idxhumbleformat#1{{\relscale{0.95}{#1}}}%
+%\def\@humbleformat#1{{#1}}%
+\def\declareHumble#1#2{%
+  \expandafter\def\csname #1\endcsname{\@humbleformat{#2}}%
+  \expandafter\def\csname s#1\endcsname{{#2}}%
+  \expandafter\def\csname idx#1\endcsname{{\@idxhumbleformat{#2}}}%
+}%
+\def\humble#1{\@humbleformat{#1}}%
+\def\idxhumble#1{\@idxhumbleformat{#1}}%
+\makeatother%
+
+% Convenient indexing for humble abbreviations
+\def\humbleindex#1#2{\index{#1@\idxhumble{#1}}}
+
+
+% TODO: Clean up duplicates
+\declareHumble{ANOVA}{ANOVA}
+\declareHumble{ARD}{ARD}
+\declareHumble{BIC}{BIC}
+\declareHumble{BMC}{BMC}
+\declareHumble{bq}{BQ}
+\declareHumble{CRP}{CRP}
+\declareHumble{dirpro}{DP}
+\declareHumble{HDMR}{HDMR}
+\declareHumble{GAM}{GAM}
+\declareHumble{GEM}{GEM}
+\declareHumble{GMM}{GMM}
+\declareHumble{gplvm}{GP-LVM}
+\declareHumble{GPML}{GPML}
+\declareHumble{gprn}{GPRN}
+\declareHumble{gpt}{GP}
+\declareHumble{gp}{GP}
+\declareHumble{HKL}{HKL}
+\declareHumble{HMC}{HMC}
+\declareHumble{ibp}{IBP}
+\declareHumble{iGMM}{iGMM}
+\declareHumble{iwmm}{iWMM}
+\declareHumble{kCP}{CP}
+\declareHumble{kCW}{CW}
+\declareHumble{kC}{C}
+\declareHumble{KDE}{KDE}
+\declareHumble{kLin}{Lin}
+\declareHumble{KPCA}{KPCA}
+\declareHumble{kPer}{Per}
+\declareHumble{kPerGen}{ZMPer}
+\declareHumble{kRQ}{RQ}
+\declareHumble{kSE}{SE}
+\declareHumble{kWN}{WN}
+\declareHumble{Lin}{Lin}
+\declareHumble{LBFGS}{L-BFGS}
+\declareHumble{LIBSVM}{LIBSVM}
+\declareHumble{MAP}{MAP}
+\declareHumble{mcmc}{MCMC}
+\declareHumble{MKL}{MKL}
+\declareHumble{MLP}{MLP}
+\declareHumble{MNIST}{MNIST}
+\declareHumble{MSE}{MSE}
+\declareHumble{OU}{OU}
+\declareHumble{Per}{Per}
+\declareHumble{RBF}{RBF}
+\declareHumble{RMSE}{RMSE}
+\declareHumble{RQ}{RQ}
+\declareHumble{SBQ}{SBQ}
+\declareHumble{seard}{SE-ARD}
+\declareHumble{sefull}{SE-\textnormal{full}}
+\declareHumble{SEGP}{SE-GP}
+\declareHumble{SE}{SE}
+\declareHumble{SNR}{SNR}
+\declareHumble{SSANOVA}{SS-ANOVA}
+\declareHumble{SVM}{SVM}
+\declareHumble{UCI}{UCI}
+\declareHumble{UMIST}{UMIST}
+\declareHumble{vbgplvm}{VB GP-LVM}
+
+\newcommand{\kSig}{\boldsymbol\sigma}
+
+\def\ie{i.e.\ }
+\def\eg{e.g.\ }
+\def\etc{etc.\ }
+
+
+
+
+\newcommand{\binarysum}{\sum_{\bf{x} \in \{0,1\}^D}}
+\newcommand{\expect}{\mathbb{E}}
+\newcommand{\expectargs}[2]{\mathbb{E}_{#1} \left[ {#2} \right]}
+\newcommand{\var}{\mathbb{V}}
+\newcommand{\varianceargs}[2]{\mathbb{V}_{#1} \left[ {#2} \right]}
+\newcommand{\cov}{\operatorname{cov}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\covargs}[2]{\Cov \left[ {#1}, {#2} \right]}
+\newcommand{\variance}{\mathbb{V}}
+\newcommand{\vecop}[1]{\operatorname{vec} \left( {#1} \right)}
+
+\newcommand{\covarianceargs}[2]{\Cov_{#1} \left[ {#2} \right]}
+\newcommand{\colvec}[2]{\left[ \begin{array}{c} {#1} \\ {#2} \end{array} \right]}
+\newcommand{\tbtmat}[4]{\left[ \begin{array}{cc} {#1} & {#2} \\ {#3} & {#4} \end{array} \right]}
+
+\newcommand{\acro}[1]{{\humble{#1}}}
+%\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\vect}[1]{{\bf{#1}}}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\npderiv}[2]{\nicefrac{\partial #1}{\partial #2}}
+
+\newcommand{\pha}{^{\phantom{:}}}
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+
+% The following designed for probabilities with long arguments
+
+\newcommand{\Prob}[2]{P\!\left(\,#1\;\middle\vert\;#2\,\right)}
+\newcommand{\ProbF}[3]{P\!\left(\,#1\!=\!#2\;\middle\vert\;#3\,\right)}
+\newcommand{\p}[2]{p\!\left(#1\middle\vert#2\right)}
+\newcommand{\po}[1]{p\!\left(#1\right)}
+\newcommand{\pF}[3]{p\!\left(\,#1\!=\!#2\;\middle\vert\;#3\,\right)} 
+\newcommand{\mean}[2]{{m}\!\left(#1\middle\vert#2\right)}
+
+
+
+\newcommand{\valpha}{\boldsymbol{\alpha}}
+\newcommand{\va}{\vect{a}}
+\newcommand{\vA}{\vect{A}}
+\newcommand{\vB}{\mat{B}}
+\newcommand{\vb}{\vect{b}}
+\newcommand{\vC}{\mat{C}}
+\newcommand{\vc}{\vect{c}}
+\newcommand{\vecf}{\boldsymbol{f}}
+\newcommand{\vell}{\vect{\ell}}
+\newcommand{\vepsilon}{\boldsymbol{\epsilon}}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\ve}{\boldsymbol{\epsilon}}
+\newcommand{\vf}{\vecf}
+\newcommand{\vg}{\vect{g}}
+\newcommand{\vh}{\vect{h}}
+\newcommand{\vI}{\mat{I}}
+\newcommand{\vK}{\mat{K}}
+\newcommand{\vk}{\vect{k}}
+\newcommand{\vL}{\mat{L}}
+\newcommand{\vl}{\vect{l}}
+\newcommand{\vmu}{{\boldsymbol{\mu}}}
+\newcommand{\vone}{\vect{1}}
+\newcommand{\vphi}{{\boldsymbol{\phi}}}
+\newcommand{\vpi}{{\boldsymbol{\pi}}}
+\newcommand{\vq}{\vect{q}}
+\newcommand{\vR}{\mat{R}}
+\newcommand{\vr}{\vect{r}}
+\newcommand{\vsigma}{{\boldsymbol{\sigma}}}
+\newcommand{\vSigma}{\mat{\Sigma}}
+\newcommand{\vS}{\mat{S}}
+\newcommand{\vs}{\vect{s}}
+\newcommand{\vtheta}{{\boldsymbol{\theta}}}
+\newcommand{\vu}{\vect{u}}
+\newcommand{\vV}{\mat{V}}
+\newcommand{\vW}{\mat{W}}
+\newcommand{\vw}{\vect{w}}
+\newcommand{\vX}{\mat{X}}
+\newcommand{\vx}{\vect{x}}
+\newcommand{\vY}{\mat{Y}}
+\newcommand{\vy}{\vect{y}}
+\newcommand{\vzero}{\vect{0}}
+\newcommand{\vZ}{\mat{Z}}
+\newcommand{\vz}{\vect{z}}
+
+
+
+\newcommand{\inv}{^{{\mathsmaller{-1}}}}
+\newcommand{\tohalf}{^{{\mathsmaller{\nicefrac{1}{2}}}}}
+
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\N}[3]{\mathcal{N}\!\left(#1 \middle| #2,#3\right)}
+\newcommand{\Nt}[2]{\mathcal{N}\!\left(#1,#2\right)}
+\newcommand{\NT}[2]{\mathcal{N}\!\left(#1,#2\right)}
+\newcommand{\GPdist}[3]{\mathcal{GP}\!\left(#1 \, \middle| \, #2, #3 \right)}
+\newcommand{\GPdisttwo}[2]{\mathcal{GP}\!\left(\, #1, #2 \right)}
+\newcommand{\bN}[3]{\mathcal{N}\big(#1 \middle| #2,#3\big)}
+\newcommand{\boldN}[3]{\text{\textbf{\mathcal{N}}}\big(#1;#2,#3\big)}
+\newcommand{\ones}[1]{\mat{1}_{#1}}
+\newcommand{\eye}[1]{\mat{E}_{#1}}
+\newcommand{\tra}{^{\mathsf{T}}}
+\newcommand{\trace}{\operatorname{tr}}
+\newcommand{\shift}{\operatorname{shift}}
+\renewcommand{\mod}{\operatorname{mod}}
+\newcommand{\deq}{:=}
+\newcommand{\oneofk}{\operatorname{one-of-k}}
+
+\newcommand{\GPt}[2]{\mathcal{GP}\!\left(#1,#2\right)}
+%\newcommand{\GPt}[2]{\gp\!\left(#1,#2\right)}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\chol}{chol}
+\DeclareMathOperator{\diag}{diag}
+
+
+\newcommand{\dist}{\ \sim\ }
+\def\given{\,|\,}
+
+% Table stuff
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\newcommand{\defeq}{\mathrel{:\mkern-0.25mu=}}
+
+\def\ie{i.e.\ }
+\def\eg{e.g.\ }
+\def\iid{i.i.d.\ }
+\def\simiid{\overset{\mbox{\tiny iid}}{\sim}}
+\def\simind{\overset{\mbox{\tiny \textnormal{ind}}}{\sim}}
+\def\eqdist{\stackrel{\mbox{\tiny d}}{=}}
+
+
+\def\Reals{\mathbb{R}}
+
+\def\Uniform{\mbox{\rm Uniform}}
+\def\Bernoulli{\mbox{\rm Bernoulli}}
+\def\GP{\mathcal{GP}}
+
+
+
+% Proof stuff
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{prop}[theorem]{Proposition}
+\newtheorem{proposition}{Proposition}
+\newtheorem*{cor}{Corollary}
+
+
+
