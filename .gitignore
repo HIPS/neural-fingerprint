@@ -52,3 +52,34 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# OS X
+*.DS_Store
+
+# LateX stuff:
+paper/*.aux
+paper/*.glo
+paper/*.idx
+paper/*.log
+paper/*.toc
+paper/*.ist
+paper/*.acn
+paper/*.acr
+paper/*.alg
+paper/*.bbl
+paper/*.blg
+paper/*.dvi
+paper/*.glg
+paper/*.gls
+paper/*.ilg
+paper/*.ind
+paper/*.lof
+paper/*.lot
+paper/*.maf
+paper/*.mtc
+paper/*.mtc1
+paper/*.out
+paper/*.synctex.gz
+paper/*.pdf
+paper/*.brf
+
+

@@ -44,17 +44,57 @@ We introduce a set of fingerprints based on convolutional neural nets which gene
 
 
 
+\section{Desirable Properties of Molecular Representations}
+
+\begin{itemize}
+
+\item invariant to global orientation
+\item invariant to atom re-labeling
+\item invariant to the SMILES representation (at the very least)
+\item NOT invariant to reordering locally (maintain information about the orientation)
+    example:  fragment1 - C - O - fragment2 is not the same as fragment1 - O - C - fragment2 
+\end{itemize}
+
+
+
+
 \section{Related work}
 
 \subsubsection{Fingerprints}
 
-\citet{ECFP} developed extended circular fingerprints.
+[Cite Morgan] and \citet{ECFP2010} developed extended circular fingerprints.
+These fingerprints map identical molecules to the same set of fingerprints.
+These same fingerprints have been pressed into service as a measure of similarity.
+
+However, for a meaningful measure of similarity, 
+
+\subsubsection{Convolutional Neural Networks}
+
+Convolutional neural networks have been used to model images, speech, and time series\citep{lecun1995convolutional}.
+However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
+More recently, \citet{KalchbrennerACL2014} developed a convolutional neural network architecture for modeling sentences of varying length and structure.
+
+
+\section{Experiments}
+
+[How much is conceptual purity worth?  We can try using only topology, or include lots of hand-engineered features that we think will be useful.]
+
+\subsection{Datasets}
+
+\subsection{Interpretability}
+
+[Idea: Use nested dropout to allow a variable-sized descriptor.]
+
+[Wishlist: Include figures showing which fragments maximally activate different features - hopefully showing that they correspond to interpretable, familiar concepts]
+
+
+\section{Conclusions}
 
 
 \subsubsection*{Acknowledgements}
 
 \bibliographystyle{plainnat}
-\bibliography{references.bib}
+\bibliography{references}
 
 
 \end{document}
