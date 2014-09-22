@@ -53,14 +53,50 @@ We introduce a set of fingerprints based on convolutional neural nets which gene
 \item invariant to the SMILES representation (at the very least)
 \item NOT invariant to reordering locally (maintain information about the orientation)
     example:  fragment1 - C - O - fragment2 is not the same as fragment1 - O - C - fragment2 
+   \item speed
 \end{itemize}
 
+\subsection{Design decisions}
 
+\paragraph{How much computation to perform at each layer?}
+i.e. how complicated should we make the function that goes from one layer of the graph to the next?
+
+\paragraph{Pyramidal versus block-shaped computational graph}
+
+\paragraph{Building parse trees}
+For the pyramidal architecture, we need to decide on a parse tree of the molecule.
+One way to do this in a 'soft' way might be to max-pool over many different local parsings.
+This could be done at multiple layers, which would limit the exponential blowup.
+
+\paragraph{Preserve asymmetries explicitly or implicitly}
+If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
+
+\paragraph{Should edges be nodes in the graph}
+Not having them be nodes is slightly simpler, so we'll do that for now.
+
+\paragraph{Do we directly tell each layer which depth it's at?}  Either through different weights, or features that indicate the layer of computation.
+
+\paragraph{How many layers?}
+
+\paragraph{What kind of max-pooling?}
+k-max pooling might be appropriate.
+
+\subsection{Things we might be able to predict}
+
+\begin{itemize}
+\item Molecule size
+\item Molecule diameter (both graph diameter and physical diameter)
+\item Solubility
+\item Dipole moment of the entire molecule
+\item homo/lumo
+\item peak of emission or absorbtion spectra
+\item affinity to particular targets (for drug design)
+\end{itemize}
 
 
 \section{Related work}
 
-\subsubsection{Fingerprints}
+\paragraph{Fingerprints}
 
 [Cite Morgan] and \citet{ECFP2010} developed extended circular fingerprints.
 These fingerprints map identical molecules to the same set of fingerprints.
@@ -68,22 +104,43 @@ These same fingerprints have been pressed into service as a measure of similarit
 
 However, for a meaningful measure of similarity, 
 
-\subsubsection{Convolutional Neural Networks}
+\paragraph{Convolutional Neural Networks}
 
 Convolutional neural networks have been used to model images, speech, and time series\citep{lecun1995convolutional}.
 However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
 More recently, \citet{KalchbrennerACL2014} developed a convolutional neural network architecture for modeling sentences of varying length and structure.
 
+\paragraph{Recursive Neural Networks}
+
+\citet{socher2011semi} and \citet{socher2011dynamic} use a pyramidal architecture for performing inference on variable-length sentences.
+
+\paragraph{Neural nets for QSAR}
+
+\cite{dahl2014multi} used standard deep neural networks, and didn't do any feature engineering.
+
+\paragraph{Machine learning for identifying promising molecules}
+
+\citet{Eckert2007225, bergeron2011modeling} provide reviews of the field.
+\citet{tingley2014towards} used a variety of standard machine learning algorithms to predict the photovoltaic efficiency of organic molecules.
 
 \section{Experiments}
 
 [How much is conceptual purity worth?  We can try using only topology, or include lots of hand-engineered features that we think will be useful.]
+
+\subsection{Things we'll compare against}
+
+\begin{itemize}
+\item Morgan fingerprints
+\item Coulomb matrices (Cite)
+\end{itemize}
 
 \subsection{Datasets}
 
 \subsection{Interpretability}
 
 [Idea: Use nested dropout to allow a variable-sized descriptor.]
+Explain that it's analogous to PCA for neural nets
+
 
 [Wishlist: Include figures showing which fragments maximally activate different features - hopefully showing that they correspond to interpretable, familiar concepts]
 
