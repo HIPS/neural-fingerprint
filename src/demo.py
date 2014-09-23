@@ -146,7 +146,7 @@ def BuildGraphFromMolecule(mol):
 def main():
 
     # Load in a molecule
-    mol = Chem.MolFromSmiles('CC')
+    mol = Chem.MolFromSmiles('CN1C=NC2=C1C(=O)N(C(=O)N2C)C')
 
     # Build a graph from it
     graph = BuildGraphFromMolecule(mol)
