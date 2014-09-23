@@ -31,7 +31,7 @@ l2_weight    = 1.0
 num_features = 4
 num_data = 1;
 
-def main():
+def test_custom_net():
 
     X1 = kayak.Inputs( npr.randn(  num_data, num_features ) )
     X2 = kayak.Inputs( npr.randn(  num_data, num_features ) )
@@ -68,32 +68,65 @@ def main():
     print "Numerical derivative:", (second - first) / delta
 
 
+def build_net_from_graph(graph)
+    def test_graph_dag():
+    npr.seed(3)
+
+    num_layers = 7
+    num_dims   = 5
+
+    for ii in xrange(NUM_TRIALS):
+        probs = npr.rand()
+
+        X = kayak.Inputs(npr.randn(25,num_dims))
+
+        wts    = []
+        layers = []
+        for jj in xrange(num_layers):
+
+            U = kayak.Constant(np.zeros((25,num_dims)))
+
+            if npr.rand() < probs:
+                W = kayak.Parameter(0.1*npr.randn(num_dims, num_dims))
+                wts.append(W)
+                U = kayak.MatAdd( U, kayak.SoftReLU(kayak.MatMult(X, W)) )
+
+            for kk in xrange(jj):
+                if npr.rand() < probs:
+                    W = kayak.Parameter(0.1*npr.randn(num_dims, num_dims))
+                    wts.append(W)
+                    U = kayak.MatAdd( U, kayak.SoftReLU(kayak.MatMult(layers[kk], W)) )
+
+            layers.append(U)
+
+        out = kayak.MatSum(layers[-1])
+
+        out.value(True)
+        for jj, wt in enumerate(wts):
+            diff = kayak.util.checkgrad(wt, out, 1e-4)
+            print diff
+            assert diff < 1e-4
+
+
+
+
+def main():
+
+    # Load in a molecule
+
+    # Build a graph from it
+
+
+    # Build a neural net from that molecule
+    net, weights = build_net_from_graph(graph)
+
+    # Test network
+    print net.value(True)
+    print net.checkgrad()
+
+
+
+
 
 if __name__ == '__main__':
     sys.exit(main())
-
-    X = kayak.Inputs(features, batcher)
-    T = kayak.Targets((targets-targ_mean) / targ_std, batcher)
-
-    W1 = kayak.Parameter( 0.1*npr.randn( features.shape[1], h1_size ))
-    B1 = kayak.Parameter( 0.1*npr.randn( 1, h1_size ) )
-    H1 = kayak.Dropout(kayak.HardReLU(kayak.ElemAdd(kayak.MatMult(X, W1), B1)), h1_dropout)
-
-    W2 = kayak.Parameter( 0.1*npr.randn( h1_size ) )
-    B2 =     X = kayak.Inputs(features, batcher)
-    T = kayak.Targets((targets-targ_mean) / targ_std, batcher)
-
-    W1 = kayak.Parameter( 0.1*npr.randn( features.shape[1], h1_size ))
-    B1 = kayak.Parameter( 0.1*npr.randn( 1, h1_size ) )
-    H1 = kayak.Dropout(kayak.HardReLU(kayak.ElemAdd(kayak.MatMult(X, W1), B1)), h1_dropout)
-
-    W2 = kayak.Parameter( 0.1*npr.randn( h1_size ) )
-    B2 = kayak.Parameter( 0.1*npr.randn(1))
-
-    Y = kayak.ElemAdd(kayak.MatMult(H1, W2), B2)
-
-    L = kayak.MatSum(kayak.L2Loss(Y, T))
-
-    Y = kayak.ElemAdd(kayak.MatMult(H1, W2), B2)
-
-    L = kayak.MatSum(kayak.L2Loss(Y, T))
