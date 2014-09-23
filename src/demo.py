@@ -9,29 +9,22 @@ Sept 22nd, 2014"""
 import sys
 import numpy as np
 import numpy.random as npr
-import util
+# import util
 
-from rdkit.Chem import AllChem, MolFromSmiles
+from rdkit import Chem
 
 sys.path.append('../Kayak/')
 import kayak
 
-num_folds    = 5
-batch_size   = 256
-num_epochs   = 50
-learn_rate   = 0.001
-momentum     = 0.95
-h1_dropout   = 0.1
-h1_size      = 500
+from MolGraph import *
+from features import *
 
-dropout_prob = 0.1
-l1_weight    = 1.0
-l2_weight    = 1.0
 
-num_features = 4
-num_data = 1;
 
 def test_custom_net():
+
+    num_features = 4
+    num_data = 1;
 
     X1 = kayak.Inputs( npr.randn(  num_data, num_features ) )
     X2 = kayak.Inputs( npr.randn(  num_data, num_features ) )
@@ -68,9 +61,7 @@ def test_custom_net():
     print "Numerical derivative:", (second - first) / delta
 
 
-def build_net_from_graph(graph)
-    def test_graph_dag():
-    npr.seed(3)
+def build_net_from_graph(graph):
 
     num_layers = 7
     num_dims   = 5
@@ -108,21 +99,44 @@ def build_net_from_graph(graph)
             assert diff < 1e-4
 
 
+def BuildGraphFromMolecule(mol):
+    # Replicate the graph that RDKit produces.
+    # Go on and extract features using RDKit also.
+
+    graph = MolGraph()
+
+    # Iterate over the atoms.
+    rd_atoms = {}
+    for atom in mol.GetAtoms():
+        rd_atoms[atom.GetIdx()] = Vertex( data=atom_features(atom) )
+        graph.add_vert( rd_atoms[atom.GetIdx()] )
+
+    # Iterate over the bonds.
+    for bond in mol.GetBonds():
+        atom1 = bond.GetBeginAtom()
+        atom2 = bond.GetEndAtom()
+
+        graph.add_edge( Edge(rd_atoms[atom1.GetIdx()],
+                             rd_atoms[atom2.GetIdx()],
+                             data=bond_features(bond)) )
+
+    return graph
 
 
 def main():
 
     # Load in a molecule
+    mol = Chem.MolFromSmiles('CC')
 
     # Build a graph from it
+    graph = BuildGraphFromMolecule(mol)
 
-
-    # Build a neural net from that molecule
-    net, weights = build_net_from_graph(graph)
+    # Build a Kayak neural net from that molecule
+    #net, weights = BuildNetFromGraph(graph)
 
     # Test network
-    print net.value(True)
-    print net.checkgrad()
+    #print net.value(True)
+    #print net.checkgrad()
 
 
 
