@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import numpy.random as npr
 # import util
+import time
 
 from rdkit import Chem
 
@@ -111,9 +112,6 @@ def BuildNetFromGraph(graph, num_hidden_features = [5, 6]):
     target = kayak.Targets(np.array([[1.23]]));
     loss = kayak.L2Loss( output, target)
 
-    loss.value(True)
-    print kayak.util.checkgrad(W_self[0], loss, 1e-4)
-
     weights = W_self + W_other + W_edge + [W_out]
 
     return loss, weights
@@ -146,23 +144,37 @@ def BuildGraphFromMolecule(mol):
 def main():
 
     # Load in a molecule
-    mol = Chem.MolFromSmiles('CN1C=NC2=C1C(=O)N(C(=O)N2C)C')
+    print "Parsing the molecule..."
+    mol = Chem.MolFromSmiles('CN1C=NC2=C1C(=O)N(C(=O)N2C)C')   # Caffeine
+    mol = Chem.MolFromSmiles('CCN(CC)C(=O)[C@H]1CN([C@@H]2Cc3c[nH]c4c3c(ccc4)C2=C1)C')  # LSD
 
     # Build a graph from it
+    print "Building the graph of the molecule..."
+    start = time.clock()
     graph = BuildGraphFromMolecule(mol)
 
     # Build a Kayak neural net from that molecule
-    net, weights = BuildNetFromGraph(graph)
+    print "Building the custom neural net..."
+    net, weights = BuildNetFromGraph(graph, num_hidden_features = [10, 10, 10, 10, 10, 10, 10])
+    print "Time elapsed:", time.clock() - start
+
+    print "Evaluating the network..."
+    start = time.clock()
+    net.value()
+    print "Time elapsed:", time.clock() - start
+
+    print "Evaluate the gradient of the network..."
+    start = time.clock()
+    net.grad(weights[0])
+    print "Time elapsed:", time.clock() - start
 
     # Test network
-    for jj, wt in enumerate(weights):
-        diff = kayak.util.checkgrad(wt, net, 1e-4)
-        print diff
-        assert diff < 1e-4
-
-
-
-
+    #print "Checking gradients..."
+    #print kayak.util.checkgrad(weights[0], net, 1e-4)
+    #for jj, wt in enumerate(weights):
+    #    diff = kayak.util.checkgrad(wt, net, 1e-4)
+    #    print diff
+    #    assert diff < 1e-4
 
 if __name__ == '__main__':
     sys.exit(main())
