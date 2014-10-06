@@ -26,8 +26,8 @@ def BuildNetFromGraph(graph, num_hidden_features = [5, 6]):
     # Different weights on each layer
 
     num_layers = len(num_hidden_features)
-    num_atom_features = graph.verts[0].nodes[0].shape()[1]
-    num_edge_features = graph.edges[0].nodes[0].shape()[1]
+    num_atom_features = graph.verts[0].nodes[0].shape[1]
+    num_edge_features = graph.edges[0].nodes[0].shape[1]
 
     # Every atom and edge is a separate Kayak Input.
     # These inputs already live in the graph.
@@ -38,7 +38,7 @@ def BuildNetFromGraph(graph, num_hidden_features = [5, 6]):
 
     for layer in range(num_layers):
 
-        num_prev_layer_features = graph.verts[0].nodes[layer].shape()[1]
+        num_prev_layer_features = graph.verts[0].nodes[layer].shape[1]
 
         # Create a Kayak parameter for this layer
         W_self.append(kayak.Parameter(0.1*npr.randn(num_prev_layer_features, num_hidden_features[layer])))
@@ -118,7 +118,7 @@ def main():
 
     print "Evaluating the network..."
     start = time.clock()
-    net.value()
+    net.value
     print "Time elapsed:", time.clock() - start
 
     print "Evaluate the gradient of the network..."
@@ -127,12 +127,12 @@ def main():
     print "Time elapsed:", time.clock() - start
 
     # Test network
-    #print "Checking gradients..."
-    #print kayak.util.checkgrad(weights[0], net, 1e-4)
-    #for jj, wt in enumerate(weights):
-    #    diff = kayak.util.checkgrad(wt, net, 1e-4)
-    #    print diff
-    #    assert diff < 1e-4
+    print "Checking gradients..."
+    print kayak.util.checkgrad(weights[0], net, 1e-4)
+    for jj, wt in enumerate(weights):
+        diff = kayak.util.checkgrad(wt, net, 1e-4)
+        print diff
+        assert diff < 1e-4
 
 
 
