@@ -56,12 +56,15 @@ def BuildNetFromGraph(graph, num_hidden_features = [5, 6]):
             # and its neighbours.
             mults = [kayak.MatMult(v.nodes[layer], W_self[layer])]
             for e in v.edges:
-                mults.append(kayak.MatMult( e.nodes[0], W_edge[layer]))
+                mults.append(kayak.MatMult( e.nodes[layer], W_edge[layer]))
             for n in v.get_neighbors()[0]:
                 mults.append(kayak.MatMult( n.nodes[layer], W_other[layer]))
 
             # Add the next layer of computation to this node.
             v.nodes.append(kayak.SoftReLU(kayak.ElemAdd(*mults)))
+
+        for e in graph.edges:
+            e.nodes.append(kayak.Identity(e.nodes[layer]))
 
     # Connect everything to the fixed-size layer using some sort of max
     penultimate_nodes = [v.nodes[-1] for v in graph.verts]
@@ -106,9 +109,7 @@ def BuildGraphFromMolecule(mol):
         graph.add_edge( Edge(rd_atoms[atom1.GetIdx()],
                              rd_atoms[atom2.GetIdx()],
                              nodes=[kayak.Inputs(bond_features(bond)[None, :])] ))
-
     return graph
-
 
 # Define the positions of a node.
 def position(k_node, node_positions):
@@ -119,7 +120,7 @@ def position(k_node, node_positions):
         parents_positions = [position(p, node_positions)
                              for p in k_node._parents
                              if not isinstance(p, (kayak.Parameter, kayak.Targets))]
-        (xs, ys, zs) = zip(*parents_positions)
+        xs, ys, zs = zip(*parents_positions)
         new_x = np.mean(xs)
         new_y = np.mean(ys)
         new_z = np.max(zs) + 1
@@ -132,21 +133,21 @@ def drawComputationGraph(mol_graph, target, mol):
 
     Graph is the mol graph.
     """
-    num_layers = 3
     # Make a dict indexed by kayak nodes that has the location of each atom as values.
     # First fix the locations of the atoms and bonds
     node_positions = {}
     base_nodes = mol_graph.get_verts()
+    num_layers = len(mol_graph.verts[0].nodes)
     for layer in range(num_layers):
+        curr_z = layer * 3
         for k_n, mol_v in [(mol_v.nodes[layer], mol_v) for mol_v in base_nodes]:
-            node_positions[k_n] = mol_v.pos + (layer * 6, )
-    base_edges = mol_graph.get_edges()
-    for mol_e in base_edges:
-        mol_v1, mol_v2 = mol_e.get_verts()
-        avg_x = (mol_v1.pos[0] + mol_v2.pos[0]) / 2.0
-        avg_y = (mol_v1.pos[1] + mol_v2.pos[1]) / 2.0
-        avg_z = 0
-        node_positions[mol_e.nodes[0]] = (avg_x, avg_y, avg_z)
+            node_positions[k_n] = mol_v.pos + (curr_z, )
+        base_edges = mol_graph.get_edges()
+        for mol_e in base_edges:
+            mol_v1, mol_v2 = mol_e.get_verts()
+            avg_x = (mol_v1.pos[0] + mol_v2.pos[0]) / 2.0
+            avg_y = (mol_v1.pos[1] + mol_v2.pos[1]) / 2.0
+            node_positions[mol_e.nodes[layer]] = (avg_x, avg_y, curr_z)
 
     # Now plot all edges of interest given these positions.
     ax = plt.figure().add_subplot(111, projection = '3d')
@@ -154,7 +155,7 @@ def drawComputationGraph(mol_graph, target, mol):
         if not isinstance(n1, (kayak.Parameter, kayak.Targets)) and not isinstance(n2, (kayak.Parameter, kayak.Targets)):
             pos1 = position(n1, node_positions)
             pos2 = position(n2, node_positions)
-            ax.plot(*(zip(pos1, pos2)), color="Grey", lw=1)
+            ax.plot(*(zip(pos1, pos2)), color="RoyalBlue", lw=1)
 
     # Finally, plot the edges corresponding to the molecule itself
     for layer in range(num_layers):
@@ -165,7 +166,6 @@ def drawComputationGraph(mol_graph, target, mol):
             ax.plot(*zip(pos1, pos2), color="Black", lw=3)
 
     plt.show()
-
 
 def find_all_edges_leading_to(k_target):
     # TODO: Move into Kayak.
@@ -180,7 +180,6 @@ def find_all_edges_internal(k_node, found):
             find_all_edges_internal(p, found)
         found[(p, k_node)] = None
     return
-
 
 def main():
 
@@ -229,11 +228,6 @@ def main():
 
     drawComputationGraph(graph, net, mol)
     print "Done"
-
-
-
-
-
 
 if __name__ == '__main__':
     sys.exit(main())
