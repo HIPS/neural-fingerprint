@@ -132,20 +132,14 @@ def drawComputationGraph(mol_graph, target, mol):
 
     Graph is the mol graph.
     """
-
-    # First, ask RDKit to draw the molecule (doesn't work yet)
-    # For now, just do a crude drawing by us.
-    ax = plt.figure().add_subplot(111, projection = '3d')
-    for e in mol_graph.get_edges():
-        (v1, v2) = e.get_verts()
-        ax.plot([v1.pos[0], v2.pos[0]], [v1.pos[1], v2.pos[1]], [0., 0])
-
+    num_layers = 3
     # Make a dict indexed by kayak nodes that has the location of each atom as values.
+    # First fix the locations of the atoms and bonds
     node_positions = {}
     base_nodes = mol_graph.get_verts()
-    for k_n, mol_v in [(mol_v.nodes[0], mol_v) for mol_v in base_nodes]:
-        node_positions[k_n] = mol_v.pos + (0,)
-
+    for layer in range(num_layers):
+        for k_n, mol_v in [(mol_v.nodes[layer], mol_v) for mol_v in base_nodes]:
+            node_positions[k_n] = mol_v.pos + (layer * 6, )
     base_edges = mol_graph.get_edges()
     for mol_e in base_edges:
         mol_v1, mol_v2 = mol_e.get_verts()
@@ -154,12 +148,21 @@ def drawComputationGraph(mol_graph, target, mol):
         avg_z = 0
         node_positions[mol_e.nodes[0]] = (avg_x, avg_y, avg_z)
 
+    # Now plot all edges of interest given these positions.
+    ax = plt.figure().add_subplot(111, projection = '3d')
     for n1, n2 in find_all_edges_leading_to(target):
         if not isinstance(n1, (kayak.Parameter, kayak.Targets)) and not isinstance(n2, (kayak.Parameter, kayak.Targets)):
             pos1 = position(n1, node_positions)
             pos2 = position(n2, node_positions)
-            ax.plot([pos1[0], pos2[0]], [pos1[1], pos2[1]], [pos1[2], pos2[2]])
-            #ax.plot(zip(*(pos1, pos2)))
+            ax.plot(*(zip(pos1, pos2)), color="Grey", lw=1)
+
+    # Finally, plot the edges corresponding to the molecule itself
+    for layer in range(num_layers):
+        for e in mol_graph.get_edges():
+            (v1, v2) = e.get_verts()
+            pos1 = position(v1.nodes[layer], node_positions)
+            pos2 = position(v2.nodes[layer], node_positions)
+            ax.plot(*zip(pos1, pos2), color="Black", lw=3)
 
     plt.show()
 
