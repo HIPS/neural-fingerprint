@@ -249,7 +249,7 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
 
     # TODO: implement RMSProp or whatever.
     print "\nTraining parameters",
-    num_epochs = 100
+    num_epochs = 10
     for epoch in xrange(num_epochs):
         total_loss = 0
         for loss, k_weights in zip(losses, all_k_weights):
@@ -267,11 +267,12 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
                 cur_k_weights.value = None
         print "Current loss after epoch", epoch, ":", total_loss
 
-    def make_predictions(smile):
-        mol = Chem.MolFromSmiles(smile)
-        graph = BuildGraphFromMolecule(mol)
-        _, _, output = BuildNetFromGraph(graph, np_weights, None)
-        return output.value*targ_std + targ_mean
+    def make_predictions(smiles):
+        for smile in smiles:
+            mol = Chem.MolFromSmiles(smile)
+            graph = BuildGraphFromMolecule(mol)
+            _, _, output = BuildNetFromGraph(graph, np_weights, None, num_layers)
+            return output.value*targ_std + targ_mean
 
     return make_predictions
 
@@ -280,26 +281,30 @@ def main():
 
     datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
 
-    #trainfile = datadir + 'davids-validation-split/train_split.csv'
-    trainfile = datadir + 'davids-validation-split/tiny.csv'
+    trainfile = datadir + 'davids-validation-split/train_split.csv'
+    #trainfile = datadir + 'davids-validation-split/tiny.csv'
     testfile = datadir + 'davids-validation-split/test_split.csv'
+    #testfile = datadir + 'davids-validation-split/tiny.csv'
 
     print "Loading training data..."
     traindata = load_molecules(trainfile, transform = np.log)
 
+    print "Loading test data..."
+    testdata = load_molecules(testfile, transform = np.log)
+
     # Custom Neural Net
     pred_func_custom = train_custom_nn(traindata['smiles'], traindata['y'])
-    train_preds = pred_func_custom( train_features )
-    valid_preds = pred_func_custom( valid_features )
-    print "Custom net performance: ", \
-        np.mean(np.abs(train_preds-train_targets)), np.mean(np.abs(valid_preds-valid_targets))
+    train_preds = pred_func_custom( traindata['smiles'] )
+    test_preds = pred_func_custom( testdata['smiles'] )
+    print "Custom net test performance: ", \
+        np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
 
     # Vanilla Neural Net
     pred_func_vanilla = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    train_preds = pred_func_vanilla( train_features )
-    valid_preds = pred_func_vanilla( valid_features )
-    print "Vanilla net performance: ", \
-        np.mean(np.abs(train_preds-train_targets)), np.mean(np.abs(valid_preds-valid_targets))
+    train_preds = pred_func_vanilla( traindata['fingerprints'] )
+    test_preds = pred_func_vanilla( testdata['fingerprints'] )
+    print "Vanilla net test performance: ", \
+        np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
         
 
 if __name__ == '__main__':
