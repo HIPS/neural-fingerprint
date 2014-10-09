@@ -6,24 +6,20 @@
 #
 # Sept 25th, 2014
 
-
 import sys
 import numpy as np
 import numpy.random as npr
-import pandas as pd
-
 from rdkit.Chem import AllChem, MolFromSmiles
-
 sys.path.append('../../Kayak/')
 import kayak
-
 from MolGraph import *
 from features import *
-
+from load_data import load_molecules
+import time
 
 num_folds    = 2
 batch_size   = 256
-num_epochs   = 10
+num_epochs   = 5
 learn_rate   = 0.001
 momentum     = 0.95
 h1_dropout   = 0.1
@@ -33,12 +29,10 @@ dropout_prob = 0.1
 l1_weight    = 1.0
 l2_weight    = 1.0
 
-
-def compute_features(mol, size=512, radius=2):
-    return AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=size)
+num_edges = []
+num_atoms = []
 
 def train_2layer_nn(features, targets):
-    
     # Normalize the outputs.
     targ_mean = np.mean(targets)
     targ_std  = np.std(targets)
@@ -63,13 +57,11 @@ def train_2layer_nn(features, targets):
     mom_grad_W2 = np.zeros(W2.shape)
 
     for epoch in xrange(num_epochs):
-
         total_loss = 0.0
         total_err  = 0.0
         total_data = 0
         
         for batch in batcher:
-
             H1.draw_new_mask()
 
             total_loss += L.value
@@ -98,60 +90,11 @@ def train_2layer_nn(features, targets):
 
     return make_predictions
 
-
-
-def stringlist2intarray(A):
-    '''This function will convert from a list of strings "10010101" into in integer numpy array '''
-    return np.array([list(s) for s in A], dtype=int)
-
-
-def load_molecules(filename, test=False, predict_field='rate', transform=None, cutoff = None):
-
-    data = pd.io.parsers.read_csv(filename, sep=',')  # Load the data.
-    fingerprints = [smile_to_fp(s) for s in list(data['smiles'])]
-
-    alldata = {}
-    alldata['fingerprints'] = stringlist2intarray(fingerprints)  # N by D
-    alldata['inchi_key'] = data['inchi_key']
-    alldata['smiles'] = data['smiles']
-
-    if test == False:
-        alldata['y'] = np.array(transform(data[predict_field]))[:, None]  # Load targets
-
-        if cutoff:
-            above_cutoff = (alldata['y'] > cutoff) & np.isfinite(alldata['y'])
-        else:
-            above_cutoff = np.isfinite(alldata['y'])
-        alldata = slicedict(alldata, above_cutoff)
-        print "Datapoints thrown away:", np.sum(np.logical_not(above_cutoff))
-        print "Datapoints kept:", np.sum(above_cutoff)
-
-    return alldata
-
-
-def slicedict(d, ixs):
-    newd = {}
-    for key in d:
-        newd[key] = d[key][ixs.flatten()]
-    return newd
-
-def smile_to_fp(s):
-    fplength = 512
-    radius = 4
-    m = Chem.MolFromSmiles(s)
-    return (AllChem.GetMorganFingerprintAsBitVect(m, radius,
-                                                  nBits=fplength)).ToBitString()
-
-
-
 def BuildGraphFromMolecule(mol):
     # Replicate the graph that RDKit produces.
     # Go on and extract features using RDKit also.
-
     graph = MolGraph()
-
     AllChem.Compute2DCoords(mol)    # Only for visualization.
-
 
     # Iterate over the atoms.
     rd_atoms = {}
@@ -170,30 +113,40 @@ def BuildGraphFromMolecule(mol):
         graph.add_edge( Edge(rd_atoms[atom1.GetIdx()],
                              rd_atoms[atom2.GetIdx()],
                              nodes=[kayak.Inputs(bond_features(bond)[None, :])] ))
+    num_edges.append(len(graph.edges))
+    num_atoms.append(len(graph.verts))
+
     return graph
-
-
-
 
 def BuildNetFromGraph(graph, np_weights, target, num_layers):
     # This first version just tries to emulate ECFP, with different weights on each layer
 
     # Dict comprehension to loop over layers and types.
     k_weights = {key: kayak.Parameter(weights) for key, weights in np_weights.iteritems()}
-
+    # Build concatenated sets of weights
+    cat_weights = {}
+    for layer in range(num_layers):
+        cur_cat = k_weights[('self', layer)]
+        for num_neighbors in [1, 2, 3, 4]:
+            cur_cat = kayak.Concatenate(0, cur_cat,
+                                        k_weights[('other', layer)],
+                                        k_weights[('edge', layer)])
+            cat_weights[(layer, num_neighbors)] = cur_cat
+    
     for layer in range(num_layers):
         # Every atom and edge is a separate Kayak Input. These inputs already live in the graph.
         for v in graph.verts:
             # Create a Differentiable node N that depends on the corresponding node in the previous layer, its edges,
             # and its neighbours.
-            mults = [kayak.MatMult(v.nodes[layer], k_weights[('self', layer)])]
-            for n in v.get_neighbors()[0]:
-                mults.append(kayak.MatMult( n.nodes[layer], k_weights[('other', layer)]))
-            for e in v.edges:
-                mults.append(kayak.MatMult( e.nodes[layer], k_weights[('edge', layer)]))
-
-            # Add the next layer of computation to this node.
-            v.nodes.append(kayak.SoftReLU(kayak.ElemAdd(*mults)))
+            # First we'll concatenate all the input nodes:
+            nodes_to_cat = [v.nodes[layer]]
+            neighbors = zip(*v.get_neighbors()) # list of (node, edge) tuple
+            num_neighbors = len(neighbors)
+            for n, e in neighbors:
+                nodes_to_cat.append(n.nodes[layer])
+                nodes_to_cat.append(e.nodes[layer])
+            cat_node = kayak.Concatenate(1, *nodes_to_cat)
+            v.nodes.append(kayak.SoftReLU(kayak.MatMult(cat_node, cat_weights[(layer, num_neighbors)])))
 
         for e in graph.edges:
             e.nodes.append(kayak.Identity(e.nodes[layer]))
@@ -209,7 +162,6 @@ def BuildNetFromGraph(graph, np_weights, target, num_layers):
     return kayak.L2Loss(output, kayak.Targets(target)), k_weights, output
 
 def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
-
     num_layers = len(num_hidden_features)
 
     # Figure out how many features we have.
@@ -231,25 +183,34 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
     targ_mean = np.mean(targets)
     targ_std  = np.std(targets)
 
+    start = time.time()
     # Build a list of custom neural nets, one for each molecule, all sharing the same set of weights.
     losses = []
     all_k_weights = []
     print "Building molecular nets",
+    i = 0
     for smile, target in zip(smiles, targets):
         mol = Chem.MolFromSmiles(smile)
         graph = BuildGraphFromMolecule(mol)
         loss, k_weights, _ = BuildNetFromGraph(graph, np_weights, (target - targ_mean)/targ_std, num_layers)
         losses.append(loss)
         all_k_weights.append(k_weights)
-        print ".",
+        i += 1
+        if i % 100 == 0:
+            print "Built %s" % i
+
+    print "Mean num edges: ", np.mean(num_edges)
+    print "Mean num atoms: ", np.mean(num_atoms)
+    print "Finished building kayak nets"
+    duration = time.time() - start
+    print "Time taken %s" % duration
 
     # Now actually learn.
-
+    start = time.time()
     learn_rate = 1e-6
-
     # TODO: implement RMSProp or whatever.
     print "\nTraining parameters",
-    num_epochs = 10
+    num_epochs = 5
     for epoch in xrange(num_epochs):
         total_loss = 0
         for loss, k_weights in zip(losses, all_k_weights):
@@ -267,24 +228,31 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
                 cur_k_weights.value = None
         print "Current loss after epoch", epoch, ":", total_loss
 
+    print "Finished training. Check memory consumption"
+    duration = time.time() - start
+    print "Time taken %s" % duration
+
     def make_predictions(smiles):
+        predictions = []
         for smile in smiles:
             mol = Chem.MolFromSmiles(smile)
             graph = BuildGraphFromMolecule(mol)
             _, _, output = BuildNetFromGraph(graph, np_weights, None, num_layers)
-            return output.value*targ_std + targ_mean
+            predictions.append(output.value*targ_std + targ_mean)
+        return predictions
 
     return make_predictions
 
-
 def main():
+    # datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
+    datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
 
-    datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
-
-    trainfile = datadir + 'davids-validation-split/train_split.csv'
-    #trainfile = datadir + 'davids-validation-split/tiny.csv'
-    testfile = datadir + 'davids-validation-split/test_split.csv'
-    #testfile = datadir + 'davids-validation-split/tiny.csv'
+    # trainfile = datadir + 'davids-validation-split/train_split.csv'
+    # testfile = datadir + 'davids-validation-split/test_split.csv'
+    trainfile = datadir + 'davids-validation-split/tiny.csv'
+    testfile = datadir + 'davids-validation-split/tiny.csv'
+    # trainfile = datadir + 'davids-validation-split/1k_set.csv'
+    # testfile = datadir + 'davids-validation-split/1k_set.csv'
 
     print "Loading training data..."
     traindata = load_molecules(trainfile, transform = np.log)
@@ -306,6 +274,5 @@ def main():
     print "Vanilla net test performance: ", \
         np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
         
-
 if __name__ == '__main__':
     sys.exit(main())
