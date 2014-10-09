@@ -20,7 +20,6 @@ from features import *
 from load_data import load_molecules
 from build_kayak_net import *
 
-
 num_folds    = 2
 batch_size   = 256
 num_epochs   = 5
@@ -91,15 +90,11 @@ def train_2layer_nn(features, targets):
 
     return make_predictions
 
-
-
 def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
+    # Figure out how many features and layers we have.
     num_layers = len(num_hidden_features)
-
-    # Figure out how many features we have.
-    graph = BuildGraphFromMolecule(Chem.MolFromSmiles('C=C'))   # Hacky? You decide.
-    num_atom_features = graph.verts[0].nodes[0].shape[1]
-    num_edge_features = graph.edges[0].nodes[0].shape[1]
+    num_atom_features = atom_features()
+    num_edge_features = bond_features()
     num_features = [num_atom_features] + num_hidden_features
 
     # Initialize the weights
@@ -114,28 +109,19 @@ def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
     # Normalize the outputs.
     targ_mean = np.mean(targets)
     targ_std  = np.std(targets)
+    normed_targets = (targets - targ_mean) / targ_std
 
-    # Build a list of custom neural nets, one for each molecule, all sharing the same set of weights.
-    losses = []
-    all_k_weights = []
-    print "Building molecular nets",
-    for smile, target in zip(smiles, targets):
-        mol = Chem.MolFromSmiles(smile)
-        graph = BuildGraphFromMolecule(mol)
-        loss, k_weights, _ = BuildNetFromGraph(graph, np_weights, (target - targ_mean)/targ_std, num_layers)
-        losses.append(loss)
-        all_k_weights.append(k_weights)
-
-    print "Finished building kayak nets"
-
-    # Now actually learn.
-    learn_rate = 1e-6
+    # Learn the weights
+    learn_rate = 1e-7
     num_epochs = 5
     # TODO: implement RMSProp or whatever.
     print "\nTraining parameters",
     for epoch in xrange(num_epochs):
         total_loss = 0
-        for loss, k_weights in zip(losses, all_k_weights):
+        for smile, target in zip(smiles, normed_targets):
+            mol = Chem.MolFromSmiles(smile)
+            graph = BuildGraphFromMolecule(mol)
+            loss, k_weights, _ = BuildNetFromGraph(graph, np_weights, target, num_layers)
             # Loop over kayak parameter vectors and evaluate the gradient w.r.t. each one.
             # Take a step on all parameters.
             for key, cur_k_weights in k_weights.iteritems():
@@ -143,11 +129,8 @@ def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
                 cur_k_weights.value = np_weights[key]
             total_loss += loss.value
             for key, cur_k_weights in k_weights.iteritems():
-                cur_grad = loss.grad(cur_k_weights)
-                np_weights[key] -= cur_grad * learn_rate
-            for key, cur_k_weights in k_weights.iteritems():
-                # Set weights value to None so that the weights arrays can be garbage-collected
-                cur_k_weights.value = None
+                np_weights[key] -= loss.grad(cur_k_weights) * learn_rate
+
         print "Current loss after epoch", epoch, ":", total_loss
 
     print "Finished training"
@@ -164,8 +147,8 @@ def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
     return make_predictions
 
 def main():
-    datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
-    # datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
+    # datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
+    datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
 
     # trainfile = datadir + 'davids-validation-split/train_split.csv'
     # testfile = datadir + 'davids-validation-split/test_split.csv'
@@ -184,15 +167,19 @@ def main():
     pred_func_custom = train_custom_nn(traindata['smiles'], traindata['y'])
     train_preds = pred_func_custom( traindata['smiles'] )
     test_preds = pred_func_custom( testdata['smiles'] )
-    print "Custom net test performance: ", \
-        np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
+    print "Custom net test performance (train/test mean abs error):"
+    print np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
 
     # Vanilla Neural Net
     pred_func_vanilla = train_2layer_nn(traindata['fingerprints'], traindata['y'])
     train_preds = pred_func_vanilla( traindata['fingerprints'] )
     test_preds = pred_func_vanilla( testdata['fingerprints'] )
-    print "Vanilla net test performance: ", \
-        np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
-        
+    print "Vanilla net test performance (train/test mean abs error): "
+    print np.mean(np.abs(train_preds-traindata['y'])), np.mean(np.abs(test_preds-testdata['y']))
+
+    print "Mean predictor performance abs error (train/test):"
+    train_mean = np.mean(traindata['y'])
+    print np.mean(np.abs(train_mean-traindata['y'])), np.mean(np.abs(train_mean-testdata['y']))
+
 if __name__ == '__main__':
     sys.exit(main())
