@@ -34,9 +34,9 @@ def drawComputationGraph(mol_graph, target):
     # Now plot all edges of interest given these positions.
     ax = plt.figure().add_subplot(111, projection = '3d')
     for n1, n2 in find_all_edges_leading_to(target):
-        if not isinstance(n1, (kayak.Parameter, kayak.Targets)) and not isinstance(n2, (kayak.Parameter, kayak.Targets)):
-            pos1 = position(n1, node_positions)
-            pos2 = position(n2, node_positions)
+        pos1 = position(n1, node_positions)
+        pos2 = position(n2, node_positions)
+        if pos1 and pos2:
             ax.plot(*(zip(pos1, pos2)), color="RoyalBlue", lw=1)
 
     # Finally, plot the edges corresponding to the molecule itself
@@ -71,10 +71,13 @@ def position(k_node, node_positions):
     """node is a kayak node."""
     if k_node in node_positions:
         return node_positions[k_node]
+    elif not k_node._parents:
+        return None
     else:
-        parents_positions = [position(p, node_positions)
-                             for p in k_node._parents
-                             if not isinstance(p, (kayak.Parameter, kayak.Targets))]
+        parents_positions = [position(p, node_positions) for p in k_node._parents]
+        parents_positions = [p for p in parents_positions if p is not None]
+        if not parents_positions:
+            return None
         xs, ys, zs = zip(*parents_positions)
         new_x = np.mean(xs)
         new_y = np.mean(ys)
