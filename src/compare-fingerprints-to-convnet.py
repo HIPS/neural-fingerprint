@@ -158,10 +158,9 @@ def BuildNetFromGraph(graph, np_weights, target, num_layers):
 
     # Perform a little more computation to get a single number.
     output = kayak.MatMult(output_layer, k_weights['out'])
-
     return kayak.L2Loss(output, kayak.Targets(target)), k_weights, output
 
-def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
+def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
     num_layers = len(num_hidden_features)
 
     # Figure out how many features we have.
@@ -170,7 +169,7 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
     num_edge_features = graph.edges[0].nodes[0].shape[1]
     num_features = [num_atom_features] + num_hidden_features
 
-    # Create weights ot be passed in to all the networks we build.
+    # Initialize the weights
     np_weights = {}
     for layer in range(num_layers):
         np_weights[('self', layer)] = 0.1*npr.randn(num_features[layer], num_features[layer + 1])
@@ -183,34 +182,26 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
     targ_mean = np.mean(targets)
     targ_std  = np.std(targets)
 
-    start = time.time()
     # Build a list of custom neural nets, one for each molecule, all sharing the same set of weights.
     losses = []
     all_k_weights = []
     print "Building molecular nets",
-    i = 0
     for smile, target in zip(smiles, targets):
         mol = Chem.MolFromSmiles(smile)
         graph = BuildGraphFromMolecule(mol)
         loss, k_weights, _ = BuildNetFromGraph(graph, np_weights, (target - targ_mean)/targ_std, num_layers)
         losses.append(loss)
         all_k_weights.append(k_weights)
-        i += 1
-        if i % 100 == 0:
-            print "Built %s" % i
 
     print "Mean num edges: ", np.mean(num_edges)
     print "Mean num atoms: ", np.mean(num_atoms)
     print "Finished building kayak nets"
-    duration = time.time() - start
-    print "Time taken %s" % duration
 
     # Now actually learn.
-    start = time.time()
     learn_rate = 1e-6
+    num_epochs = 5
     # TODO: implement RMSProp or whatever.
     print "\nTraining parameters",
-    num_epochs = 5
     for epoch in xrange(num_epochs):
         total_loss = 0
         for loss, k_weights in zip(losses, all_k_weights):
@@ -228,9 +219,7 @@ def train_custom_nn(smiles, targets, num_hidden_features = [10, 10]):
                 cur_k_weights.value = None
         print "Current loss after epoch", epoch, ":", total_loss
 
-    print "Finished training. Check memory consumption"
-    duration = time.time() - start
-    print "Time taken %s" % duration
+    print "Finished training"
 
     def make_predictions(smiles):
         predictions = []
