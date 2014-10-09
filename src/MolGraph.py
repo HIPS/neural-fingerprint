@@ -1,5 +1,4 @@
 
-
 class MolGraph:
 
     def __init__(self):
@@ -21,13 +20,11 @@ class MolGraph:
     def get_edges(self):
         return self.edges
 
-
-
 class Vertex:
-
+    __slots__ = ['data', 'edges']
     def __init__(self, **kwargs):
         self.data  = kwargs         # Keep track of each atom's features.
-        self.edges = []
+        self.edges = ()
 
     def get_degree(self):
         return len(self.edges)
@@ -35,7 +32,7 @@ class Vertex:
     def add_edge(self, edge):
         if edge in self.edges:
             raise Exception("Edge is already associated with vertex.  Self loops are not currently supported.")
-        self.edges.append(edge)
+        self.edges = self.edges + (edge, )
 
     def get_neighbors(self):
         return [e.other_vertex(self) for e in self.edges], self.edges
@@ -46,10 +43,8 @@ class Vertex:
         else:
             raise AttributeError("%r object has no attribute %r" % (self.__class__, name))
 
-
-
 class Edge:
-
+    __slots__ = ['vert1', 'vert2', 'data']
     def __init__(self, vert1, vert2, **kwargs):
         self.vert1 = vert1
         self.vert2 = vert2
