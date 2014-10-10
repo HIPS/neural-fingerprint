@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 import numpy.random as npr
+import  itertools as it
 from rdkit.Chem import AllChem, MolFromSmiles
 sys.path.append('../../Kayak/')
 import kayak
@@ -9,6 +10,27 @@ from MolGraph import *
 from features import *
 from load_data import load_molecules
 
+
+def initialize_weights(num_hidden_features, scale):
+    num_layers = len(num_hidden_features)
+    num_atom_features = atom_features()
+    num_edge_features = bond_features()
+    num_features = [num_atom_features] + num_hidden_features
+    # Initialize the weights
+    np_weights = {}
+    np_weights['out'] = scale * npr.randn(num_features[-1], 1)
+    for layer in range(num_layers):
+        N_prev, N_next = num_features[layer], num_features[layer + 1]
+        np_weights[('self', layer)]  = scale * npr.randn(N_prev, N_next)
+        np_weights[('other', layer)] = scale * npr.randn(N_prev, N_next)
+        np_weights[('edge', layer)]  = scale * npr.randn(num_edge_features, N_next)
+
+    return np_weights
+
+def BuildNetFromSmiles(smile, np_weights, target):
+    mol = Chem.MolFromSmiles(smile)
+    graph = BuildGraphFromMolecule(mol)
+    return BuildNetFromGraph(graph, np_weights, target)
 
 def BuildGraphFromMolecule(mol):
     # Replicate the graph that RDKit produces.
@@ -36,14 +58,18 @@ def BuildGraphFromMolecule(mol):
 
     return graph
 
-def BuildNetFromGraph(graph, np_weights, target, num_layers):
+def BuildNetFromGraph(graph, np_weights, target):
     # This first version just tries to emulate ECFP, with different weights on each layer
 
     # Dict comprehension to loop over layers and types.
     k_weights = {key: kayak.Parameter(weights) for key, weights in np_weights.iteritems()}
     # Build concatenated sets of weights
     cat_weights = {}
-    for layer in range(num_layers):
+    for layer in it.count():
+        if ('self', layer) not in k_weights:
+            num_layers = layer
+            break
+
         cur_cat = k_weights[('self', layer)]
         for num_neighbors in [1, 2, 3, 4]:
             cur_cat = kayak.Concatenate(0, cur_cat,
