@@ -41,20 +41,20 @@ def BuildGraphFromMolecule(mol):
     # Iterate over the atoms.
     rd_atoms = {}
     for atom in mol.GetAtoms():
-        rd_atoms[atom.GetIdx()] = Vertex( nodes = [kayak.Inputs(atom_features(atom)[None,:])] )
-        new_vert = rd_atoms[atom.GetIdx()]
+        new_vert = Vertex()
+        new_vert.nodes = [kayak.Inputs(atom_features(atom)[None,:])]
         pos = mol.GetConformer().GetAtomPosition(atom.GetIdx())
         new_vert.pos = (pos.x, pos.y)
         graph.add_vert( new_vert )
+        rd_atoms[atom.GetIdx()] = new_vert
 
     # Iterate over the bonds.
     for bond in mol.GetBonds():
         atom1 = bond.GetBeginAtom()
         atom2 = bond.GetEndAtom()
-
-        graph.add_edge( Edge(rd_atoms[atom1.GetIdx()],
-                             rd_atoms[atom2.GetIdx()],
-                             nodes=[kayak.Inputs(bond_features(bond)[None, :])] ))
+        new_edge = Edge(rd_atoms[atom1.GetIdx()], rd_atoms[atom2.GetIdx()])
+        new_edge.nodes = [kayak.Inputs(bond_features(bond)[None, :])]
+        graph.add_edge(new_edge)
 
     return graph
 
