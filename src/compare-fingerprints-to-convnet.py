@@ -22,7 +22,7 @@ from build_kayak_net import *
 def train_2layer_nn(features, targets):
     # Hyperparameters
     batch_size   = 256
-    num_epochs   = 25
+    num_epochs   = 50
     learn_rate   = 0.001
     momentum     = 0.98
     h1_dropout   = 0.01
@@ -70,12 +70,12 @@ def train_2layer_nn(features, targets):
 
     return make_predictions
 
-def train_custom_nn(smiles, targets, num_hidden_features = [50, 50]):
+def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
     # Training parameters:
     learn_rate = 1e-4
     momentum = 0.99
     param_scale = 0.1
-    num_epochs = 5
+    num_epochs = 50
     
     # Normalize the outputs.
     targ_mean, targ_std = np.mean(targets), np.std(targets)

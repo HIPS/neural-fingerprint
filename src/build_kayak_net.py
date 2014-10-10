@@ -10,7 +10,6 @@ from MolGraph import *
 from features import *
 from load_data import load_molecules
 
-
 def initialize_weights(num_hidden_features, scale):
     num_layers = len(num_hidden_features)
     num_atom_features = atom_features()
@@ -90,7 +89,7 @@ def BuildNetFromGraph(graph, np_weights, target):
                 nodes_to_cat.append(n.nodes[layer])
                 nodes_to_cat.append(e.nodes[layer])
             cat_node = kayak.Concatenate(1, *nodes_to_cat)
-            v.nodes.append(kayak.SoftReLU(kayak.MatMult(cat_node, cat_weights[(layer, num_neighbors)])))
+            v.nodes.append(kayak.Logistic(kayak.MatMult(cat_node, cat_weights[(layer, num_neighbors)])))
 
         for e in graph.edges:
             e.nodes.append(kayak.Identity(e.nodes[layer]))
@@ -98,7 +97,8 @@ def BuildNetFromGraph(graph, np_weights, target):
     # Connect everything to the fixed-size layer using some sort of max
     penultimate_nodes = [v.nodes[-1] for v in graph.verts]
     concatenated = kayak.Concatenate( 0, *penultimate_nodes)
-    output_layer = kayak.MatSum( concatenated, 0)   # TODO: Turn sum into a softmax.
+    softmax_layer = kayak.SoftMax(concatenated, axis=0)
+    output_layer = kayak.MatSum(kayak.MatElemMult(concatenated, softmax_layer), axis=0)
 
     # Perform a little more computation to get a single number.
     output = kayak.MatMult(output_layer, k_weights['out'])
