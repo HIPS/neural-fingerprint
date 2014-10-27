@@ -50,7 +50,7 @@ def main():
 
     np_weights['out'] = 0.1*npr.randn(num_features[-1], 1)
 
-    net, k_weights, _ = BuildNetFromGraph(graph,np_weights, 1., num_layers)
+    net, k_weights, _ = BuildNetFromGraph(graph,np_weights, num_layers)
 
     print "Evaluating the network..."
     net.value

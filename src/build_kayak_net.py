@@ -6,9 +6,13 @@ import  itertools as it
 from rdkit.Chem import AllChem, MolFromSmiles
 sys.path.append('../../Kayak/')
 import kayak
+import kayak as ky
+import kayak_ops as mk
 from MolGraph import *
 from features import *
 from load_data import load_molecules
+
+# --- Functions working with linked object representation of molecules ---
 
 def initialize_weights(num_hidden_features, scale):
     num_layers = len(num_hidden_features)
@@ -17,13 +21,13 @@ def initialize_weights(num_hidden_features, scale):
     num_features = [num_atom_features] + num_hidden_features
     # Initialize the weights
     np_weights = {}
-    np_weights['out'] = scale * npr.randn(num_features[-1], 1)
+
     for layer in range(num_layers):
         N_prev, N_next = num_features[layer], num_features[layer + 1]
         np_weights[('self', layer)]  = scale * npr.randn(N_prev, N_next)
         np_weights[('other', layer)] = scale * npr.randn(N_prev, N_next)
         np_weights[('edge', layer)]  = scale * npr.randn(num_edge_features, N_next)
-
+    np_weights['out'] = scale * npr.randn(num_features[-1], 1)
     return np_weights
 
 def BuildNetFromSmiles(smile, np_weights, target):
@@ -104,3 +108,91 @@ def BuildNetFromGraph(graph, np_weights, target):
     output = kayak.MatMult(output_layer, k_weights['out'])
     return kayak.L2Loss(output, kayak.Targets(target)), k_weights, output
 
+# --- Functions working with array representation of molecules ---
+
+def build_universal_net(num_hidden, param_scale):
+    # Derived parameters
+    layer_sizes = [atom_features()] + num_hidden
+    k_weights = []
+    def new_weights(shape):
+        return new_parameters(k_weights, shape, param_scale)
+
+    mol = new_kayak_mol_input()
+    cur_atoms = mol['atom_features']
+    for N_prev, N_curr in zip(layer_sizes[:-1], layer_sizes[1:]):
+        w_self = new_weights((N_prev, N_curr))
+        w_atom_cat = cat_weights(new_weights((N_prev, N_curr)))
+        w_bond_cat = cat_weights(new_weights((bond_features(), N_curr)))
+        cur_atoms = ky.Logistic(ky.MatAdd(
+            ky.MatMult(cur_atoms, w_self),
+            mk.NeighborMatMult(cur_atoms,
+                               mol['atom_atom_neighbors'],
+                               w_atom_cat),
+            mk.NeighborMatMult(mol['bond_features'],
+                               mol['atom_bond_neighbors'],
+                               w_bond_cat)))
+
+    output = ky.MatMult(softened_max(cur_atoms), new_weights((N_curr, 1)))
+    target = ky.Targets(None)
+    loss = ky.L2Loss(output, target)
+    return mol, target, loss, output, k_weights
+
+def arrayrep_from_smiles(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    rdkit_atoms = mol.GetAtoms()
+    rdkit_bonds = mol.GetBonds()
+    num_atoms, num_bonds = len(rdkit_atoms), len(rdkit_bonds)
+    graph = {'atom_features'       : np.zeros((num_atoms, atom_features())),
+             'bond_features'       : np.zeros((num_bonds, bond_features())),
+             'bond_neighbors'      : [None] * num_bonds,
+             'atom_atom_neighbors' : [[] for i in xrange(num_atoms)],
+             'atom_bond_neighbors' : [[] for i in xrange(num_atoms)]}
+    for atom in rdkit_atoms:
+        idx = atom.GetIdx()
+        graph['atom_features'][idx, :] = atom_features(atom)
+
+    for bond in rdkit_bonds:
+        idx = bond.GetIdx()
+        graph['bond_features'][idx, :] = bond_features(bond)
+        graph['bond_neighbors'][idx] = [bond.GetBeginAtom().GetIdx(),
+                                        bond.GetEndAtom().GetIdx()]
+
+    # No new information here, just useful representations
+    for bond_idx, atom_idxs in enumerate(graph['bond_neighbors']):
+        atom_A, atom_B = atom_idxs
+        graph['atom_atom_neighbors'][atom_A].append(atom_B)
+        graph['atom_atom_neighbors'][atom_B].append(atom_A)
+        graph['atom_bond_neighbors'][atom_A].append(bond_idx)
+        graph['atom_bond_neighbors'][atom_B].append(bond_idx)
+
+    return graph
+
+def load_new_input(input_mol, simple_graph):
+    for field in input_mol:
+        input_mol[field].data = simple_graph[field]
+
+def new_kayak_mol_input():
+    mol_fields = ['atom_features',
+                  'bond_features',
+                  'atom_atom_neighbors',
+                  'atom_bond_neighbors',
+                  'bond_neighbors']
+    return {field : kayak.Inputs(None) for field in mol_fields}
+
+# --- Useful functions for building nets ---
+def cat_weights(w):
+    cat = {1 : w}
+    for i in [2, 3, 4]:
+        cat[i] = ky.Concatenate(0, cat[i-1], w)
+
+    return cat
+
+def new_parameters(parameter_list, shape, scale=0.1):
+    new = ky.Parameter(np.random.randn(*shape) * scale)
+    parameter_list.append(new)
+    return new
+
+def softened_max(features):
+    return ky.MatSum(ky.ElemMult(features,
+                                 ky.SoftMax(features, axis=0)),
+                     axis=0)

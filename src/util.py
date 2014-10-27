@@ -49,8 +49,6 @@ def drawComputationGraph(mol_graph, target):
 
     plt.show()
 
-
-
 def find_all_edges_leading_to(k_target):
     # TODO: Move into Kayak.
     found = {}
@@ -84,3 +82,17 @@ def position(k_node, node_positions):
         new_z = np.max(zs) + 1
         node_positions[k_node] = (new_x, new_y, new_z)
         return position(k_node, node_positions)
+
+# "Counterfactual value" - helper function to allow testing different inputs
+def c_value(k_node, node_values):
+    node_old_values = {}
+    for node, new_value in node_values.iteritems():
+        node_old_values[node] = node.value
+        node.value = new_value
+
+    output_value = c_value.value
+
+    for node, old_value in node_old_values.iteritems():
+        node.value = old_value
+
+    return output_value
