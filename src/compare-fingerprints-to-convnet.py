@@ -22,13 +22,13 @@ datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014
 
 # trainfile = datadir + 'davids-validation-split/train_split.csv'
 # testfile  = datadir + 'davids-validation-split/test_split.csv'
-trainfile = datadir + 'davids-validation-split/tiny.csv'
-testfile  = datadir + 'davids-validation-split/tiny.csv'
-# trainfile = datadir + 'davids-validation-split/1k_set.csv'
-# testfile  = datadir + 'davids-validation-split/1k_set.csv'
+# trainfile = datadir + 'davids-validation-split/tiny.csv'
+# testfile  = datadir + 'davids-validation-split/tiny.csv'
+trainfile = datadir + 'davids-validation-split/1k_set.csv'
+testfile  = datadir + 'davids-validation-split/1k_set.csv'
 
 # Parameters for both custom nets
-num_epochs = 20
+num_epochs = 10
 batch_size = 200
 learn_rate = 1e-2
 momentum = 0.99

@@ -16,7 +16,20 @@ class MolGraph(object):
         new_nodes = subgraph.nodes
         for ntype in set(old_nodes.keys()) | set(new_nodes.keys()):
             old_nodes.setdefault(ntype, []).extend(new_nodes.get(ntype, []))
-        
+
+    def sort_nodes_by_degree(self, ntype):
+        nodes_by_degree = {i : [] for i in [1, 2, 3, 4]}
+        for node in self.nodes[ntype]:
+            nodes_by_degree[len(node.get_neighbors(ntype))].append(node)
+
+        new_nodes = []
+        for degree in [1, 2, 3, 4]:
+            cur_nodes = nodes_by_degree[degree]
+            self.nodes[(ntype, degree)] = cur_nodes
+            new_nodes.extend(cur_nodes)
+
+        self.nodes[ntype] = new_nodes
+
     def feature_array(self, ntype):
         assert ntype in self.nodes
         return np.array([node.features for node in self.nodes[ntype]])
@@ -48,6 +61,8 @@ def graph_from_smiles_list(smiles_list):
     big_graph = MolGraph()
     for subgraph in graph_list:
         big_graph.add_subgraph(subgraph)
+
+    big_graph.sort_nodes_by_degree('atom')
     return big_graph
 
 def graph_from_smiles(smiles):
