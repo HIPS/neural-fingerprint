@@ -1,4 +1,3 @@
-
 class MolGraph(object):
     def __init__(self):
         self.verts = []

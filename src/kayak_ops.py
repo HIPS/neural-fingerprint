@@ -5,7 +5,7 @@ import numpy as np
 import kayak
 
 class NeighborMatMult(kayak.Differentiable):
-    def __init__(self, features, idxs, weights):
+    def __init__(self, idxs, features, weights):
         super(NeighborMatMult, self).__init__(
             (features, idxs) + tuple(weights.values()))
 
@@ -17,14 +17,12 @@ class NeighborMatMult(kayak.Differentiable):
         features = self.features.value
         weights = {k : v.value for k, v in self.weights.iteritems()}
         idxs = self.idxs.value
-        D_out = weights[1].shape[1]
-        N_out = len(idxs)
-        result = np.zeros((N_out, D_out))
-        for i, idx_list in enumerate(idxs):
+        result_rows = []
+        for idx_list in idxs:
             cat_row = np.concatenate([features[idx, :] for idx in idx_list], axis=1)
-            result[i, :] = np.dot(cat_row, weights[len(idx_list)])
+            result_rows.append(np.dot(cat_row, weights[len(idx_list)]))
 
-        return result
+        return np.array(result_rows)
 
     def _local_grad(self, parent, d_out_d_self):
         features = self.features.value
@@ -60,3 +58,41 @@ class NeighborMatMult(kayak.Differentiable):
         else:
             # Trying to differentiate wrt idxs
             raise ValueError("Not a valid parent to be differentiating with respect to")
+
+class NeighborSoftenedMax(kayak.Differentiable):
+    def __init__(self, idxs, features):
+        super(NeighborSoftenedMax, self).__init__((features, idxs))
+        self.features = features
+        self.idxs = idxs
+
+    def _compute_value(self):
+        idxs = self.idxs.value
+        features = self.features.value
+        result_rows = []
+        for idx_list in idxs:
+            result_rows.append(self._softened_max_func(features[idx_list, :]))
+
+        return np.array(result_rows)
+
+    def _softened_max_func(self, X):
+        exp_X = np.exp(X)
+        return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
+            
+    def _softened_max_grad(self, X):
+        exp_X = np.exp(X)
+        sum_exp_X = np.sum(exp_X, axis=0, keepdims=True)
+        sum_X_exp_X = np.sum(X * exp_X, axis=0, keepdims=True)
+        return exp_X * ((X + 1) * sum_exp_X - sum_X_exp_X) / sum_exp_X**2
+
+    def _local_grad(self, parent, d_out_d_self):
+        if parent is not 0:
+            raise ValueError("Not a valid parent to be differentiating with respect to")
+
+        idxs = self.idxs.value
+        features = self.features.value
+        result = np.zeros(features.shape)
+        for i, idx_list in enumerate(idxs):
+            result[idx_list] += (self._softened_max_grad(features[idx_list, :]) *
+                                 d_out_d_self[i, :][None, :])
+
+        return result
