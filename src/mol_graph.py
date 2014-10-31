@@ -1,6 +1,21 @@
 import numpy as np
 from rdkit.Chem import MolFromSmiles
 from features import atom_features, bond_features
+from functools import partial
+
+class memoize(object):
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+
+    def __call__(self, *args):
+        try:
+            return self.cache[args]
+        except KeyError:
+            return self.cache.setdefault(args, self.func(*args))
+
+    def __get__(self, obj, objtype):
+        return partial(self.__call__, obj)
 
 class MolGraph(object):
     def __init__(self):
@@ -30,10 +45,12 @@ class MolGraph(object):
 
         self.nodes[ntype] = new_nodes
 
+    @memoize
     def feature_array(self, ntype):
         assert ntype in self.nodes
         return np.array([node.features for node in self.nodes[ntype]])
 
+    @memoize
     def neighbor_list(self, self_ntype, neighbor_ntype):
         assert self_ntype in self.nodes and neighbor_ntype in self.nodes
         neighbor_idxs = {n : i for i, n in enumerate(self.nodes[neighbor_ntype])}

@@ -28,7 +28,7 @@ trainfile = datadir + 'davids-validation-split/1k_set.csv'
 testfile  = datadir + 'davids-validation-split/1k_set.csv'
 
 # Parameters for both custom nets
-num_epochs = 10
+num_epochs = 5
 batch_size = 200
 learn_rate = 1e-2
 momentum = 0.99
@@ -150,23 +150,23 @@ def main():
         print "Test: ", np.mean(np.abs(test_preds - testdata['y']))
         print "-" * 80
 
-    print "Mean predictor"
-    y_train_mean = np.mean(traindata['y'])
-    print_performance(lambda x : y_train_mean, 'smiles')
+    # print "Mean predictor"
+    # y_train_mean = np.mean(traindata['y'])
+    # print_performance(lambda x : y_train_mean, 'smiles')
 
     print "Training custom neural net : array representation"
     with tictoc():
         predictor = train_universal_custom_nn(traindata['smiles'], traindata['y'])
     print_performance(predictor, 'smiles')
 
-    print "Training custom neural net : linked node representation"
-    with tictoc():
-        predictor = train_custom_nn(traindata['smiles'], traindata['y'])
-    print_performance(predictor, 'smiles')
+    # print "Training custom neural net : linked node representation"
+    # with tictoc():
+    #     predictor = train_custom_nn(traindata['smiles'], traindata['y'])
+    # print_performance(predictor, 'smiles')
 
-    print "Training vanilla neural net"
-    predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    print_performance(predictor, 'fingerprints')
+    # print "Training vanilla neural net"
+    # predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
+    # print_performance(predictor, 'fingerprints')
 
 if __name__ == '__main__':
     sys.exit(main())
