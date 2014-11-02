@@ -20,23 +20,23 @@ from mol_graph import graph_from_smiles_list
 # datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
 datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
 
-# trainfile = datadir + 'davids-validation-split/train_split.csv'
-# testfile  = datadir + 'davids-validation-split/test_split.csv'
+trainfile = datadir + 'davids-validation-split/train_split.csv'
+testfile  = datadir + 'davids-validation-split/test_split.csv'
 # trainfile = datadir + 'davids-validation-split/tiny.csv'
 # testfile  = datadir + 'davids-validation-split/tiny.csv'
-trainfile = datadir + 'davids-validation-split/1k_set.csv'
-testfile  = datadir + 'davids-validation-split/1k_set.csv'
+# trainfile = datadir + 'davids-validation-split/1k_set.csv'
+# testfile  = datadir + 'davids-validation-split/1k_set.csv'
 
 # Parameters for both custom nets
-num_epochs = 5
+num_epochs = 500
 batch_size = 200
-learn_rate = 1e-2
-momentum = 0.99
+learn_rate = 1e-4
+momentum = 0.9
 param_scale = 0.1
-num_hidden_features = [100, 100]
+num_hidden_features = [200, 200, 200, 200]
 
 def train_2layer_nn(features, targets):
-    batch_size   = 64
+    batch_size   = 256
     learn_rate   = 0.001
     momentum     = 0.98
     h1_dropout   = 0.01
@@ -113,7 +113,7 @@ def train_universal_custom_nn(smiles, targets):
     npr.seed(1)
     normed_targets, undo_norm = normalize_array(targets)
     k_mol, k_target, loss, output, k_weights = \
-        build_universal_net(num_hidden_features, param_scale)
+        build_universal_net(num_hidden_features, param_scale, permutations=True)
     step_dirs = [np.zeros(w.shape) for w in k_weights]
     batches = batch_generator(batch_size, len(targets))
     mol_graphs = [graph_from_smiles_list(smiles[batch]) for batch in batches]
@@ -124,6 +124,8 @@ def train_universal_custom_nn(smiles, targets):
             k_mol.value, k_target.value = graph, target_val
             total_err += np.sum(np.abs(undo_norm(output.value) -
                                        undo_norm(target_val)))
+            d_shapes = [d.shape for d in step_dirs]
+            w_shapes = [loss.grad(w).shape for w in k_weights]
             step_dirs = [momentum * d - (1.0 - momentum) * loss.grad(w)
                          for d, w in zip(step_dirs, k_weights)]
             for w, d in zip(k_weights, step_dirs):
@@ -150,9 +152,9 @@ def main():
         print "Test: ", np.mean(np.abs(test_preds - testdata['y']))
         print "-" * 80
 
-    # print "Mean predictor"
-    # y_train_mean = np.mean(traindata['y'])
-    # print_performance(lambda x : y_train_mean, 'smiles')
+    print "Mean predictor"
+    y_train_mean = np.mean(traindata['y'])
+    print_performance(lambda x : y_train_mean, 'smiles')
 
     print "Training custom neural net : array representation"
     with tictoc():
@@ -164,9 +166,9 @@ def main():
     #     predictor = train_custom_nn(traindata['smiles'], traindata['y'])
     # print_performance(predictor, 'smiles')
 
-    # print "Training vanilla neural net"
-    # predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    # print_performance(predictor, 'fingerprints')
+    print "Training vanilla neural net"
+    predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
+    print_performance(predictor, 'fingerprints')
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -12,6 +12,34 @@ def get_neighbor_list(ky_mol_graph, ntypes):
     return ky.Blank([ky_mol_graph], lambda p :
                     p[0].value.neighbor_list(*ntypes))
 
+class NeighborStack(ky.Differentiable):
+    def __init__(self, idxs, features):
+        super(NeighborStack, self).__init__((features, idxs))
+        self.idxs = idxs
+        self.features = features
+
+    def _compute_value(self):
+        # dims of result are (atoms, neighbors, features)
+        idxs = self.idxs.value
+        features = self.features.value
+        result_rows = []
+        for idx_list in idxs:
+            result_rows.append([features[i, :] for i in idx_list])
+        return np.array(result_rows)
+
+    def _local_grad(self, parent, d_out_d_self):
+        if parent is not 0:
+            raise ValueError("Not a valid parent to be differentiating with respect to")
+
+        idxs = self.idxs.value
+        features = self.features.value
+        result = np.zeros(features.shape)
+        for i, idx_list in enumerate(idxs):
+            for j, row in enumerate(idx_list):
+                result[row, :] += d_out_d_self[i, j, :]
+
+        return result
+
 class NeighborCat(ky.Differentiable):
     def __init__(self, idxs, features):
         super(NeighborCat, self).__init__((features, idxs))

@@ -16,9 +16,8 @@ def initialize_weights(num_hidden_features, scale):
         N_prev, N_next = num_features[layer], num_features[layer + 1]
         np_weights[('self', layer)]  = scale * npr.randn(N_prev, N_next)
         for degree in [1, 2, 3, 4]:
-            np_weights[('other', layer, degree)] = scale * npr.randn(N_prev, N_next)
-        for degree in [1, 2, 3, 4]:
-            np_weights[('edge', layer, degree)]  = scale * npr.randn(num_edge_features, N_next)
+            np_weights[('neighbors', layer, degree)] = \
+                scale * npr.randn(N_prev + num_edge_features, N_next)
 
     np_weights['out'] = scale * npr.randn(num_features[-1], 1)
     return np_weights
@@ -64,9 +63,7 @@ def BuildNetFromGraph(graph, np_weights, target):
         for num_neighbors in [1, 2, 3, 4]:
             cat_weights[(layer, num_neighbors)] = kayak.Concatenate(0,
                 k_weights[('self', layer)],
-                *((k_weights[('other', layer, num_neighbors)],
-                   k_weights[('edge', layer, num_neighbors)]) *
-                  num_neighbors))
+                *((k_weights[('neighbors', layer, num_neighbors)],) * num_neighbors))
 
     for layer in range(num_layers):
         # Every atom and edge is a separate Kayak Input. These inputs already live in the graph.
