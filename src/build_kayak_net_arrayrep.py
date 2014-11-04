@@ -1,9 +1,9 @@
 import numpy as np
-import numpy.random as npr
 import itertools as it
 import kayak as ky
 import kayak_ops as mk
 from features import N_atom_features, N_bond_features
+from util import WeightsContainer, c_value, c_grad
 
 def all_permutations(N):
     return [permutation for permutation in it.permutations(range(N))]
@@ -17,7 +17,7 @@ def softened_max(X_list):
 def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
                       weights_gen, permutations=False):
     def neighbor_list(degree, other_ntype):
-        return mk.get_neighbor_list(mol_graph, ((self_ntype, degree), other_ntype))
+        return mol_graph.get_neighbor_list((self_ntype, degree), other_ntype)
     result_by_degree = []
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are (atoms, neighbors, features)
@@ -39,33 +39,31 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
 
     return ky.Concatenate(0, *result_by_degree)
 
-def softmax_neighbors(mol_graph, ntypes, features):
-    idxs = mk.get_neighbor_list(mol_graph, ntypes)
-    return mk.NeighborSoftenedMax(idxs, features)
-
-def build_universal_net(num_hidden, param_scale, permutations=False):
-    # Derived parameters
-    layer_sizes = [N_atom_features] + num_hidden
-    k_weights = []
-    def weights_gen(shape):
-        def new_weights():
-            new = ky.Parameter(np.random.randn(*shape) * param_scale)
-            k_weights.append(new)
-            return new
-        return new_weights
-
-    mols = ky.Blank()
-    cur_atoms = mk.get_feature_array(mols, 'atom')
-    cur_bonds = mk.get_feature_array(mols, 'bond')
+def build_universal_net(num_hidden_features=[50, 50], permutations=False):
+    layer_sizes = [N_atom_features] + num_hidden_features
+    weights = WeightsContainer()
+    smiles_input = ky.Blank()
+    mol_graph = mk.MolGraphNode(smiles_input) 
+    cur_atoms = mol_graph.get_feature_array('atom')
+    cur_bonds = mol_graph.get_feature_array('bond')
     for N_prev, N_cur in zip(layer_sizes[:-1], layer_sizes[1:]):
         cur_atoms = ky.Logistic(ky.MatAdd(
-            ky.MatMult(cur_atoms, weights_gen((N_prev, N_cur))()),
-            matmult_neighbors(mols, 'atom', ('atom', 'bond'), (cur_atoms, cur_bonds),
-                              weights_gen((N_prev + N_bond_features, N_cur)),
+            ky.MatMult(cur_atoms, weights.new((N_prev, N_cur))),
+            matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'), (cur_atoms, cur_bonds),
+                              lambda : weights.new((N_prev + N_bond_features, N_cur)),
                               permutations)))
 
-    fixed_sized_output = softmax_neighbors(mols, ('molecule', 'atom'), cur_atoms)
-    output = ky.MatMult(fixed_sized_output, weights_gen((N_cur, 1))())
+    mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
+    fixed_sized_output = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
+    output = ky.MatMult(fixed_sized_output, weights.new((N_cur, )))
     target = ky.Blank()
     loss = ky.L2Loss(output, target)
-    return mols, target, loss, output, k_weights
+
+    def grad_fun(w, s, t):
+        return c_grad(loss, weights, {weights : w, smiles_input : s, target : t})
+    def loss_fun(w, s, t):
+        return c_value(loss, {weights : w, smiles_input : s, target : t})
+    def pred_fun(w, s):
+        return c_value(output, {weights : w, smiles_input : s})
+
+    return loss_fun, grad_fun, pred_fun, weights.N

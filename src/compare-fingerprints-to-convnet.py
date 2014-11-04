@@ -14,26 +14,8 @@ import kayak
 from load_data import load_molecules
 from build_kayak_net_nodewise import initialize_weights, BuildNetFromSmiles
 from build_kayak_net_arrayrep import build_universal_net
-from util import tictoc, batch_generator, normalize_array
-from mol_graph import graph_from_smiles_list
-
-# datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
-datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
-
-trainfile = datadir + 'davids-validation-split/train_split.csv'
-testfile  = datadir + 'davids-validation-split/test_split.csv'
-# trainfile = datadir + 'davids-validation-split/tiny.csv'
-# testfile  = datadir + 'davids-validation-split/tiny.csv'
-# trainfile = datadir + 'davids-validation-split/1k_set.csv'
-# testfile  = datadir + 'davids-validation-split/1k_set.csv'
-
-# Parameters for both custom nets
-num_epochs = 500
-batch_size = 200
-learn_rate = 1e-4
-momentum = 0.9
-param_scale = 0.1
-num_hidden_features = [200, 200, 200, 200]
+from util import tictoc, normalize_array, c_value, c_grad
+from optimization_routines import sgd_with_momentum, make_batcher, batch_idx_generator
 
 def train_2layer_nn(features, targets):
     batch_size   = 256
@@ -76,21 +58,26 @@ def train_2layer_nn(features, targets):
 
     return make_predictions
 
-def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
+def train_custom_nn(smiles, targets, arch_params, train_params):
+    num_epochs = train_params['num_epochs']
+    batch_size = train_params['batch_size']
+    learn_rate = train_params['learn_rate']
+    momentum = train_params['momentum']
+    param_scale = train_params['param_scale']
+    num_hidden_features = arch_params['num_hidden_features']
+
     npr.seed(1)
     # Training parameters:
     normed_targets, undo_norm = normalize_array(targets)
     # Learn the weights
     np_weights = initialize_weights(num_hidden_features, param_scale)
     step_dirs = {k: np.zeros(w.shape) for k, w in np_weights.iteritems()}
-    batches = batch_generator(batch_size, len(targets))
+    batches = batch_idx_generator(batch_size, len(targets))
     for epoch in xrange(num_epochs):
-        total_err = 0.0
         for batch in batches:
             grad = {k : 0.0 for k in np_weights}
             for smile, target in zip(smiles[batch], normed_targets[batch]):
                 loss, k_weights, output = BuildNetFromSmiles(smile, np_weights, target)
-                total_err += abs(undo_norm(output.value[0,0]) - undo_norm(target))
                 for key, cur_k_weights in k_weights.iteritems():
                     grad[key] += loss.grad(cur_k_weights)
 
@@ -98,48 +85,53 @@ def train_custom_nn(smiles, targets, num_hidden_features = [100, 100]):
                 step_dirs[key] = momentum * step_dirs[key] - (1.0 - momentum) * grad[key]
                 np_weights[key] = np_weights[key] + learn_rate * step_dirs[key]
 
-        print "Abs error after epoch", epoch, ":", total_err / len(normed_targets)
+        total_loss = 0.0
+        for smile, target in zip(smiles, normed_targets):
+            loss, _, _ = BuildNetFromSmiles(smile, np_weights, target)
+            total_loss += loss.value
+            
+        print "After epoch", epoch, "loss is", total_loss
 
     def make_predictions(smiles):
         predictions = []
         for smile in smiles:
             _, _, output = BuildNetFromSmiles(smile, np_weights, None)
-            predictions.append(undo_norm(output.value[0, 0]))
-        return np.array(predictions)[:, None]
+            predictions.append(undo_norm(output.value[0]))
+        return np.array(predictions)
 
     return make_predictions
 
-def train_universal_custom_nn(smiles, targets):
+def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
     npr.seed(1)
-    normed_targets, undo_norm = normalize_array(targets)
-    k_mol, k_target, loss, output, k_weights = \
-        build_universal_net(num_hidden_features, param_scale, permutations=True)
-    step_dirs = [np.zeros(w.shape) for w in k_weights]
-    batches = batch_generator(batch_size, len(targets))
-    mol_graphs = [graph_from_smiles_list(smiles[batch]) for batch in batches]
-    batch_targets = [normed_targets[batch] for batch in batches]
-    for epoch in xrange(num_epochs):
-        total_err = 0.0
-        for graph, target_val in zip(mol_graphs, batch_targets):
-            k_mol.value, k_target.value = graph, target_val
-            total_err += np.sum(np.abs(undo_norm(output.value) -
-                                       undo_norm(target_val)))
-            d_shapes = [d.shape for d in step_dirs]
-            w_shapes = [loss.grad(w).shape for w in k_weights]
-            step_dirs = [momentum * d - (1.0 - momentum) * loss.grad(w)
-                         for d, w in zip(step_dirs, k_weights)]
-            for w, d in zip(k_weights, step_dirs):
-                w.value += learn_rate * d
-
-        print "Abs error after epoch", epoch, ":", total_err / len(normed_targets)
-
-    def make_predictions(new_smiles):
-        k_mol.value = graph_from_smiles_list(new_smiles)
-        return undo_norm(output.value)
-
-    return make_predictions
+    targets, undo_norm = normalize_array(raw_targets)
+    loss_fun, grad_fun, pred_fun, N_weights = build_universal_net(**arch_params)
+    def callback(epoch, weights):
+        print "After epoch", epoch, "loss is", loss_fun(weights, smiles, targets)
+    grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
+    trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
+                                        callback, **train_params)
+    return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles))
 
 def main():
+    # datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
+    datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
+
+    # trainfile = datadir + 'davids-validation-split/train_split.csv'
+    # testfile  = datadir + 'davids-validation-split/test_split.csv'
+    trainfile = datadir + 'davids-validation-split/tiny.csv'
+    testfile  = datadir + 'davids-validation-split/tiny.csv'
+    # trainfile = datadir + 'davids-validation-split/1k_set.csv'
+    # testfile  = datadir + 'davids-validation-split/1k_set.csv'
+
+    # Parameters for both custom nets
+    train_params = {'num_epochs'  : 5,
+                    'batch_size'  : 50,
+                    'learn_rate'  : 1e-3,
+                    'momentum'    : 0.9,
+                    'param_scale' : 0.1}
+    arch_params = {'num_hidden_features' : [50, 50],
+                   'permutations' : False}
+
     print "Loading data..."
     traindata = load_molecules(trainfile, transform = np.log)
     testdata = load_molecules(testfile, transform = np.log)
@@ -158,17 +150,19 @@ def main():
 
     print "Training custom neural net : array representation"
     with tictoc():
-        predictor = train_universal_custom_nn(traindata['smiles'], traindata['y'])
+        predictor = train_universal_custom_nn(
+            traindata['smiles'], traindata['y'], arch_params, train_params)
     print_performance(predictor, 'smiles')
 
-    # print "Training custom neural net : linked node representation"
-    # with tictoc():
-    #     predictor = train_custom_nn(traindata['smiles'], traindata['y'])
-    # print_performance(predictor, 'smiles')
+    print "Training custom neural net : linked node representation"
+    with tictoc():
+        predictor = train_custom_nn(
+            traindata['smiles'], traindata['y'], arch_params, train_params)
+    print_performance(predictor, 'smiles')
 
-    print "Training vanilla neural net"
-    predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    print_performance(predictor, 'fingerprints')
+    # print "Training vanilla neural net"
+    # predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
+    # print_performance(predictor, 'fingerprints')
 
 if __name__ == '__main__':
     sys.exit(main())

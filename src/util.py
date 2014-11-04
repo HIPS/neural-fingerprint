@@ -1,9 +1,22 @@
 import numpy as np
-import sys
-sys.path.append('../../Kayak/')
 from contextlib import contextmanager
-import kayak
 from time import time
+from functools import partial
+import kayak as ky
+
+class memoize(object):
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+
+    def __call__(self, *args):
+        try:
+            return self.cache[args]
+        except KeyError:
+            return self.cache.setdefault(args, self.func(*args))
+
+    def __get__(self, obj, objtype):
+        return partial(self.__call__, obj)
 
 def normalize_array(A):
     mean, std = np.mean(A), np.std(A)
@@ -12,19 +25,6 @@ def normalize_array(A):
         return X * std + mean
 
     return A_normed, restore_function
-
-def batch_generator(batch_size, total_size):
-    start = 0
-    end = batch_size
-    batches = []
-    while True:
-        if start >= total_size:
-            break
-        batches.append(slice(start, end))
-        start += batch_size
-        end += batch_size
-
-    return batches
 
 @contextmanager
 def tictoc():
@@ -35,15 +35,38 @@ def tictoc():
     print "--- Stop clock: %s seconds elapsed ---" % dt
 
 # "Counterfactual value" - helper function to allow testing different inputs
-def c_value(k_node, node_values):
-    node_old_values = {}
+def c_value(output, node_values):
     for node, new_value in node_values.iteritems():
-        node_old_values[node] = node.value
         node.value = new_value
+    return output.value
 
-    output_value = c_value.value
+def c_grad(loss, var, node_values):
+    for node, new_value in node_values.iteritems():
+        node.value = new_value
+    return loss.grad(var)
 
-    for node, old_value in node_old_values.iteritems():
-        node.value = old_value
+class WeightsContainer(object):
+    # Container for a collection of weights that camouflages itself as a kayak object
+    def __init__(self):
+        self.N = 0
+        self._weights_list = []
 
-    return output_value
+    def new(self, shape):
+        w_new = ky.Parameter(np.zeros(shape))
+        self._weights_list.append(w_new)
+        self.N += np.prod(shape)
+        return w_new
+
+    def _d_out_d_self(self, out):
+        grad_list = [out.grad(n) for n in self._weights_list]
+        return np.concatenate([arr.ravel() for arr in grad_list])
+
+    @property
+    def value(self):
+        return np.concatenate([w.val.ravel() for w in self._weights_list])
+        
+    @value.setter
+    def value(self, vect):
+        for w in self._weights_list:
+            sub_vect, vect = np.split(vect, [np.prod(w.shape)])
+            w.value = sub_vect.reshape(w.shape)

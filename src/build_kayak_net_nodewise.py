@@ -19,7 +19,7 @@ def initialize_weights(num_hidden_features, scale):
             np_weights[('neighbors', layer, degree)] = \
                 scale * npr.randn(N_prev + num_edge_features, N_next)
 
-    np_weights['out'] = scale * npr.randn(num_features[-1], 1)
+    np_weights['out'] = scale * npr.randn(num_features[-1])
     return np_weights
 
 def BuildNetFromSmiles(smile, np_weights, target):

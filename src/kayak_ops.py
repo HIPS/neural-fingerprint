@@ -3,14 +3,31 @@ Kayak objects to implement operations on array-representation of molecules.
 '''
 import numpy as np
 import kayak as ky
+from mol_graph import graph_from_smiles_list
 
-def get_feature_array(ky_mol_graph, ntype):
-    return ky.Blank([ky_mol_graph], lambda p :
-                    p[0].value.feature_array(ntype))
+class MolGraphNode(ky.Differentiable):
+    def __init__(self, smiles_node):
+        super(MolGraphNode, self).__init__((smiles_node,))
+        self.smiles_node = smiles_node
+    
+    def _compute_value(self):
+        return graph_from_smiles_list(self.smiles_node.value)
 
-def get_neighbor_list(ky_mol_graph, ntypes):
-    return ky.Blank([ky_mol_graph], lambda p :
-                    p[0].value.neighbor_list(*ntypes))
+    def get_feature_array(self, ntype):
+        return UnaryOp(self, lambda x : x.feature_array(ntype))
+
+    def get_neighbor_list(self, self_ntype, neighbor_ntype):
+        return UnaryOp(self, lambda x :
+                       x.neighbor_list(self_ntype, neighbor_ntype))
+
+class UnaryOp(ky.Differentiable):
+    def __init__(self, arg, compute_value_fun):
+        super(UnaryOp, self).__init__((arg,))
+        self.compute_value_fun = compute_value_fun
+        self.arg = arg
+    
+    def _compute_value(self):
+        return self.compute_value_fun(self.arg.value)
 
 class NeighborStack(ky.Differentiable):
     def __init__(self, idxs, features):
