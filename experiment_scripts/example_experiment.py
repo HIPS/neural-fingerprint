@@ -5,7 +5,7 @@ def output_file(filename):
     return os.path.join(os.environ["OUTPUT_DIR"], filename)
 
 # Try chaning these parameters
-x = 100
+x = 101
 y = 51
 
 print "This is a python script"

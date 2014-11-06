@@ -11,15 +11,16 @@ import numpy as np
 import numpy.random as npr
 import kayak
 
-from load_data import load_molecules
 from build_kayak_net_nodewise import initialize_weights, BuildNetFromSmiles
 from build_kayak_net_arrayrep import build_universal_net
 from util import tictoc, normalize_array, c_value, c_grad
 from optimization_routines import sgd_with_momentum, rms_prop, make_batcher, batch_idx_generator
+from io_utils import get_output_file, get_data_file, load_data
+from rdkit_utils import smiles_to_fps
 
 num_epochs = 10
 
-def train_2layer_nn(features, targets):
+def train_2layer_nn(smiles, targets):
     batch_size   = 256
     learn_rate   = 0.001
     momentum     = 0.98
@@ -29,6 +30,10 @@ def train_2layer_nn(features, targets):
     l1_weight    = 0.1
     l2_weight    = 0.1
     param_scale = 0.1
+    fp_length = 512
+    fp_radius = 4
+
+    features = smiles_to_fps(smiles, fp_length, fp_radius)
     normed_targets, undo_norm = normalize_array(targets)
     batcher = kayak.Batcher(batch_size, features.shape[0])
     X =  kayak.Inputs(features, batcher)
@@ -110,23 +115,14 @@ def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
     def callback(epoch, weights):
         print "After epoch", epoch, "loss is", loss_fun(weights, smiles, targets)
     grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
-    # trained_weights = rms_prop(grad_fun_with_data, len(targets), N_weights,
-    #                            callback, **train_params)
     trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
                                         callback, **train_params)
 
     return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles))
 
 def main():
-    # datadir = '/Users/dkd/Dropbox/Molecule_ML/data/Samsung_September_8_2014/'
-    datadir = '/home/dougal/Dropbox/Shared/Molecule_ML/data/Samsung_September_8_2014/'
-
-    # trainfile = datadir + 'davids-validation-split/train_split.csv'
-    # testfile  = datadir + 'davids-validation-split/test_split.csv'
-    # trainfile = datadir + 'davids-validation-split/tiny.csv'
-    # testfile  = datadir + 'davids-validation-split/tiny.csv'
-    trainfile = datadir + 'davids-validation-split/1k_set.csv'
-    testfile  = datadir + 'davids-validation-split/1k_set.csv'
+    data_file = get_data_file('2014-11-03-all-tddft/processed.csv')
+    target_name = 'lograte'
 
     # Parameters for both custom nets
     train_params = {'num_epochs'  : num_epochs,
@@ -134,41 +130,44 @@ def main():
                     'learn_rate'  : 1e-3,
                     'momentum'    : 0.9,
                     'param_scale' : 0.1,
-                    'gamma' : 0.9}
+                    'gamma'       : 0.9,
+                    'N_train'     : 1000,
+                    'N_test'      : 1000}
+
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
     print "Loading data..."
-    traindata = load_molecules(trainfile, transform = np.log)
-    testdata = load_molecules(testfile, transform = np.log)
+    traindata, test_data = load_data(data_file, (N_train, N_test))
+    train_inputs, train_targets = traindata['smiles'], traindata[target_name]
+    test_inputs, test_targets = testdata['smiles'], testdata[target_name]
+
     print "-" * 80
-    def print_performance(pred_func, input_field):
-        train_preds = pred_func(traindata[input_field])
-        test_preds = pred_func(testdata[input_field])
+    def print_performance(pred_func):
+        train_preds = pred_func(train_inputs)
+        test_preds = pred_func(test_inputs)
         print "Performance (mean abs error):"
-        print "Train:", np.mean(np.abs(train_preds - traindata['y']))
-        print "Test: ", np.mean(np.abs(test_preds - testdata['y']))
+        print "Train:", np.mean(np.abs(train_preds - train_targets))
+        print "Test: ", np.mean(np.abs(test_preds - test_targetss))
         print "-" * 80
 
     print "Mean predictor"
-    y_train_mean = np.mean(traindata['y'])
-    print_performance(lambda x : y_train_mean, 'smiles')
+    y_train_mean = np.mean(train_targets)
+    print_performance(lambda x : y_train_mean)
 
     print "Training custom neural net : array representation"
     with tictoc():
-        predictor = train_universal_custom_nn(
-            traindata['smiles'], traindata['y'], arch_params, train_params)
-    print_performance(predictor, 'smiles')
+        predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print_performance(predictor)
 
-    # print "Training custom neural net : linked node representation"
-    # with tictoc():
-    #     predictor = train_custom_nn(
-    #         traindata['smiles'], traindata['y'], arch_params, train_params)
-    # print_performance(predictor, 'smiles')
+    print "Training custom neural net : linked node representation"
+    with tictoc():
+        predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print_performance(predictor)
 
     print "Training vanilla neural net"
-    predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    print_performance(predictor, 'fingerprints')
+    predictor = train_2layer_nn(train_inputs, train_targets)
+    print_performance(predictor)
 
 if __name__ == '__main__':
     sys.exit(main())

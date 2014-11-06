@@ -4,6 +4,9 @@ from time import time
 from functools import partial
 import kayak as ky
 
+def slicedict(d, ixs):
+    return {k : v[ixs] for k, v in d.iteritems()}
+
 class memoize(object):
     def __init__(self, func):
         self.func = func
