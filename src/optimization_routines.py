@@ -3,7 +3,7 @@ import numpy.random as npr
 
 def sgd_with_momentum(grad, N_x, N_w, callback=None,
                       batch_size=100, num_epochs=100, learn_rate=0.1,
-                      momentum=0.9, param_scale=0.1):
+                      momentum=0.9, param_scale=0.1, **kwargs):
     w = npr.randn(N_w) * param_scale
     cur_dir = np.zeros(N_w)
     batches = batch_idx_generator(batch_size, N_x)
@@ -14,6 +14,26 @@ def sgd_with_momentum(grad, N_x, N_w, callback=None,
             w += learn_rate * cur_dir
         if callback: callback(epoch, w)
     return w
+
+def rms_prop(grad, N_x, N_w, callback=None,
+             batch_size=100, num_epochs=100, learn_rate=0.1,
+             param_scale=0.1, gamma=0.9, **kwargs):
+    w = npr.randn(N_w) * param_scale
+    avg_sq_grad = np.ones(N_w)
+    batches = batch_idx_generator(batch_size, N_x)
+    for epoch in xrange(num_epochs):
+        for batch in batches:
+            cur_grad = grad(batch, w)
+            avg_sq_grad = avg_sq_grad * gamma + cur_grad**2 * (1 - gamma)
+            w -= learn_rate * cur_grad/np.sqrt(avg_sq_grad)
+        if callback: callback(epoch, w)
+    return w
+
+def sgd_nesterov_momentum(grad, N_x, N_w, callback=None,
+             batch_size=100, num_epochs=100, learn_rate=0.1,
+             param_scale=0.1):
+    # TODO
+    pass
 
 def make_batcher(input_data, batch_size):
     batch_idxs = batch_idx_generator(batch_size, len(input_data.values()[0]))

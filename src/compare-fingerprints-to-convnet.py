@@ -15,7 +15,9 @@ from load_data import load_molecules
 from build_kayak_net_nodewise import initialize_weights, BuildNetFromSmiles
 from build_kayak_net_arrayrep import build_universal_net
 from util import tictoc, normalize_array, c_value, c_grad
-from optimization_routines import sgd_with_momentum, make_batcher, batch_idx_generator
+from optimization_routines import sgd_with_momentum, rms_prop, make_batcher, batch_idx_generator
+
+num_epochs = 10
 
 def train_2layer_nn(features, targets):
     batch_size   = 256
@@ -108,8 +110,11 @@ def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
     def callback(epoch, weights):
         print "After epoch", epoch, "loss is", loss_fun(weights, smiles, targets)
     grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
+    # trained_weights = rms_prop(grad_fun_with_data, len(targets), N_weights,
+    #                            callback, **train_params)
     trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
                                         callback, **train_params)
+
     return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles))
 
 def main():
@@ -118,17 +123,18 @@ def main():
 
     # trainfile = datadir + 'davids-validation-split/train_split.csv'
     # testfile  = datadir + 'davids-validation-split/test_split.csv'
-    trainfile = datadir + 'davids-validation-split/tiny.csv'
-    testfile  = datadir + 'davids-validation-split/tiny.csv'
-    # trainfile = datadir + 'davids-validation-split/1k_set.csv'
-    # testfile  = datadir + 'davids-validation-split/1k_set.csv'
+    # trainfile = datadir + 'davids-validation-split/tiny.csv'
+    # testfile  = datadir + 'davids-validation-split/tiny.csv'
+    trainfile = datadir + 'davids-validation-split/1k_set.csv'
+    testfile  = datadir + 'davids-validation-split/1k_set.csv'
 
     # Parameters for both custom nets
-    train_params = {'num_epochs'  : 5,
+    train_params = {'num_epochs'  : num_epochs,
                     'batch_size'  : 50,
                     'learn_rate'  : 1e-3,
                     'momentum'    : 0.9,
-                    'param_scale' : 0.1}
+                    'param_scale' : 0.1,
+                    'gamma' : 0.9}
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
@@ -154,15 +160,15 @@ def main():
             traindata['smiles'], traindata['y'], arch_params, train_params)
     print_performance(predictor, 'smiles')
 
-    print "Training custom neural net : linked node representation"
-    with tictoc():
-        predictor = train_custom_nn(
-            traindata['smiles'], traindata['y'], arch_params, train_params)
-    print_performance(predictor, 'smiles')
+    # print "Training custom neural net : linked node representation"
+    # with tictoc():
+    #     predictor = train_custom_nn(
+    #         traindata['smiles'], traindata['y'], arch_params, train_params)
+    # print_performance(predictor, 'smiles')
 
-    # print "Training vanilla neural net"
-    # predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
-    # print_performance(predictor, 'fingerprints')
+    print "Training vanilla neural net"
+    predictor = train_2layer_nn(traindata['fingerprints'], traindata['y'])
+    print_performance(predictor, 'fingerprints')
 
 if __name__ == '__main__':
     sys.exit(main())
