@@ -14,7 +14,7 @@ import kayak
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, batch_idx_generator, get_data_file, load_data
 from deepmolecule import initialize_weights, BuildNetFromSmiles, build_universal_net, smiles_to_fps
 
-num_epochs = 50
+num_epochs = 500
 
 def train_2layer_nn(smiles, targets):
     batch_size   = 256
@@ -110,7 +110,7 @@ def main():
                     'gamma'       : 0.9,
                     'lambda'      : 0.1}
 
-    arch_params = {'num_hidden_features' : [50, 50],
+    arch_params = {'num_hidden_features' : [50, 50, 50],
                    'permutations' : False}
 
     task_params = {'N_train' : 10000,
