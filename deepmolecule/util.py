@@ -49,7 +49,7 @@ def c_grad(loss, var, node_values):
     return loss.grad(var)
 
 class WeightsContainer(object):
-    # Container for a collection of weights that camouflages itself as a kayak object
+    """Container for a collection of weights that camouflages itself as a kayak object."""
     def __init__(self):
         self.N = 0
         self._weights_list = []
@@ -61,6 +61,8 @@ class WeightsContainer(object):
         return w_new
 
     def _d_out_d_self(self, out):
+        """Concatenates the gradients of all it contains into a vector,
+        so that it can be called by a general-purpose optimizer."""
         grad_list = [out.grad(n) for n in self._weights_list]
         return np.concatenate([arr.ravel() for arr in grad_list])
 
@@ -70,6 +72,7 @@ class WeightsContainer(object):
         
     @value.setter
     def value(self, vect):
+        """Re-packages a vector in the original format."""
         for w in self._weights_list:
             sub_vect, vect = np.split(vect, [np.prod(w.shape)])
             w.value = sub_vect.reshape(w.shape)

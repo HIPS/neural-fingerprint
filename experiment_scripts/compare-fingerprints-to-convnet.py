@@ -11,12 +11,8 @@ import numpy as np
 import numpy.random as npr
 import kayak
 
-from build_kayak_net_nodewise import initialize_weights, BuildNetFromSmiles
-from build_kayak_net_arrayrep import build_universal_net
-from util import tictoc, normalize_array, c_value, c_grad
-from optimization_routines import sgd_with_momentum, rms_prop, make_batcher, batch_idx_generator
-from io_utils import get_output_file, get_data_file, load_data
-from rdkit_utils import smiles_to_fps
+from deepmolecule import tictoc, normalize_array, sgd_with_momentum, batch_idx_generator, get_data_file, load_data
+from deepmolecule import initialize_weights, BuildNetFromSmiles, build_universal_net, smiles_to_fps
 
 num_epochs = 10
 
@@ -26,9 +22,6 @@ def train_2layer_nn(smiles, targets):
     momentum     = 0.98
     h1_dropout   = 0.01
     h1_size      = 500
-    dropout_prob = 0.1
-    l1_weight    = 0.1
-    l2_weight    = 0.1
     param_scale = 0.1
     fp_length = 512
     fp_radius = 4
@@ -122,7 +115,7 @@ def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
 
 def main():
     data_file = get_data_file('2014-11-03-all-tddft/processed.csv')
-    target_name = 'lograte'
+    target_name = 'Log Rate'
 
     # Parameters for both custom nets
     train_params = {'num_epochs'  : num_epochs,
@@ -130,15 +123,16 @@ def main():
                     'learn_rate'  : 1e-3,
                     'momentum'    : 0.9,
                     'param_scale' : 0.1,
-                    'gamma'       : 0.9,
-                    'N_train'     : 1000,
-                    'N_test'      : 1000}
+                    'gamma'       : 0.9}
 
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
+    N_train = 1000
+    N_test = 1000
+
     print "Loading data..."
-    traindata, test_data = load_data(data_file, (N_train, N_test))
+    traindata, testdata = load_data(data_file, (N_train, N_test))
     train_inputs, train_targets = traindata['smiles'], traindata[target_name]
     test_inputs, test_targets = testdata['smiles'], testdata[target_name]
 
@@ -148,7 +142,7 @@ def main():
         test_preds = pred_func(test_inputs)
         print "Performance (mean abs error):"
         print "Train:", np.mean(np.abs(train_preds - train_targets))
-        print "Test: ", np.mean(np.abs(test_preds - test_targetss))
+        print "Test: ", np.mean(np.abs(test_preds - test_targets))
         print "-" * 80
 
     print "Mean predictor"

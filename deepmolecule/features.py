@@ -1,7 +1,7 @@
 import numpy as np
 from rdkit import Chem
 
-atom_types = ['C', 'N', 'O', 'S', 'F']
+atom_types = ['C', 'N', 'O', 'S', 'F', 'Si']
 
 def atom_features(atom):
     if atom.GetSymbol() not in atom_types:
@@ -36,11 +36,11 @@ def bond_features(bond):
 
 def get_num_atom_features():
     # Return length of feature vector using a very simple molecule.
-    return len(atom_features(Chem.MolFromSmiles('CC').GetAtoms()[0]))
+    return len(atom_features(Chem.MolFromSmiles('CCCCC').GetAtoms()[0]))
 
 def get_num_bond_features():
     # Return length of feature vector using a very simple molecule.
-    simple_mol = Chem.MolFromSmiles('CC')
+    simple_mol = Chem.MolFromSmiles('CCCCC')
     Chem.SanitizeMol(simple_mol)
     return len(bond_features(simple_mol.GetBonds()[0]))
 

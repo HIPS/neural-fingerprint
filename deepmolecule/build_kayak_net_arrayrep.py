@@ -1,4 +1,3 @@
-import numpy as np
 import itertools as it
 import kayak as ky
 import kayak_ops as mk
@@ -40,6 +39,7 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
     return ky.Concatenate(0, *result_by_degree)
 
 def build_universal_net(num_hidden_features=[50, 50], permutations=False):
+    """The number of hidden layers is the length of num_hidden_features."""
     layer_sizes = [N_atom_features] + num_hidden_features
     weights = WeightsContainer()
     smiles_input = ky.Blank()
