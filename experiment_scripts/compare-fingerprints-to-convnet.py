@@ -14,7 +14,7 @@ import kayak
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, batch_idx_generator, get_data_file, load_data
 from deepmolecule import initialize_weights, BuildNetFromSmiles, build_universal_net, smiles_to_fps
 
-num_epochs = 10
+num_epochs = 50
 
 def train_2layer_nn(smiles, targets):
     batch_size   = 256
@@ -34,8 +34,8 @@ def train_2layer_nn(smiles, targets):
     W1 = kayak.Parameter(param_scale * npr.randn(features.shape[1], h1_size))
     B1 = kayak.Parameter(param_scale * npr.randn(1, h1_size))
     H1 = kayak.Dropout(kayak.HardReLU(kayak.ElemAdd(kayak.MatMult(X, W1), B1)), h1_dropout, batcher=batcher)
-    W2 = kayak.Parameter(param_scale * npr.randn(h1_size, 1))
-    B2 = kayak.Parameter(param_scale * npr.randn(1, 1))
+    W2 = kayak.Parameter(param_scale * npr.randn(h1_size))
+    B2 = kayak.Parameter(param_scale * npr.randn(1))
     Y =  kayak.ElemAdd(kayak.MatMult(H1, W2), B2)
     L =  kayak.L2Loss(Y, T)
     params = [W1, W2, B1, B2]
@@ -51,8 +51,8 @@ def train_2layer_nn(smiles, targets):
                 p.value += learn_rate * step_dir
         print "Abs error after epoch", epoch, ":", total_err / len(normed_targets)
 
-    def make_predictions(newvals):
-        X.data = newvals
+    def make_predictions(newsmiles):
+        X.data = smiles_to_fps(newsmiles, fp_length, fp_radius)
         batcher.test_mode()
         return undo_norm(Y.value)
 
@@ -128,8 +128,8 @@ def main():
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
-    N_train = 1000
-    N_test = 1000
+    N_train = 100000
+    N_test = 25000
 
     print "Loading data..."
     traindata, testdata = load_data(data_file, (N_train, N_test))
@@ -154,10 +154,10 @@ def main():
         predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
     print_performance(predictor)
 
-    print "Training custom neural net : linked node representation"
-    with tictoc():
-        predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
-    print_performance(predictor)
+    #print "Training custom neural net : linked node representation"
+    #with tictoc():
+    #    predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    #print_performance(predictor)
 
     print "Training vanilla neural net"
     predictor = train_2layer_nn(train_inputs, train_targets)
