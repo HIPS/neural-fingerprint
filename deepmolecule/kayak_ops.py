@@ -30,19 +30,20 @@ class UnaryOp(ky.Differentiable):
         return self.compute_value_fun(self.arg.value)
 
 class NeighborStack(ky.Differentiable):
-    def __init__(self, idxs, features):
+    def __init__(self, idxs, features, num_neighbors):
         super(NeighborStack, self).__init__((features, idxs))
         self.idxs = idxs
+        self.num_neighbors = num_neighbors
         self.features = features
 
     def _compute_value(self):
         # dims of result are (atoms, neighbors, features)
         idxs = self.idxs.value
         features = self.features.value
-        result_rows = []
-        for idx_list in idxs:
-            result_rows.append([features[i, :] for i in idx_list])
-        return np.array(result_rows)
+        result_rows = np.zeros((len(idxs), self.num_neighbors, self.features.shape[1]))
+        for i, idx_list in enumerate(idxs):
+            result_rows[i, :, :] = features[idx_list, :]
+        return result_rows
 
     def _local_grad(self, parent, d_out_d_self):
         if parent is not 0:

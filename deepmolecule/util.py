@@ -63,7 +63,7 @@ class WeightsContainer(object):
     def _d_out_d_self(self, out):
         """Concatenates the gradients of all it contains into a vector,
         so that it can be called by a general-purpose optimizer."""
-        grad_list = [out.grad(n) for n in self._weights_list]
+        grad_list = [out.grad(w) for w in self._weights_list]
         return np.concatenate([arr.ravel() for arr in grad_list])
 
     @property

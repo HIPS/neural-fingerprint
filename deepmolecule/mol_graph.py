@@ -70,6 +70,7 @@ def graph_from_smiles_tuple(smiles_tuple):
     for subgraph in graph_list:
         big_graph.add_subgraph(subgraph)
 
+    # This sorting allows an efficient (but brittle!) indexing later on.
     big_graph.sort_nodes_by_degree('atom')
     return big_graph
 

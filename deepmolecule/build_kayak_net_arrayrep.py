@@ -21,7 +21,7 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
         stacked_neighbors = ky.Concatenate(2,
-            *[mk.NeighborStack(neighbor_list(degree, other_ntype), features)
+            *[mk.NeighborStack(neighbor_list(degree, other_ntype), features, degree)
               for other_ntype, features in zip(other_ntypes, feature_sets)])
         if permutations:
             weightses = [weights_gen() for i in range(degree)]
@@ -36,7 +36,8 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
                 ky.TensorMult(stacked_neighbors, weights_gen(), axes=((2,), (0,))),
                 axis=1, keepdims=False))
 
-    # This is brittle! Relies on atoms being sorted by degree in the first place.
+    # This is brittle! Relies on atoms being sorted by degree in the first place,
+    # in Node.graph_from_smiles_tuple()
     return ky.Concatenate(0, *result_by_degree)
 
 def build_universal_net(num_hidden_features=[50, 50], permutations=False):

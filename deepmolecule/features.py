@@ -1,7 +1,7 @@
 import numpy as np
 from rdkit import Chem
 
-atom_types = ['C', 'N', 'O', 'S', 'F', 'Si']
+atom_types = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
 
 def atom_features(atom):
     if atom.GetSymbol() not in atom_types:

@@ -119,7 +119,7 @@ def main():
 
     # Parameters for both custom nets
     train_params = {'num_epochs'  : num_epochs,
-                    'batch_size'  : 50,
+                    'batch_size'  : 200,
                     'learn_rate'  : 1e-3,
                     'momentum'    : 0.9,
                     'param_scale' : 0.1,
@@ -128,8 +128,8 @@ def main():
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
-    N_train = 100000
-    N_test = 25000
+    N_train = 10
+    N_test = 250
 
     print "Loading data..."
     traindata, testdata = load_data(data_file, (N_train, N_test))
@@ -154,10 +154,10 @@ def main():
         predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
     print_performance(predictor)
 
-    #print "Training custom neural net : linked node representation"
-    #with tictoc():
-    #    predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
-    #print_performance(predictor)
+    print "Training custom neural net : linked node representation"
+    with tictoc():
+        predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print_performance(predictor)
 
     print "Training vanilla neural net"
     predictor = train_2layer_nn(train_inputs, train_targets)
