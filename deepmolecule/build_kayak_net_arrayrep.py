@@ -67,5 +67,7 @@ def build_universal_net(num_hidden_features=[50, 50], permutations=False):
         return c_value(loss, {weights : w, smiles_input : s, target : t})
     def pred_fun(w, s):
         return c_value(output, {weights : w, smiles_input : s})
+    def output_layer_fun(w, s):
+        return c_value(fixed_sized_output, {weights : w, smiles_input : s})
 
-    return loss_fun, grad_fun, pred_fun, weights.N
+    return loss_fun, grad_fun, pred_fun, output_layer_fun, weights.N

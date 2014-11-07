@@ -43,13 +43,16 @@ def train_2layer_nn(smiles, targets):
     for epoch in xrange(num_epochs):
         total_err = 0.0
         for batch in batcher:
-            total_err += np.sum(np.abs(undo_norm(Y.value) - undo_norm(T.value)))
+            total_err += np.sum((undo_norm(Y.value) - undo_norm(T.value))**2)
             grads = [L.grad(p) for p in params]
             step_dirs = [momentum * step_dir - (1.0 - momentum) * grad
                          for step_dir, grad in zip(step_dirs, grads)]
             for p, step_dir in zip(params, step_dirs):
                 p.value += learn_rate * step_dir
-        print "Abs error after epoch", epoch, ":", total_err / len(normed_targets)
+        if epoch % 10 == 0:
+            print "RMSE after epoch", epoch, ":", np.sqrt(total_err / len(normed_targets))
+        else:
+            print ".",
 
     def make_predictions(newsmiles):
         X.data = smiles_to_fps(newsmiles, fp_length, fp_radius)
@@ -58,110 +61,112 @@ def train_2layer_nn(smiles, targets):
 
     return make_predictions
 
-def train_custom_nn(smiles, targets, arch_params, train_params):
-    num_epochs = train_params['num_epochs']
-    batch_size = train_params['batch_size']
-    learn_rate = train_params['learn_rate']
-    momentum = train_params['momentum']
-    param_scale = train_params['param_scale']
-    num_hidden_features = arch_params['num_hidden_features']
-
-    npr.seed(1)
-    # Training parameters:
-    normed_targets, undo_norm = normalize_array(targets)
-    # Learn the weights
-    np_weights = initialize_weights(num_hidden_features, param_scale)
-    step_dirs = {k: np.zeros(w.shape) for k, w in np_weights.iteritems()}
-    batches = batch_idx_generator(batch_size, len(targets))
-    for epoch in xrange(num_epochs):
-        for batch in batches:
-            grad = {k : 0.0 for k in np_weights}
-            for smile, target in zip(smiles[batch], normed_targets[batch]):
-                loss, k_weights, output = BuildNetFromSmiles(smile, np_weights, target)
-                for key, cur_k_weights in k_weights.iteritems():
-                    grad[key] += loss.grad(cur_k_weights)
-
-            for key, cur_k_weights in k_weights.iteritems():
-                step_dirs[key] = momentum * step_dirs[key] - (1.0 - momentum) * grad[key]
-                np_weights[key] = np_weights[key] + learn_rate * step_dirs[key]
-
-        total_loss = 0.0
-        for smile, target in zip(smiles, normed_targets):
-            loss, _, _ = BuildNetFromSmiles(smile, np_weights, target)
-            total_loss += loss.value
-            
-        print "After epoch", epoch, "loss is", total_loss
-
-    def make_predictions(smiles):
-        predictions = []
-        for smile in smiles:
-            _, _, output = BuildNetFromSmiles(smile, np_weights, None)
-            predictions.append(undo_norm(output.value[0]))
-        return np.array(predictions)
-
-    return make_predictions
-
 def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, N_weights = build_universal_net(**arch_params)
+    loss_fun, grad_fun, pred_fun, _, N_weights = build_universal_net(**arch_params)
     def callback(epoch, weights):
-        print "After epoch", epoch, "loss is", loss_fun(weights, smiles, targets)
+        if epoch % 10 == 0:
+            train_preds = undo_norm(pred_fun(weights, smiles))
+            print "After epoch", epoch, "loss is", np.sqrt(np.mean((train_preds - raw_targets)**2))
+        else:
+            print ".",
     grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
     trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
                                         callback, **train_params)
 
     return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles))
 
-def main():
-    data_file = get_data_file('2014-11-03-all-tddft/processed.csv')
-    target_name = 'Log Rate'
+def random_net_linear_output(smiles, raw_targets, arch_params, train_params):
+    npr.seed(1)
+    targets, undo_norm = normalize_array(raw_targets)
+    loss_fun, grad_fun, pred_fun, output_layer_fun, N_weights = build_universal_net(**arch_params)
+    net_weights = npr.randn(N_weights) * train_params['param_scale']
+    train_outputs = output_layer_fun(net_weights, smiles)
+    linear_weights = np.linalg.solve( np.dot(train_outputs.T, train_outputs)
+                                      + np.eye(train_outputs.shape[1]) * train_params['lambda'],
+                                      np.dot(train_outputs.T, targets))
+    return lambda new_smiles : undo_norm(np.dot(output_layer_fun(net_weights, new_smiles), linear_weights))
 
+def fingerprints_linear_output(smiles, raw_targets, arch_params, train_params):
+    fp_length = 512
+    fp_radius = 4
+    features = smiles_to_fps(smiles, fp_length, fp_radius)
+
+    targets, undo_norm = normalize_array(raw_targets)
+    linear_weights = np.linalg.solve( np.dot(features.T, features)
+                                      + np.eye(fp_length) * train_params['lambda'],
+                                      np.dot(features.T, targets))
+    return lambda new_smiles : undo_norm(np.dot(smiles_to_fps(new_smiles, fp_length, fp_radius),
+                                                linear_weights))
+
+def main():
     # Parameters for both custom nets
     train_params = {'num_epochs'  : num_epochs,
                     'batch_size'  : 200,
                     'learn_rate'  : 1e-3,
                     'momentum'    : 0.9,
                     'param_scale' : 0.1,
-                    'gamma'       : 0.9}
+                    'gamma'       : 0.9,
+                    'lambda'      : 0.1}
 
     arch_params = {'num_hidden_features' : [50, 50],
                    'permutations' : False}
 
-    N_train = 10
-    N_test = 250
+    task_params = {'N_train' : 10000,
+                   'N_test' : 10000,
+                   'target_name'  : 'Molecular Weight',
+                   'data_file' : get_data_file('2014-11-03-all-tddft/processed.csv')}
+
+    #target_name = 'Log Rate'
+    #'Polar Surface Area'
+    #'Number of Rings'
+    #'Number of H-Bond Donors'
+    #'Number of Rotatable Bonds'
+    #'Minimum Degree'
+
+    print train_params
+    print arch_params
+    print task_params
 
     print "Loading data..."
-    traindata, testdata = load_data(data_file, (N_train, N_test))
-    train_inputs, train_targets = traindata['smiles'], traindata[target_name]
-    test_inputs, test_targets = testdata['smiles'], testdata[target_name]
+    traindata, testdata = load_data(task_params['data_file'], (task_params['N_train'], task_params['N_test']))
+    train_inputs, train_targets = traindata['smiles'], traindata[task_params['target_name']]
+    test_inputs, test_targets = testdata['smiles'], testdata[task_params['target_name']]
 
     print "-" * 80
     def print_performance(pred_func):
         train_preds = pred_func(train_inputs)
         test_preds = pred_func(test_inputs)
-        print "Performance (mean abs error):"
-        print "Train:", np.mean(np.abs(train_preds - train_targets))
-        print "Test: ", np.mean(np.abs(test_preds - test_targets))
+        #print "Performance (mean abs error):"
+        #print "Train:", np.mean(np.abs(train_preds - train_targets))
+        #print "Test: ", np.mean(np.abs(test_preds - test_targets))
+        print "Performance (RMSE):"
+        print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
+        print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
         print "-" * 80
 
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
     print_performance(lambda x : y_train_mean)
 
-    print "Training custom neural net : array representation"
-    with tictoc():
-        predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print "Fingerprints with linear weights"
+    predictor = fingerprints_linear_output(train_inputs, train_targets, arch_params, train_params)
     print_performance(predictor)
 
-    print "Training custom neural net : linked node representation"
-    with tictoc():
-        predictor = train_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print "Random net with linear weights"
+    predictor = random_net_linear_output(train_inputs, train_targets, arch_params, train_params)
     print_performance(predictor)
 
     print "Training vanilla neural net"
     predictor = train_2layer_nn(train_inputs, train_targets)
     print_performance(predictor)
+
+    print "Training custom neural net : array representation"
+    with tictoc():
+        predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
+    print_performance(predictor)
+
 
 if __name__ == '__main__':
     sys.exit(main())

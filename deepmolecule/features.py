@@ -36,11 +36,11 @@ def bond_features(bond):
 
 def get_num_atom_features():
     # Return length of feature vector using a very simple molecule.
-    return len(atom_features(Chem.MolFromSmiles('CCCCCCCCC').GetAtoms()[0]))
+    return len(atom_features(Chem.MolFromSmiles('CCCCCCCCCCC').GetAtoms()[0]))
 
 def get_num_bond_features():
     # Return length of feature vector using a very simple molecule.
-    simple_mol = Chem.MolFromSmiles('CCCCCCCC')
+    simple_mol = Chem.MolFromSmiles('CCCCCCCCCC')
     Chem.SanitizeMol(simple_mol)
     return len(bond_features(simple_mol.GetBonds()[0]))
 
