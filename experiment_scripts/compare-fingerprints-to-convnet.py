@@ -12,35 +12,12 @@ import numpy as np
 import numpy.random as npr
 
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
-from deepmolecule import build_vanilla_net, build_universal_net, smiles_to_fps
+from deepmolecule import build_morgan_deep_net, build_universal_net, smiles_to_fps, output_dir
 
-def train_2layer_nn(smiles, raw_targets, arch_params, train_params):
-    npr.seed(1)
-    fp_length = arch_params['fp_length']
-    fp_radius = arch_params['fp_radius']
-    train_fingerprints = smiles_to_fps(smiles, fp_length, fp_radius)
-    targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, _, N_weights = \
-        build_vanilla_net(num_inputs = fp_length, h1_size = arch_params['h1_size'],
-                                                  h1_dropout = arch_params['h1_dropout'])
-    def callback(epoch, weights):
-        if epoch % 10 == 0:
-            fingerprints = smiles_to_fps(smiles, fp_length, fp_radius)
-            train_preds = undo_norm(pred_fun(weights, fingerprints))
-            print "\nRMSE after epoch", epoch, ":", np.sqrt(np.mean((train_preds - raw_targets)**2)),
-        else:
-            print ".",
-    def grad_fun_with_data(idxs, w):
-        return grad_fun(w, train_fingerprints[idxs], targets[idxs])
-    trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
-                                        callback, **train_params)
-    return lambda new_smiles : undo_norm(
-        pred_fun(trained_weights, smiles_to_fps(new_smiles, fp_length, fp_radius)))
-
-def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
+def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, _, N_weights = build_universal_net(**arch_params)
+    loss_fun, grad_fun, pred_fun, _, N_weights = net_builder_fun(**arch_params)
     def callback(epoch, weights):
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
@@ -56,7 +33,7 @@ def train_universal_custom_nn(smiles, raw_targets, arch_params, train_params):
 def random_net_linear_output(smiles, raw_targets, arch_params, train_params):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, output_layer_fun, N_weights = build_universal_net(**arch_params)
+    _, _, _, output_layer_fun, N_weights = build_universal_net(**arch_params)
     net_weights = npr.randn(N_weights) * train_params['param_scale']
     train_outputs = output_layer_fun(net_weights, smiles)
     linear_weights = np.linalg.solve(np.dot(train_outputs.T, train_outputs)
@@ -79,7 +56,7 @@ def fingerprints_linear_output(smiles, raw_targets, arch_params, train_params):
 
 def main():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 500,
+    conv_train_params = {'num_epochs'  : 5,
                          'batch_size'  : 200,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.9,
@@ -90,7 +67,7 @@ def main():
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
-    morgan_train_params = {'num_epochs'  : 500,
+    morgan_train_params = {'num_epochs'  : 5,
                            'batch_size'  : 200,
                            'learn_rate'  : 1e-3,
                            'momentum'    : 0.98,
@@ -105,8 +82,8 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 20000,
-                   'N_test'      : 10000,
+    task_params = {'N_train'     : 20,
+                   'N_test'      : 25,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
@@ -122,6 +99,7 @@ def main():
     print "Conv net training params: ", conv_train_params
     print "Conv net architecture params: ", conv_arch_params
     print "Task params", task_params
+    print "Output directory:", output_dir()
 
     print "\nLoading data..."
     traindata, testdata = load_data(task_params['data_file'], (task_params['N_train'], task_params['N_test']))
@@ -158,17 +136,15 @@ def main():
 
     print "Training vanilla neural net"
     with tictoc():
-        predictor = train_2layer_nn(train_inputs, train_targets, morgan_arch_params, morgan_train_params)
+        predictor = train_nn(build_morgan_deep_net, train_inputs, train_targets, morgan_arch_params, morgan_train_params)
         print "\n"
     print_performance(predictor)
 
     print "Training custom neural net : array representation"
     with tictoc():
-        predictor = train_universal_custom_nn(train_inputs, train_targets, conv_arch_params, conv_train_params)
+        predictor = train_nn(build_universal_net, train_inputs, train_targets, conv_arch_params, conv_train_params)
         print "\n"
     print_performance(predictor)
-
-    #output_dir()
 
 
 if __name__ == '__main__':
