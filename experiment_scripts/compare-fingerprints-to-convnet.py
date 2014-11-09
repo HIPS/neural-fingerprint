@@ -10,62 +10,14 @@
 import sys
 import numpy as np
 import numpy.random as npr
-import kayak
 
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
 from deepmolecule import build_vanilla_net, build_universal_net, smiles_to_fps
 
-def train_2layer_nn(smiles, targets, arch_params, train_params):
-    num_epochs   = train_params['num_epochs']
-    batch_size   = train_params['batch_size']
-    learn_rate   = train_params['learn_rate']
-    momentum     = train_params['momentum']
-    h1_dropout   = arch_params['h1_dropout']
-    param_scale  = train_params['param_scale']
-    h1_size      = arch_params['h1_size']
-    fp_length    = arch_params['fp_length']
-    fp_radius    = arch_params['fp_radius']
-
+def train_2layer_nn(smiles, raw_targets, arch_params, train_params):
     npr.seed(1)
-    features = smiles_to_fps(smiles, fp_length, fp_radius)
-    normed_targets, undo_norm = normalize_array(targets)
-    batcher = kayak.Batcher(batch_size, features.shape[0])
-    X =  kayak.Inputs(features, batcher)
-    T =  kayak.Targets(normed_targets, batcher)
-    W1 = kayak.Parameter(param_scale * npr.randn(features.shape[1], h1_size))
-    B1 = kayak.Parameter(param_scale * npr.randn(1, h1_size))
-    H1 = kayak.Dropout(kayak.HardReLU(kayak.MatMult(X, W1) + B1), h1_dropout, batcher=batcher)
-    W2 = kayak.Parameter(param_scale * npr.randn(h1_size))
-    B2 = kayak.Parameter(param_scale * npr.randn(1))
-    Y =  kayak.MatMult(H1, W2) + B2
-    L =  kayak.L2Loss(Y, T)
-    params = [W1, W2, B1, B2]
-    step_dirs = [np.zeros(p.shape) for p in params]
-    for epoch in xrange(num_epochs):
-        total_err = 0.0
-        for batch in batcher:
-            total_err += np.sum((undo_norm(Y.value) - undo_norm(T.value))**2)
-            grads = [L.grad(p) for p in params]
-            step_dirs = [momentum * step_dir - (1.0 - momentum) * grad
-                         for step_dir, grad in zip(step_dirs, grads)]
-            for p, step_dir in zip(params, step_dirs):
-                p.value += learn_rate * step_dir
-        if epoch % 10 == 0:
-            print "\nRMSE after epoch", epoch, ":", np.sqrt(total_err / len(normed_targets)),
-        else:
-            print ".",
-
-    def make_predictions(newsmiles):
-        X.data = smiles_to_fps(newsmiles, fp_length, fp_radius)
-        batcher.test_mode()
-        return undo_norm(Y.value)
-
-    return make_predictions
-
-def train_2layer_nn2(smiles, raw_targets, arch_params, train_params):
     fp_length = arch_params['fp_length']
     fp_radius = arch_params['fp_radius']
-    npr.seed(1)
     train_fingerprints = smiles_to_fps(smiles, fp_length, fp_radius)
     targets, undo_norm = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, N_weights = \
@@ -78,13 +30,10 @@ def train_2layer_nn2(smiles, raw_targets, arch_params, train_params):
             print "\nRMSE after epoch", epoch, ":", np.sqrt(np.mean((train_preds - raw_targets)**2)),
         else:
             print ".",
-
     def grad_fun_with_data(idxs, w):
         return grad_fun(w, train_fingerprints[idxs], targets[idxs])
-
     trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
                                         callback, **train_params)
-
     return lambda new_smiles : undo_norm(
         pred_fun(trained_weights, smiles_to_fps(new_smiles, fp_length, fp_radius)))
 
@@ -206,17 +155,11 @@ def main():
         print "\n"
     print_performance(predictor)
 
-    print "Training vanilla neural net v2"
+    print "Training custom neural net : array representation"
     with tictoc():
-        predictor = train_2layer_nn2(train_inputs, train_targets, morgan_arch_params, morgan_train_params)
+        predictor = train_universal_custom_nn(train_inputs, train_targets, conv_arch_params, conv_train_params)
         print "\n"
     print_performance(predictor)
-
-    #print "Training custom neural net : array representation"
-    #with tictoc():
-    #    predictor = train_universal_custom_nn(train_inputs, train_targets, conv_arch_params, conv_train_params)
-    #    print "\n"
-    #print_performance(predictor)
 
 
 if __name__ == '__main__':
