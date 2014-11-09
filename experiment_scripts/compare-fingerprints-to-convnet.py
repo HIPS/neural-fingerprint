@@ -79,7 +79,7 @@ def fingerprints_linear_output(smiles, raw_targets, arch_params, train_params):
 
 def main():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 5,
+    conv_train_params = {'num_epochs'  : 500,
                          'batch_size'  : 200,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.9,
@@ -90,7 +90,7 @@ def main():
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
-    morgan_train_params = {'num_epochs'  : 5,
+    morgan_train_params = {'num_epochs'  : 500,
                            'batch_size'  : 200,
                            'learn_rate'  : 1e-3,
                            'momentum'    : 0.98,
@@ -105,8 +105,8 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 10,
-                   'N_test'      : 10,
+    task_params = {'N_train'     : 20000,
+                   'N_test'      : 10000,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
@@ -136,6 +136,13 @@ def main():
         print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
         print "-" * 80
 
+    #def save_predictions(pred_func, filename):
+    #    train_preds = pred_func(train_inputs)
+    #    test_preds = pred_func(test_inputs)
+    #    train_preds - train_targets)**2))
+    #    print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
+    #    print "-" * 80
+
     print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
@@ -160,6 +167,8 @@ def main():
         predictor = train_universal_custom_nn(train_inputs, train_targets, conv_arch_params, conv_train_params)
         print "\n"
     print_performance(predictor)
+
+    #output_dir()
 
 
 if __name__ == '__main__':
