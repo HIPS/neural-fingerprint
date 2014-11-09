@@ -1,30 +1,30 @@
-# A quick comparison script to compare the predictive accuracy of using standard fingerprints versus custom convnets.
+# Compares the predictive accuracy of using
+# standard fingerprints versus custom convolutional nets.
 #
 # Dougal Maclaurin
 # David Duvenaud
 # Ryan P. Adams
 #
-# Sept 25th, 2014
+# Sept 2014
 
 import sys
 import numpy as np
 import numpy.random as npr
 import kayak
 
-from deepmolecule import tictoc, normalize_array, sgd_with_momentum, batch_idx_generator, get_data_file, load_data
-from deepmolecule import initialize_weights, BuildNetFromSmiles, build_universal_net, smiles_to_fps
+from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
+from deepmolecule import build_universal_net, smiles_to_fps
 
-num_epochs = 500
-
-def train_2layer_nn(smiles, targets):
-    batch_size   = 256
-    learn_rate   = 0.001
-    momentum     = 0.98
-    h1_dropout   = 0.01
-    h1_size      = 500
-    param_scale = 0.1
-    fp_length = 512
-    fp_radius = 4
+def train_2layer_nn(smiles, targets, arch_params, train_params):
+    num_epochs   = train_params['num_epochs']
+    batch_size   = train_params['batch_size']
+    learn_rate   = train_params['learn_rate']
+    momentum     = train_params['momentum']
+    h1_dropout   = train_params['h1_dropout']
+    param_scale  = train_params['param_scale']
+    h1_size      = arch_params['h1_size']
+    fp_length    = arch_params['fp_length']
+    fp_radius    = arch_params['fp_radius']
 
     features = smiles_to_fps(smiles, fp_length, fp_radius)
     normed_targets, undo_norm = normalize_array(targets)
@@ -84,40 +84,55 @@ def random_net_linear_output(smiles, raw_targets, arch_params, train_params):
     net_weights = npr.randn(N_weights) * train_params['param_scale']
     train_outputs = output_layer_fun(net_weights, smiles)
     linear_weights = np.linalg.solve( np.dot(train_outputs.T, train_outputs)
-                                      + np.eye(train_outputs.shape[1]) * train_params['lambda'],
+                                      + np.eye(train_outputs.shape[1]) * train_params['l2_reg'],
                                       np.dot(train_outputs.T, targets))
-    return lambda new_smiles : undo_norm(np.dot(output_layer_fun(net_weights, new_smiles), linear_weights))
+    return lambda new_smiles : undo_norm(np.dot(output_layer_fun(net_weights, new_smiles),
+                                                linear_weights))
 
 def fingerprints_linear_output(smiles, raw_targets, arch_params, train_params):
-    fp_length = 512
-    fp_radius = 4
+    fp_length = arch_params['fp_length']
+    fp_radius = arch_params['fp_radius']
     features = smiles_to_fps(smiles, fp_length, fp_radius)
 
     targets, undo_norm = normalize_array(raw_targets)
     linear_weights = np.linalg.solve( np.dot(features.T, features)
-                                      + np.eye(fp_length) * train_params['lambda'],
+                                      + np.eye(fp_length) * train_params['l2_reg'],
                                       np.dot(features.T, targets))
     return lambda new_smiles : undo_norm(np.dot(smiles_to_fps(new_smiles, fp_length, fp_radius),
                                                 linear_weights))
 
 def main():
-    # Parameters for both custom nets
-    train_params = {'num_epochs'  : num_epochs,
-                    'batch_size'  : 200,
-                    'learn_rate'  : 1e-3,
-                    'momentum'    : 0.9,
-                    'param_scale' : 0.1,
-                    'gamma'       : 0.9,
-                    'lambda'      : 0.1}
+    # Parameters for convolutional net.
+    conv_train_params = {'num_epochs'  : 5,
+                         'batch_size'  : 200,
+                         'learn_rate'  : 1e-3,
+                         'momentum'    : 0.9,
+                         'param_scale' : 0.1,
+                         'gamma'       : 0.9}
 
-    arch_params = {'num_hidden_features' : [50, 50, 50],
-                   'permutations' : False}
+    conv_arch_params = {'num_hidden_features' : [50, 50, 50],
+                        'permutations' : False}
 
-    task_params = {'N_train' : 10000,
-                   'N_test' : 10000,
-                   'target_name'  : 'Molecular Weight',
-                   'data_file' : get_data_file('2014-11-03-all-tddft/processed.csv')}
+    # Parameters for standard net build on Morgan fingerprints.
+    morgan_train_params = {'num_epochs'  : 5,
+                           'batch_size'  : 200,
+                           'learn_rate'  : 1e-3,
+                           'momentum'    : 0.98,
+                           'h1_dropout'  : 0.01,
+                           'param_scale' : 0.1,
+                           'gamma'       : 0.9}
 
+    morgan_arch_params = {'h1_size'   : 500,
+                          'fp_length' : 512,
+                          'fp_radius' : 4}
+
+    linear_train_params = {'param_scale' : 0.1,
+                           'l2_reg'      : 0.1}
+
+    task_params = {'N_train'     : 10,
+                   'N_test'      : 10,
+                   'target_name' : 'Molecular Weight',
+                   'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
     #'Polar Surface Area'
     #'Number of Rings'
@@ -125,46 +140,46 @@ def main():
     #'Number of Rotatable Bonds'
     #'Minimum Degree'
 
-    print train_params
-    print arch_params
-    print task_params
+    print "Linear net training params: ", linear_train_params
+    print "Morgan net training params: ", morgan_train_params
+    print "Morgan net architecture params: ", morgan_arch_params
+    print "Conv net training params: ", conv_train_params
+    print "Conv net architecture params: ", conv_arch_params
+    print "Task params", task_params
 
-    print "Loading data..."
+    print "\nLoading data..."
     traindata, testdata = load_data(task_params['data_file'], (task_params['N_train'], task_params['N_test']))
     train_inputs, train_targets = traindata['smiles'], traindata[task_params['target_name']]
     test_inputs, test_targets = testdata['smiles'], testdata[task_params['target_name']]
 
-    print "-" * 80
     def print_performance(pred_func):
         train_preds = pred_func(train_inputs)
         test_preds = pred_func(test_inputs)
-        #print "Performance (mean abs error):"
-        #print "Train:", np.mean(np.abs(train_preds - train_targets))
-        #print "Test: ", np.mean(np.abs(test_preds - test_targets))
         print "Performance (RMSE):"
         print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
         print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
         print "-" * 80
 
+    print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
     print_performance(lambda x : y_train_mean)
 
     print "Fingerprints with linear weights"
-    predictor = fingerprints_linear_output(train_inputs, train_targets, arch_params, train_params)
+    predictor = fingerprints_linear_output(train_inputs, train_targets, morgan_arch_params, linear_train_params)
     print_performance(predictor)
 
     print "Random net with linear weights"
-    predictor = random_net_linear_output(train_inputs, train_targets, arch_params, train_params)
+    predictor = random_net_linear_output(train_inputs, train_targets, conv_arch_params, linear_train_params)
     print_performance(predictor)
 
     print "Training vanilla neural net"
-    predictor = train_2layer_nn(train_inputs, train_targets)
+    predictor = train_2layer_nn(train_inputs, train_targets, morgan_arch_params, morgan_train_params)
     print_performance(predictor)
 
     print "Training custom neural net : array representation"
     with tictoc():
-        predictor = train_universal_custom_nn(train_inputs, train_targets, arch_params, train_params)
+        predictor = train_universal_custom_nn(train_inputs, train_targets, conv_arch_params, conv_train_params)
     print_performance(predictor)
 
 
