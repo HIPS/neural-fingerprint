@@ -54,22 +54,20 @@ def random_net_linear_output(net_builder_fun, smiles, raw_targets, arch_params, 
 
 def main():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 50,
+    conv_train_params = {'num_epochs'  : 500,
                          'batch_size'  : 200,
                          'learn_rate'  : 1e-3,
-                         'momentum'    : 0.9,
-                         'param_scale' : 0.1,
-                         'gamma'       : 0.9}
+                         'momentum'    : 0.98,
+                         'param_scale' : 0.1}
     conv_arch_params = {'num_hidden_features' : [10, 10, 10],
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
-    morgan_train_params = {'num_epochs'  : 50,
+    morgan_train_params = {'num_epochs'  : 500,
                            'batch_size'  : 200,
                            'learn_rate'  : 1e-3,
                            'momentum'    : 0.98,
-                           'param_scale' : 0.1,
-                           'gamma'       : 0.9}
+                           'param_scale' : 0.1}
     morgan_deep_arch_params = {'h1_size'    : 10,
                                'h1_dropout' : 0.01,
                                'fp_length'  : 512,
@@ -80,10 +78,11 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 10,
-                   'N_valid'     : 11,
-                   'N_test'      : 12,
-                   'target_name' : 'Molecular Weight',
+    task_params = {'N_train'     : 20,
+                   'N_valid'     : 10,
+                   'N_test'      : 10,
+                   #'target_name' : 'Molecular Weight',
+                   'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
     #'Polar Surface Area'
@@ -118,7 +117,7 @@ def main():
         if filename:
             np.savez_compressed(file=get_output_file(filename),
                                 train_preds=train_preds, train_targets=train_targets,
-                                test_preds=train_preds, test_targets=train_targets,
+                                test_preds=test_preds, test_targets=test_targets,
                                 target_name=task_params['target_name'])
 
     def save_net(weights, arch_params, filename):
@@ -151,7 +150,8 @@ def main():
                              morgan_deep_arch_params, morgan_train_params, val_inputs, val_targets)
         print "\n"
     print_performance(predictor, 'vanilla-predictions')
-    plot_predictions(get_output_file('vanilla-predictions.npz'), output_dir())
+    plot_predictions(get_output_file('vanilla-predictions.npz'),
+                     os.path.join(output_dir(), 'vanilla-prediction-plots'))
     save_net(weights, morgan_deep_arch_params, 'morgan-net-weights')
     plot_maximizing_inputs(build_morgan_deep_net, get_output_file('morgan-net-weights.npz'),
                            os.path.join(output_dir(), 'morgan-features'))
@@ -162,7 +162,8 @@ def main():
                              conv_arch_params, conv_train_params, val_inputs, val_targets)
         print "\n"
     print_performance(predictor, 'convnet-predictions')
-    plot_predictions(get_output_file('convnet-predictions.npz'), output_dir())
+    plot_predictions(get_output_file('convnet-predictions.npz'),
+                     os.path.join(output_dir(), 'convnet-prediction-plots'))
     save_net(weights, conv_arch_params, 'conv-net-weights')
     plot_maximizing_inputs(build_universal_net, get_output_file('conv-net-weights.npz'),
                            os.path.join(output_dir(), 'convnet-features'))
