@@ -15,14 +15,20 @@ from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_fi
 from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
 from deepmolecule import build_universal_net, output_dir
 
-def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params):
+def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
+             validation_smiles=None, validation_targets=None):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, N_weights = net_builder_fun(**arch_params)
     def callback(epoch, weights):
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
-            print "\nRMSE after epoch", epoch, ":", np.sqrt(np.mean((train_preds - raw_targets)**2)),
+            print "\nTraining RMSE after epoch", epoch, ":",\
+                np.sqrt(np.mean((train_preds - raw_targets)**2)),
+            if validation_smiles and validation_targets:
+                validation_preds = undo_norm(pred_fun(weights, validation_smiles))
+                print "Validation RMSE", epoch, ":",\
+                    np.sqrt(np.mean((validation_preds - validation_targets)**2)),
         else:
             print ".",
     grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
@@ -53,8 +59,7 @@ def main():
                          'momentum'    : 0.9,
                          'param_scale' : 0.1,
                          'gamma'       : 0.9}
-
-    conv_arch_params = {'num_hidden_features' : [50, 50, 50],
+    conv_arch_params = {'num_hidden_features' : [10, 10, 500],
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
@@ -64,20 +69,19 @@ def main():
                            'momentum'    : 0.98,
                            'param_scale' : 0.1,
                            'gamma'       : 0.9}
-
     morgan_deep_arch_params = {'h1_size'    : 500,
                                'h1_dropout' : 0.01,
                                'fp_length'  : 512,
                                'fp_radius'  : 4}
-
     morgan_flat_arch_params = {'fp_length'  : 512,
                                'fp_radius'  : 4}
 
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 20,
-                   'N_test'      : 25,
+    task_params = {'N_train'     : 10000,
+                   'N_valid'     : 10,
+                   'N_test'      : 10,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
@@ -97,8 +101,10 @@ def main():
     print "Output directory:", output_dir()
 
     print "\nLoading data..."
-    traindata, testdata = load_data(task_params['data_file'], (task_params['N_train'], task_params['N_test']))
+    traindata, valdata, testdata = load_data(task_params['data_file'],
+                        (task_params['N_train'], task_params['N_valid'], task_params['N_test']))
     train_inputs, train_targets = traindata['smiles'], traindata[task_params['target_name']]
+    val_inputs, val_targets = valdata['smiles'], valdata[task_params['target_name']]
     test_inputs, test_targets = testdata['smiles'], testdata[task_params['target_name']]
 
     def print_performance(pred_func):
@@ -122,28 +128,33 @@ def main():
     print_performance(lambda x : y_train_mean)
 
     print "Fingerprints with linear weights"
-    predictor = random_net_linear_output(build_morgan_flat_net, train_inputs, train_targets, morgan_flat_arch_params, linear_train_params)
+    predictor = random_net_linear_output(build_morgan_flat_net, train_inputs, train_targets,
+                                         morgan_flat_arch_params, linear_train_params)
     print_performance(predictor)
 
     print "Fingerprints with random net on top and linear weights"
-    predictor = random_net_linear_output(build_morgan_deep_net, train_inputs, train_targets, morgan_deep_arch_params, linear_train_params)
+    predictor = random_net_linear_output(build_morgan_deep_net, train_inputs, train_targets,
+                                         morgan_deep_arch_params, linear_train_params)
     print_performance(predictor)
 
     print "Random net with linear weights"
-    predictor = random_net_linear_output(build_universal_net, train_inputs, train_targets, conv_arch_params, linear_train_params)
+    predictor = random_net_linear_output(build_universal_net, train_inputs, train_targets,
+                                         conv_arch_params, linear_train_params)
     print_performance(predictor)
 
-    print "Training vanilla neural net"
-    with tictoc():
-        predictor = train_nn(build_morgan_deep_net, train_inputs, train_targets, morgan_deep_arch_params, morgan_train_params)
-        print "\n"
-    print_performance(predictor)
+    #print "Training vanilla neural net"
+    #with tictoc():
+    #    predictor = train_nn(build_morgan_deep_net, train_inputs, train_targets,
+    #                         morgan_deep_arch_params, morgan_train_params, val_inputs, val_targets)
+    #    print "\n"
+    #print_performance(predictor)
 
-    print "Training custom neural net : array representation"
-    with tictoc():
-        predictor = train_nn(build_universal_net, train_inputs, train_targets, conv_arch_params, conv_train_params)
-        print "\n"
-    print_performance(predictor)
+    #print "Training custom neural net : array representation"
+    #with tictoc():
+    #    predictor = train_nn(build_universal_net, train_inputs, train_targets,
+    #                         conv_arch_params, conv_train_params, val_inputs, val_targets)
+    #    print "\n"
+    #print_performance(predictor)
 
 
 if __name__ == '__main__':
