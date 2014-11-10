@@ -12,7 +12,7 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
     W1 = weights.new((num_inputs, h1_size))
     B1 = weights.new((1, h1_size))
     hidden = ky.HardReLU(ky.MatMult(inputs, W1) + B1)
-    dropout = ky.Dropout(hidden, drop_prob=h1_dropout, rng=npr.seed(1))
+    dropout = ky.Dropout(hidden, drop_prob=h1_dropout, rng=npr.RandomState(1))
     W2 = weights.new(h1_size)
     B2 = weights.new(1)
     output =  ky.MatMult(dropout, W2) + B2
@@ -20,19 +20,20 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
     loss =  ky.L2Loss(output, target)
 
     # All the functions we'll need to train and predict with this net.
-    def grad_fun(w, i, t):
-        inputs.value = i      # Necessary so that the dropout mask will be the right size.
+    def grad_fun(w, X, t):
+        """X is a matrix of size num_training_examples by num_features."""
+        inputs.value = X      # Necessary so that the dropout mask will be the right size.
         dropout.draw_new_mask()
-        return c_grad(loss, weights, {weights : w, inputs : i, target : t})
-    def loss_fun(w, i, t):
-        return c_value(loss, {weights : w, inputs : i, target : t})
-    def pred_fun(w, i):
-        inputs.value = i      # Necessary so that the dropout mask will be the right size.
+        return c_grad(loss, weights, {weights : w, target : t})
+    def loss_fun(w, X, t):
+        return c_value(loss, {weights : w, inputs : X, target : t})
+    def pred_fun(w, X):
+        inputs.value = X      # Necessary so that the dropout mask will be the right size.
         dropout.reinstate_units()
-        return c_value(output, {weights : w, inputs : i})
-    def hidden_layer_fun(w, i):
-        inputs.value = i      # Necessary so that the dropout mask will be the right size.
-        return c_value(hidden, {weights : w, inputs : i})
+        return c_value(output, {weights : w, inputs : X})
+    def hidden_layer_fun(w, X):
+        inputs.value = X      # Necessary so that the dropout mask will be the right size.
+        return c_value(hidden, {weights : w, inputs : X})
 
     return loss_fun, grad_fun, pred_fun, hidden_layer_fun, weights.N
 
@@ -42,9 +43,12 @@ def build_morgan_deep_net(fp_length=512, fp_radius=4, h1_size=500, h1_dropout=0.
     v_loss_fun, v_grad_fun, v_pred_fun, v_hiddens_fun, num_weights = \
         build_vanilla_net(num_inputs=fp_length, h1_size=h1_size, h1_dropout=h1_dropout)
 
-    #@memoize  # TODO: get caching working on minibatches of smiles.
     def features_from_smiles(smiles):
-        return smiles_to_fps(smiles, fp_length, fp_radius)
+        return features_from_smiles_tuple(tuple(smiles))
+
+    @memoize # This wrapper function exists because tuples can be hashed, but arrays can't.
+    def features_from_smiles_tuple(smiles_tuple):
+        return smiles_to_fps(smiles_tuple, fp_length, fp_radius)
 
     grad_fun = lambda w, s, t: v_grad_fun(w, features_from_smiles(s), t)
     loss_fun = lambda w, s, t: v_loss_fun(w, features_from_smiles(s), t)

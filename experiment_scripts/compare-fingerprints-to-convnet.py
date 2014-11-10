@@ -54,7 +54,7 @@ def random_net_linear_output(net_builder_fun, smiles, raw_targets, arch_params, 
 
 def main():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 500,
+    conv_train_params = {'num_epochs'  : 5,
                          'batch_size'  : 200,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
@@ -63,8 +63,8 @@ def main():
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
-    morgan_train_params = {'num_epochs'  : 500,
-                           'batch_size'  : 200,
+    morgan_train_params = {'num_epochs'  : 5,
+                           'batch_size'  : 2,
                            'learn_rate'  : 1e-3,
                            'momentum'    : 0.98,
                            'param_scale' : 0.1}
@@ -78,9 +78,9 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 20,
-                   'N_valid'     : 10,
-                   'N_test'      : 10,
+    task_params = {'N_train'     : 19,
+                   'N_valid'     : 13,
+                   'N_test'      : 1,
                    #'target_name' : 'Molecular Weight',
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
