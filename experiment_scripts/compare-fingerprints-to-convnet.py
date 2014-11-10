@@ -7,13 +7,14 @@
 #
 # Sept 2014
 
-import sys
+import sys, os
 import numpy as np
 import numpy.random as npr
 
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
 from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
-from deepmolecule import build_universal_net, output_dir, get_output_file, plot_predictions
+from deepmolecule import build_universal_net, output_dir, get_output_file
+from deepmolecule import plot_predictions, plot_maximizing_inputs
 
 def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None):
@@ -59,7 +60,7 @@ def main():
                          'momentum'    : 0.9,
                          'param_scale' : 0.1,
                          'gamma'       : 0.9}
-    conv_arch_params = {'num_hidden_features' : [10, 10, 500],
+    conv_arch_params = {'num_hidden_features' : [10, 10, 10],
                         'permutations' : False}
 
     # Parameters for standard net build on Morgan fingerprints.
@@ -69,7 +70,7 @@ def main():
                            'momentum'    : 0.98,
                            'param_scale' : 0.1,
                            'gamma'       : 0.9}
-    morgan_deep_arch_params = {'h1_size'    : 500,
+    morgan_deep_arch_params = {'h1_size'    : 10,
                                'h1_dropout' : 0.01,
                                'fp_length'  : 512,
                                'fp_radius'  : 4}
@@ -120,6 +121,10 @@ def main():
                                 test_preds=train_preds, test_targets=train_targets,
                                 target_name=task_params['target_name'])
 
+    def save_net(weights, arch_params, filename):
+        np.savez_compressed(file=get_output_file(filename), weights=weights,
+                            arch_params=arch_params)
+
     print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
@@ -147,6 +152,9 @@ def main():
         print "\n"
     print_performance(predictor, 'vanilla-predictions')
     plot_predictions(get_output_file('vanilla-predictions.npz'), output_dir())
+    save_net(weights, morgan_deep_arch_params, 'morgan-net-weights')
+    plot_maximizing_inputs(build_morgan_deep_net, get_output_file('morgan-net-weights.npz'),
+                           os.path.join(output_dir(), 'morgan-features'))
 
     print "Training custom neural net : array representation"
     with tictoc():
@@ -155,6 +163,9 @@ def main():
         print "\n"
     print_performance(predictor, 'convnet-predictions')
     plot_predictions(get_output_file('convnet-predictions.npz'), output_dir())
+    save_net(weights, conv_arch_params, 'conv-net-weights')
+    plot_maximizing_inputs(build_universal_net, get_output_file('conv-net-weights.npz'),
+                           os.path.join(output_dir(), 'convnet-features'))
 
 if __name__ == '__main__':
     sys.exit(main())
