@@ -3,6 +3,18 @@
 
 import os
 import subprocess
+from pprint import pformat
+
+def run_jobs(job_generator, python_script, dir_prefix):
+    for dir_name, params in job_generator():
+        # Write params to a temp file
+        outdir = os.path.join(dir_prefix, dir_name)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        params_file = os.path.join(outdir, 'params.txt')
+        with open(params_file, 'w') as f:
+            f.write(pformat(params))
+        call_on_odyssey(python_script, params_file, dir_name)
 
 def call_on_odyssey(python_script, params_file, dir_name):
     slurm_string = """
@@ -12,8 +24,8 @@ def call_on_odyssey(python_script, params_file, dir_name):
 #SBATCH -t 2:00 # Runtime in minutes
 #SBATCH -p hips # Partition to submit to
 #SBATCH --mem-per-cpu=4000 # Memory per cpu in MB (see also --mem)
-#SBATCH -o jobname-%A.out # Standard out goes to this file
-#SBATCH -e jobname-%A.err # Standard err goes to this filehostname
+#SBATCH -o /scratch/jobouts/jobname-%A.out # Standard out goes to this file
+#SBATCH -e /scratch/jobouts/jobname-%A.err # Standard err goes to this filehostname
 
 # Now the experiment code starts!
 echo "Starting experiment from Odyssey"
@@ -32,4 +44,5 @@ pyscript=~/repos/DeepMolecules/experiment_scripts/compare-fingerprints-to-convne
         f.write(slurm_string)
     subprocess.call('sbatch slurm_file.slurm')
     os.remove('slurm_file.slurm')
+
 

@@ -1,7 +1,7 @@
 # Runs a big experiment.
 import os
 
-from deepmolecule import get_data_file, call_on_odyssey
+from deepmolecule import get_data_file, run_jobs, call_on_odyssey
 from deepmolecule import output_dir, get_output_file
 from deepmolecule import plot_predictions, plot_maximizing_inputs
 
@@ -31,17 +31,6 @@ def job_generator():
 
 dir_prefix = "/scratch/"
 
-def run_jobs():
-    for dir_name, params in job_generator():
-        # Write params to a temp file
-        outdir = os.path.join(dir_prefix, dir_name)
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
-        params_file = os.path.join(outdir, 'params.txt')
-        with open(params_file, 'w') as f:
-            f.write(repr(params))
-        call_on_odyssey('run_conv_net.py', params_file, dir_name)
-
 def collate_jobs():
     pass
     # git pull...
@@ -56,5 +45,5 @@ def collate_jobs():
         #                       os.path.join(output_dir(), 'convnet-features'))
 
 if __name__ == "__main__":
-    run_jobs()
+    run_jobs(job_generator, 'run_conv_net.py', dir_prefix)
     collate_jobs()
