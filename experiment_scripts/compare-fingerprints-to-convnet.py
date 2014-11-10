@@ -13,7 +13,7 @@ import numpy.random as npr
 
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
 from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
-from deepmolecule import build_universal_net, output_dir, get_output_file
+from deepmolecule import build_universal_net, output_dir, get_output_file, plot_predictions
 
 def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None):
@@ -110,14 +110,15 @@ def main():
     def print_performance(pred_func, filename=None):
         train_preds = pred_func(train_inputs)
         test_preds = pred_func(test_inputs)
-        print "\nPerformance (RMSE):"
+        print "\nPerformance (RMSE) on " + task_params['target_name'] + ":"
         print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
         print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
         print "-" * 80
         if filename:
             np.savez_compressed(file=get_output_file(filename),
-                                train_pres=train_preds, train_targets=train_targets,
-                                test_pres=train_preds, test_targets=train_targets)
+                                train_preds=train_preds, train_targets=train_targets,
+                                test_preds=train_preds, test_targets=train_targets,
+                                target_name=task_params['target_name'])
 
     print "-" * 80
     print "Mean predictor"
@@ -134,7 +135,7 @@ def main():
                                          morgan_deep_arch_params, linear_train_params)
     print_performance(predictor)
 
-    print "Random net with linear weights"
+    print "Random convolutional net with linear weights"
     predictor = random_net_linear_output(build_universal_net, train_inputs, train_targets,
                                          conv_arch_params, linear_train_params)
     print_performance(predictor)
@@ -145,6 +146,7 @@ def main():
                              morgan_deep_arch_params, morgan_train_params, val_inputs, val_targets)
         print "\n"
     print_performance(predictor, 'vanilla-predictions')
+    plot_predictions(get_output_file('vanilla-predictions.npz'), output_dir())
 
     print "Training custom neural net : array representation"
     with tictoc():
@@ -152,7 +154,7 @@ def main():
                              conv_arch_params, conv_train_params, val_inputs, val_targets)
         print "\n"
     print_performance(predictor, 'convnet-predictions')
-
+    plot_predictions(get_output_file('convnet-predictions.npz'), output_dir())
 
 if __name__ == '__main__':
     sys.exit(main())
