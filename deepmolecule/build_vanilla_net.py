@@ -21,6 +21,7 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
 
     # All the functions we'll need to train and predict with this net.
     def grad_fun(w, i, t):
+        inputs.value = i      # Necessary so that the dropout mask will be the right size.
         dropout.draw_new_mask()
         return c_grad(loss, weights, {weights : w, inputs : i, target : t})
     def loss_fun(w, i, t):
