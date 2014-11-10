@@ -2,6 +2,7 @@ import os
 import itertools
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from rdkit import Chem
@@ -20,7 +21,7 @@ def plot_predictions(results_filename, outdir):
         plt.title(title)
         plt.savefig(os.path.join(outdir, outfilename + '.png'))
         plt.savefig(os.path.join(outdir, outfilename + '.eps'))
-        plt.draw()
+        #plt.draw()
         plt.close()
 
     preds = np.load(results_filename)
@@ -62,3 +63,4 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
         mol = Chem.MolFromSmiles(best_smiles)
         outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '.png')
         Draw.MolToFile(mol, outfilename, fitImage=True)
+
