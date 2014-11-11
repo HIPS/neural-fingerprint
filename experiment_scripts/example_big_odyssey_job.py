@@ -20,16 +20,16 @@ def job_generator():
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    for l_ix, learn_rate in enumerate((1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5)):
+    for l_ix, learn_rate in enumerate((1e-2, 1e-3, 1e-4, 1e-5)):
         conv_train_params['learn_rate'] = learn_rate
-        for h_ix, num_hid in enumerate((1, 10, 20, 30, 40, 50)):
+        for h_ix, num_hid in enumerate((1,  20,   50)):
             conv_arch_params['num_hidden_features'] = [num_hid] * 3
             dir_name = 'rates_and_hids_' + str(l_ix) + '_' + str(h_ix)
             yield dir_name, {'conv_train_params': conv_train_params,
                              'conv_arch_params' : conv_arch_params,
                              'task_params' : task_params}
 
-dir_prefix = "/scratch/"
+dir_prefix = os.path.expanduser("~/scratch/")
 
 def collate_jobs():
     pass
@@ -45,5 +45,5 @@ def collate_jobs():
         #                       os.path.join(output_dir(), 'convnet-features'))
 
 if __name__ == "__main__":
-    run_jobs(job_generator, 'run_conv_net.py', dir_prefix)
+    run_jobs(job_generator, 'run_convnet.py', dir_prefix)
     collate_jobs()
