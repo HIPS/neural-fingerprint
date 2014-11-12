@@ -1,6 +1,10 @@
 # Line profiler output
 *.lprof
 
+# Figures
+*.png
+*.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
