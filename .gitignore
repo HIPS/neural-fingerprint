@@ -2,7 +2,6 @@
 *.lprof
 
 # Figures
-*.png
 *.pdf
 
 # Byte-compiled / optimized / DLL files
