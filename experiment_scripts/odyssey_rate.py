@@ -64,12 +64,12 @@ def collate_jobs():
         #plot_maximizing_inputs(build_universal_net, get_output_file('conv-net-weights.npz'),
         #                       os.path.join(output_dir(), 'convnet-features'))
 
-experiment_name = "compare-rate-accuracy"
+experiment_name = "compare-rate-accuracy-morgan"
 experiment_dir = time.strftime("%Y-%m-%d-") + experiment_name
 dir_prefix = os.path.join(output_dir(), experiment_dir)
 
 if __name__ == "__main__":
 
-    run_jobs(conv_job_generator, 'run_convnet.py', dir_prefix)
+    #run_jobs(conv_job_generator, 'run_convnet.py', dir_prefix)
     run_jobs(morgan_job_generator, 'run_morgan_net.py', dir_prefix)
     #collate_jobs()
