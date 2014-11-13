@@ -23,10 +23,10 @@ def get_data_file(rel_path):
     return os.path.join(data_dir(), rel_path)
 
 def output_dir():
-    return safe_get("OUTPUT_DIR")
+    return os.path.expanduser(safe_get("OUTPUT_DIR"))
 
 def data_dir():
-    return safe_get("DATA_DIR")
+    return os.path.expanduser(safe_get("DATA_DIR"))
 
 def safe_get(varname):
     if varname in os.environ:
