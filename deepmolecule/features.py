@@ -1,5 +1,8 @@
 import numpy as np
 from rdkit import Chem
+import time
+time.sleep(0.2)
+
 
 atom_types = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
 
