@@ -56,8 +56,10 @@ def build_universal_net(num_hidden_features=[50, 50], permutations=False):
                               permutations)))
 
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
-    fixed_sized_output = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
-    output = ky.MatMult(fixed_sized_output, weights.new((N_cur, )))
+    fixed_sized_softmax = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
+    fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)
+    fixed_sized_output = ky.Concatenate(1, fixed_sized_softmax, fixed_sized_sum)
+    output = ky.MatMult(fixed_sized_output, weights.new((N_cur * 2, )))
     target = ky.Blank()
     loss = ky.L2Loss(output, target)
 

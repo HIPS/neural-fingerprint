@@ -91,7 +91,7 @@ class NeighborSoftenedMax(ky.Differentiable):
     def __init__(self, idxs, features):
         super(NeighborSoftenedMax, self).__init__((features, idxs))
         self.features = features
-        self.idxs = idxs
+        self.idxs = idxs  # Indices of the neighbours.
 
     def _compute_value(self):
         idxs = self.idxs.value
@@ -114,15 +114,38 @@ class NeighborSoftenedMax(ky.Differentiable):
 
     def _local_grad(self, parent, d_out_d_self):
         if parent is not 0:
-            raise ValueError("Not a valid parent to be differentiating with respect to")
-
+            raise ValueError("Not a valid parent to be differentiating with respect to.")
         idxs = self.idxs.value
         features = self.features.value
         result = np.zeros(features.shape)
         for i, idx_list in enumerate(idxs):
             result[idx_list] += (self._softened_max_grad(features[idx_list, :]) *
                                  d_out_d_self[i, :][None, :])
+        return result
 
+
+class NeighborSum(ky.Differentiable):
+    def __init__(self, idxs, features):
+        super(NeighborSum, self).__init__((features, idxs))
+        self.features = features
+        self.idxs = idxs  # Indices of the neighbours.
+
+    def _compute_value(self):
+        idxs = self.idxs.value
+        features = self.features.value
+        result_rows = []
+        for idx_list in idxs:
+            result_rows.append(np.sum(features[idx_list, :], axis=0))
+        return np.array(result_rows)
+
+    def _local_grad(self, parent, d_out_d_self):
+        if parent is not 0:
+            raise ValueError("Not a valid parent to be differentiating with respect to.")
+        idxs = self.idxs.value
+        features = self.features.value
+        result = np.zeros(features.shape)
+        for i, idx_list in enumerate(idxs):
+            result[idx_list] += d_out_d_self[i, :][None, :]
         return result
 
 # class NeighborMatMult(ky.Differentiable):

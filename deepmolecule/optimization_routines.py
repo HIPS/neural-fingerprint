@@ -4,6 +4,7 @@ import numpy.random as npr
 def sgd_with_momentum(grad, N_x, N_w, callback=None,
                       batch_size=100, num_epochs=100, learn_rate=0.1,
                       momentum=0.9, param_scale=0.1, **kwargs):
+    """Stochastic gradient descent with momentum."""
     w = npr.randn(N_w) * param_scale
     cur_dir = np.zeros(N_w)
     batches = batch_idx_generator(batch_size, N_x)
@@ -18,6 +19,7 @@ def sgd_with_momentum(grad, N_x, N_w, callback=None,
 def rms_prop(grad, N_x, N_w, callback=None,
              batch_size=100, num_epochs=100, learn_rate=0.1,
              param_scale=0.1, gamma=0.9, **kwargs):
+    """Root mean squared prop: See Adagrad paper for details."""
     w = npr.randn(N_w) * param_scale
     avg_sq_grad = np.ones(N_w)
     batches = batch_idx_generator(batch_size, N_x)

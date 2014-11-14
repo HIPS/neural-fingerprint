@@ -11,7 +11,7 @@ import sys, os
 import numpy as np
 
 from deepmolecule import tictoc, load_data
-from deepmolecule import build_morgan_deep_net
+from deepmolecule import build_morgan_deep_net, train_nn
 
 
 def run_conv_net(params_file, output_dir):

@@ -64,3 +64,18 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
         outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '.png')
         Draw.MolToFile(mol, outfilename, fitImage=True)
 
+
+def print_weight_meanings(weights_file):
+    saved_net = np.load(weights_file)
+    weights = saved_net['weights']
+    atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
+    masses = [12, 14, 16, 32, 18, 19, 28, 31, 35.5]
+    for ix, atom in enumerate(atoms):
+        print "Atom: ", atom, " has weight", weights[ix]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot( masses, weights[:len(masses)], 'o')
+    ax.set_xlabel("True mass")
+    ax.set_ylabel("Weights")
+    fig.show()
