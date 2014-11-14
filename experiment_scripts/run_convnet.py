@@ -9,33 +9,9 @@
 
 import sys, os
 import numpy as np
-import numpy.random as npr
 
-from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
-from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
-from deepmolecule import build_universal_net, output_dir, get_output_file
-from deepmolecule import plot_predictions, plot_maximizing_inputs
 
-def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
-             validation_smiles=None, validation_targets=None):
-    npr.seed(1)
-    targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, _, N_weights = net_builder_fun(**arch_params)
-    def callback(epoch, weights):
-        if epoch % 10 == 0:
-            train_preds = undo_norm(pred_fun(weights, smiles))
-            print "\nTraining RMSE after epoch", epoch, ":",\
-                np.sqrt(np.mean((train_preds - raw_targets)**2)),
-            if validation_smiles is not None:
-                validation_preds = undo_norm(pred_fun(weights, validation_smiles))
-                print "Validation RMSE", epoch, ":",\
-                    np.sqrt(np.mean((validation_preds - validation_targets)**2)),
-        else:
-            print ".",
-    grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
-    trained_weights = sgd_with_momentum(grad_fun_with_data, len(targets), N_weights,
-                                        callback, **train_params)
-    return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles)), trained_weights
+from deepmolecule import tictoc, load_data, build_universal_net
 
 
 def run_conv_net(params_file, output_dir):

@@ -1,25 +1,24 @@
-# Compares the predictive accuracy of using
-# standard fingerprints versus custom convolutional nets.
+# This experiment is designed to show that convnets can learn to predict molecular weight, while
+# Morgan fingerprints can't.
 #
-# Dougal Maclaurin
 # David Duvenaud
+# Dougal Maclaurin
 # Ryan P. Adams
 #
 # Sept 2014
 
 import sys, os
 import numpy as np
-import numpy.random as npr
 
-from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
+from deepmolecule import tictoc,  get_data_file, load_data
 from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
 from deepmolecule import build_universal_net, output_dir, get_output_file
 from deepmolecule import plot_predictions, plot_maximizing_inputs
-
+from deepmolecule import random_net_linear_output, train_nn
 
 def main():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 500,
+    conv_train_params = {'num_epochs'  : 50,
                          'batch_size'  : 200,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
@@ -43,11 +42,11 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 20000,
-                   'N_valid'     : 10000,
-                   'N_test'      : 10000,
-                   #'target_name' : 'Molecular Weight',
-                   'target_name' : 'Log Rate',
+    task_params = {'N_train'     : 20,
+                   'N_valid'     : 10,
+                   'N_test'      : 30,
+                   'target_name' : 'Molecular Weight',
+                   #'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
     #target_name = 'Log Rate'
     #'Polar Surface Area'
