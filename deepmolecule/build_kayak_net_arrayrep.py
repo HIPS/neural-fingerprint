@@ -41,7 +41,8 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
     # in Node.graph_from_smiles_tuple()
     return ky.Concatenate(0, *result_by_degree)
 
-def build_universal_net(num_hidden_features=[20, 50, 50], permutations=False, l2_penalty=0.0):
+def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
+                        permutations=False, l2_penalty=0.0):
     """The number of hidden layers is the length of num_hidden_features."""
     weights = WeightsContainer()
     smiles_input = ky.Blank()
@@ -49,12 +50,14 @@ def build_universal_net(num_hidden_features=[20, 50, 50], permutations=False, l2
     cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
                            weights.new((N_atom_features, num_hidden_features[0]),
                                        name='atom'))
-    cur_bonds = mol_graph.get_feature_array('bond')
+    cur_bonds = ky.MatMult(mol_graph.get_feature_array('bond'),
+                           weights.new((N_bond_features, bond_vec_dim),
+                                       name='bond'))
     for N_prev, N_cur in zip(num_hidden_features[:-1], num_hidden_features[1:]):
         cur_atoms = ky.TanH(ky.MatAdd(
             ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter')),
             matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'), (cur_atoms, cur_bonds),
-                              lambda : weights.new((N_prev + N_bond_features, N_cur),
+                              lambda : weights.new((N_prev + bond_vec_dim, N_cur),
                                                    name="other filter"),
                               permutations)))
 

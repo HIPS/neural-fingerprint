@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
 
+from features import N_atom_features, N_bond_features
+
 def plot_predictions(results_filename, outdir):
     """Generates prediction vs actual scatterplots."""
 
@@ -74,8 +76,10 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
 def print_weight_meanings(weights_file, outdir, outfilename):
     saved_net = np.load(weights_file)
     weights = saved_net['weights']
+
     atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
     masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
+    atom_weights = weights[N_atom_features]   # TODO: Index these in a more robust way.
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -86,6 +90,24 @@ def print_weight_meanings(weights_file, outdir, outfilename):
         ax.text( masses[ix], weights[ix], atom)
     ax.set_xlabel("True mass")
     ax.set_ylabel("Weights")
-    plt.savefig(os.path.join(outdir, outfilename + '.png'))
-    plt.savefig(os.path.join(outdir, outfilename + '.eps'))
+    plt.savefig(os.path.join(outdir, outfilename + '-atoms.png'))
+    plt.savefig(os.path.join(outdir, outfilename + '-atoms.eps'))
     plt.close()
+
+    bond_names = ['bias', 'single', 'double', 'triple', 'aromatic', 'conjugated']
+    bond_masses = [0.0, 1.0, 2.0, 3.0, 1.5, 4.0]
+    bond_weights = weights[N_atom_features:N_atom_features+N_bond_features]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot( bond_masses, bond_weights[:len(masses)], 'o')
+    for ix, bond in enumerate(bond_names):
+        print "Bond: ", bond, " has weight", weights[ix]
+        ax.text( bond_masses[ix], bond_weights[ix], bond)
+    ax.set_xlabel("True mass")
+    ax.set_ylabel("Weights")
+    plt.savefig(os.path.join(outdir, outfilename + '-bonds.png'))
+    plt.savefig(os.path.join(outdir, outfilename + '-bonds.eps'))
+    plt.close()
+
+
