@@ -35,12 +35,12 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
         inputs.value = X      # Necessary so that the dropout mask will be the right size.
         return c_value(hidden, {weights : w, inputs : X})
 
-    return loss_fun, grad_fun, pred_fun, hidden_layer_fun, weights.N
+    return loss_fun, grad_fun, pred_fun, hidden_layer_fun, weights
 
 
 def build_morgan_deep_net(fp_length=512, fp_radius=4, h1_size=500, h1_dropout=0.1):
     """A 2-layer net whose inputs are Morgan fingerprints."""
-    v_loss_fun, v_grad_fun, v_pred_fun, v_hiddens_fun, num_weights = \
+    v_loss_fun, v_grad_fun, v_pred_fun, v_hiddens_fun, weights = \
         build_vanilla_net(num_inputs=fp_length, h1_size=h1_size, h1_dropout=h1_dropout)
 
     def features_from_smiles(smiles):
@@ -55,7 +55,7 @@ def build_morgan_deep_net(fp_length=512, fp_radius=4, h1_size=500, h1_dropout=0.
     pred_fun = lambda w, s:    v_pred_fun(w, features_from_smiles(s))
     hiddens_fun = lambda w, s: v_hiddens_fun(w, features_from_smiles(s))
 
-    return loss_fun, grad_fun, pred_fun, hiddens_fun, num_weights
+    return loss_fun, grad_fun, pred_fun, hiddens_fun, weights
 
 
 def build_morgan_flat_net(fp_length=512, fp_radius=4):

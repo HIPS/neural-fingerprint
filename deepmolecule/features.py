@@ -12,19 +12,20 @@ def atom_features(atom):
 
     ht = atom.GetHybridization()
     return np.concatenate(
-        [np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),
-         [1.0,
-          atom.GetAtomicNum(),
-          atom.GetMass(),
-          atom.GetExplicitValence(),
-          atom.GetImplicitValence(),
-          atom.GetFormalCharge(),
-          atom.GetIsAromatic(),
-          ht == Chem.rdchem.HybridizationType.SP,
-          ht == Chem.rdchem.HybridizationType.SP2,
-          ht == Chem.rdchem.HybridizationType.SP3,
-          ht == Chem.rdchem.HybridizationType.SP3D,
-          ht == Chem.rdchem.HybridizationType.SP3D2 ]])
+        [np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),  # One-of-k encoding.
+         #[1.0,
+          #atom.GetAtomicNum(),
+          #atom.GetMass(),
+          #atom.GetExplicitValence(),
+          #atom.GetImplicitValence(),
+          #atom.GetFormalCharge(),
+          #atom.GetIsAromatic(),
+          #ht == Chem.rdchem.HybridizationType.SP,
+          #ht == Chem.rdchem.HybridizationType.SP2,
+          #ht == Chem.rdchem.HybridizationType.SP3,
+          #ht == Chem.rdchem.HybridizationType.SP3D,
+          #3ht == Chem.rdchem.HybridizationType.SP3D2]
+          ])
 
 def bond_features(bond):
     bt = bond.GetBondType()
@@ -35,7 +36,8 @@ def bond_features(bond):
          bt == Chem.rdchem.BondType.TRIPLE,
          bt == Chem.rdchem.BondType.AROMATIC,
          bond.GetIsConjugated(),
-         bond.IsInRing()])
+         #bond.IsInRing()
+         ])
 
 def get_num_atom_features():
     # Return length of feature vector using a very simple molecule.

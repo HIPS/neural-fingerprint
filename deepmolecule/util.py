@@ -53,11 +53,13 @@ class WeightsContainer(object):
     def __init__(self):
         self.N = 0
         self._weights_list = []
+        self._names_list = []
 
-    def new(self, shape):
+    def new(self, shape, name=""):
         w_new = ky.Parameter(np.zeros(shape))
         self._weights_list.append(w_new)
         self.N += np.prod(shape)
+        self._names_list.append(name)
         return w_new
 
     def _d_out_d_self(self, out):
@@ -76,3 +78,7 @@ class WeightsContainer(object):
         for w in self._weights_list:
             sub_vect, vect = np.split(vect, [np.prod(w.shape)])
             w.value = sub_vect.reshape(w.shape)
+
+    def print_shapes(self):
+        for weights, name in zip(self._weights_list, self._names_list):
+            print name, ":", weights.shape

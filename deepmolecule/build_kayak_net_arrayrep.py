@@ -1,6 +1,7 @@
 import itertools as it
 import kayak as ky
 import kayak_ops as mk
+import numpy as np
 from features import N_atom_features, N_bond_features
 from util import WeightsContainer, c_value, c_grad
 
@@ -40,28 +41,33 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
     # in Node.graph_from_smiles_tuple()
     return ky.Concatenate(0, *result_by_degree)
 
-def build_universal_net(num_hidden_features=[50, 50], permutations=False):
+def build_universal_net(num_hidden_features=[20, 50, 50], permutations=False, l2_penalty=0.0):
     """The number of hidden layers is the length of num_hidden_features."""
-    layer_sizes = [N_atom_features] + num_hidden_features
     weights = WeightsContainer()
     smiles_input = ky.Blank()
     mol_graph = mk.MolGraphNode(smiles_input) 
-    cur_atoms = mol_graph.get_feature_array('atom')
+    cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
+                           weights.new((N_atom_features, num_hidden_features[0]),
+                                       name='atom'))
     cur_bonds = mol_graph.get_feature_array('bond')
-    for N_prev, N_cur in zip(layer_sizes[:-1], layer_sizes[1:]):
-        cur_atoms = ky.Logistic(ky.MatAdd(
-            ky.MatMult(cur_atoms, weights.new((N_prev, N_cur))),
+    for N_prev, N_cur in zip(num_hidden_features[:-1], num_hidden_features[1:]):
+        cur_atoms = ky.TanH(ky.MatAdd(
+            ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter')),
             matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'), (cur_atoms, cur_bonds),
-                              lambda : weights.new((N_prev + N_bond_features, N_cur)),
+                              lambda : weights.new((N_prev + N_bond_features, N_cur),
+                                                   name="other filter"),
                               permutations)))
 
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
     fixed_sized_softmax = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
     fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)
     fixed_sized_output = ky.Concatenate(1, fixed_sized_softmax, fixed_sized_sum)
-    output = ky.MatMult(fixed_sized_output, weights.new((N_cur * 2, )))
+    output = ky.MatMult(fixed_sized_output, weights.new((N_cur * 2, ), "output"))
     target = ky.Blank()
-    loss = ky.L2Loss(output, target)
+    unreg_loss = ky.L2Loss(output, target)
+    l2regs = [ky.L2Loss(w, ky.Parameter(np.zeros(w.shape))) * ky.Parameter(l2_penalty)
+              for w in weights._weights_list ]
+    loss = ky.MatAdd(unreg_loss, *l2regs)
 
     def grad_fun(w, s, t):
         return c_grad(loss, weights, {weights : w, smiles_input : s, target : t})
@@ -72,4 +78,4 @@ def build_universal_net(num_hidden_features=[50, 50], permutations=False):
     def output_layer_fun(w, s):
         return c_value(fixed_sized_output, {weights : w, smiles_input : s})
 
-    return loss_fun, grad_fun, pred_fun, output_layer_fun, weights.N
+    return loss_fun, grad_fun, pred_fun, output_layer_fun, weights

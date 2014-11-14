@@ -23,11 +23,12 @@ def main():
                          'momentum'    : 0.98,
                          'param_scale' : 0.1,
                          'gamma': 0.9}
-    conv_arch_params = {'num_hidden_features' : [1],
-                        'permutations' : False}
+    conv_arch_params = {'num_hidden_features' : [1, 1],
+                        'permutations' : False,
+                        'l2_penalty': 0.01}
 
     task_params = {'N_train'     : 2000,
-                   'N_valid'     : 1000,
+                   'N_valid'     : 100,
                    'N_test'      : 3000,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
@@ -61,8 +62,6 @@ def main():
         np.savez_compressed(file=get_output_file(filename), weights=weights,
                             arch_params=arch_params)
 
-    print_weight_meanings(get_output_file('conv-net-weights.npz'))
-
     print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
@@ -83,6 +82,10 @@ def main():
 
     plot_maximizing_inputs(build_universal_net, get_output_file('conv-net-weights.npz'),
                            os.path.join(output_dir(), 'convnet-features-mass'))
+
+    print_weight_meanings(get_output_file('conv-net-weights.npz'),
+                                          os.path.join(output_dir(), 'convnet-prediction-mass-plots'),
+                                          'true-vs-atomvecs')
 
 
 if __name__ == '__main__':

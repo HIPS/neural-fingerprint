@@ -15,20 +15,23 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None, optimization_routine=sgd_with_momentum):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, _, N_weights = net_builder_fun(**arch_params)
+    loss_fun, grad_fun, pred_fun, _, weights = net_builder_fun(**arch_params)
+    weights.print_shapes()
+    print "Total number of weights in the network:", weights.N
     def callback(epoch, weights):
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
-            print "\nTraining RMSE after epoch", epoch, ":",\
+            cur_loss = loss_fun(weights, smiles, targets)
+            print "\nEpoch ", epoch, "loss", cur_loss, "train RMSE", \
                 np.sqrt(np.mean((train_preds - raw_targets)**2)),
             if validation_smiles is not None:
                 validation_preds = undo_norm(pred_fun(weights, validation_smiles))
-                print "Validation RMSE", epoch, ":",\
+                print "Validation RMSE", epoch, ":", \
                     np.sqrt(np.mean((validation_preds - validation_targets)**2)),
         else:
             print ".",
     grad_fun_with_data = lambda idxs, w : grad_fun(w, smiles[idxs], targets[idxs])
-    trained_weights = optimization_routine(grad_fun_with_data, len(targets), N_weights,
+    trained_weights = optimization_routine(grad_fun_with_data, len(targets), weights.N,
                                            callback, **train_params)
     return lambda new_smiles : undo_norm(pred_fun(trained_weights, new_smiles)), trained_weights
 

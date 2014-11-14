@@ -39,10 +39,10 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
 
     # Build the network
     saved_net = np.load(weights_file)
-    weights = saved_net['weights']
+    trained_weights = saved_net['weights']
     arch_params = saved_net['arch_params'][()]
-    _, _, _, hidden_layer, N_weights = net_building_func(**arch_params)
-    assert(N_weights == len(weights))
+    _, _, _, hidden_layer, zero_weights = net_building_func(**arch_params)
+    assert(len(trained_weights) == zero_weights.N)
 
     # Make a set of smiles to search over.
     def generate_smiles_list():
@@ -51,31 +51,41 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
     smiles_list = np.array(generate_smiles_list())
 
     # Evaluate on the network and find the best smiles.
-    input_scores = hidden_layer(weights, smiles_list)
-    best_smiles_ixs = np.argmax(input_scores, axis=0)
+    input_scores = hidden_layer(trained_weights, smiles_list)
+    max_smiles_ixs = np.argmax(input_scores, axis=0)
+    min_smiles_ixs = np.argmin(input_scores, axis=0)
 
     # Now draw them and save the images.
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    for n, ix in enumerate(best_smiles_ixs):
-        best_smiles = smiles_list[ix]
-        mol = Chem.MolFromSmiles(best_smiles)
-        outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '.png')
+    for n, ix in enumerate(max_smiles_ixs):
+        mol = Chem.MolFromSmiles(smiles_list[ix])
+        outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '-maximizing.png')
+        Draw.MolToFile(mol, outfilename, fitImage=True)
+
+    for n, ix in enumerate(min_smiles_ixs):
+        mol = Chem.MolFromSmiles(smiles_list[ix])
+        outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '-minimizing.png')
         Draw.MolToFile(mol, outfilename, fitImage=True)
 
 
-def print_weight_meanings(weights_file):
+
+def print_weight_meanings(weights_file, outdir, outfilename):
     saved_net = np.load(weights_file)
     weights = saved_net['weights']
     atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
-    masses = [12, 14, 16, 32, 18, 19, 28, 31, 35.5]
-    for ix, atom in enumerate(atoms):
-        print "Atom: ", atom, " has weight", weights[ix]
+    masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot( masses, weights[:len(masses)], 'o')
+
+    for ix, atom in enumerate(atoms):
+        print "Atom: ", atom, " has weight", weights[ix]
+        ax.text( masses[ix], weights[ix], atom)
     ax.set_xlabel("True mass")
     ax.set_ylabel("Weights")
-    fig.show()
+    plt.savefig(os.path.join(outdir, outfilename + '.png'))
+    plt.savefig(os.path.join(outdir, outfilename + '.eps'))
+    plt.close()
