@@ -13,7 +13,7 @@ def atom_features(atom):
     ht = atom.GetHybridization()
     return np.concatenate(
         [np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),  # One-of-k encoding.
-         #[1.0,
+         #[
           #atom.GetAtomicNum(),
           #atom.GetMass(),
           #atom.GetExplicitValence(),
@@ -30,13 +30,12 @@ def atom_features(atom):
 def bond_features(bond):
     bt = bond.GetBondType()
     return np.array(
-        [1.0,
-         bt == Chem.rdchem.BondType.SINGLE,
+        [bt == Chem.rdchem.BondType.SINGLE,
          bt == Chem.rdchem.BondType.DOUBLE,
          bt == Chem.rdchem.BondType.TRIPLE,
          bt == Chem.rdchem.BondType.AROMATIC,
          bond.GetIsConjugated(),
-         #bond.IsInRing()
+         bond.IsInRing()
          ])
 
 def get_num_atom_features():

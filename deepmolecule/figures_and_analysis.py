@@ -108,9 +108,9 @@ def plot_weight_meanings(weights_file, outdir, outfilename):
     plt.close()
 
     if arch_params['bond_vec_dim'] > 0:
-        bond_names = ['bias', 'single', 'double', 'triple', 'aromatic', 'conjugated']
-        bond_masses = [0.0, 1.0, 2.0, 3.0, 1.5, 4.0]
-        bond_weights = weights[N_atom_features:N_atom_features+N_bond_features]
+        bond_names = ['single', 'double', 'triple', 'aromatic', 'conjugated', 'in ring']
+        bond_masses = [1.0, 2.0, 3.0, 1.5, 4.0, 1.5]
+        bond_weights = weights[N_atom_features + 1:N_atom_features+1+N_bond_features]
 
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)

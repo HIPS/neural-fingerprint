@@ -16,13 +16,14 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, weights = net_builder_fun(**arch_params)
+    print "Weight matrix shapes:"
     weights.print_shapes()
     print "Total number of weights in the network:", weights.N
     def callback(epoch, weights):
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
-            cur_loss = loss_fun(weights, smiles, targets)
-            print "\nEpoch ", epoch, "loss", cur_loss, "train RMSE", \
+            cur_loss = loss_fun(weights, smiles, targets).flatten()[0]
+            print "\nEpoch", epoch, "loss", cur_loss, "train RMSE", \
                 np.sqrt(np.mean((train_preds - raw_targets)**2)),
             if validation_smiles is not None:
                 validation_preds = undo_norm(pred_fun(weights, validation_smiles))

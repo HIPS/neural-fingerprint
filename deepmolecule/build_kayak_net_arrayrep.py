@@ -50,17 +50,17 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     mol_graph = mk.MolGraphNode(smiles_input) 
     cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
                            weights.new((N_atom_features, num_hidden_features[0]),
-                                       name='atom'))
+                                       name='atom2vec')) + weights.new((1,1), name="atom bias")
     cur_bonds = ky.MatMult(mol_graph.get_feature_array('bond'),
                            weights.new((N_bond_features, bond_vec_dim),
-                                       name='bond'))
+                                       name='bond2vec')) + weights.new((1,1), name="bond bias")
     for N_prev, N_cur in zip(num_hidden_features[:-1], num_hidden_features[1:]):
+        new_weights_func = lambda : weights.new((N_prev + bond_vec_dim, N_cur), name="other filter")
+        neighbour_activations = matmult_neighbors(mol_graph, 'atom',
+            ('atom', 'bond'), (cur_atoms, cur_bonds), new_weights_func, permutations)
         cur_atoms = ky.TanH(ky.MatAdd(
             ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter')),
-            matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'), (cur_atoms, cur_bonds),
-                              lambda : weights.new((N_prev + bond_vec_dim, N_cur),
-                                                   name="other filter"),
-                              permutations)))
+            neighbour_activations))
 
     # Include both a softened-max and a sum node to pool all atom features together.
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')

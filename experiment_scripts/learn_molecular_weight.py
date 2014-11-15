@@ -24,13 +24,13 @@ def main():
                          'param_scale' : 0.1,
                          'gamma': 0.9}
     conv_arch_params = {'num_hidden_features' : [1, 1],
-                        'bond_vec_dim' : 3,
+                        'bond_vec_dim' : 1,
                         'permutations' : False,
-                        'l2_penalty': 0.0001}
+                        'l2_penalty': 0.001}
 
     task_params = {'N_train'     : 2000,
-                   'N_valid'     : 10,
-                   'N_test'      : 30,
+                   'N_valid'     : 1000,
+                   'N_test'      : 3000,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
