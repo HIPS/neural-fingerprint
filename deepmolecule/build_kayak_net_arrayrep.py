@@ -43,7 +43,8 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
 
 def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
                         permutations=False, l2_penalty=0.0):
-    """The number of hidden layers is the length of num_hidden_features."""
+    """Sets up a Kayak graph to compute convnets over all molecules in a minibatch together.
+       The number of hidden layers is the length of num_hidden_features - 1."""
     weights = WeightsContainer()
     smiles_input = ky.Blank()
     mol_graph = mk.MolGraphNode(smiles_input) 
@@ -61,6 +62,7 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
                                                    name="other filter"),
                               permutations)))
 
+    # Include both a softened-max and a sum node to pool all atom features together.
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
     fixed_sized_softmax = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
     fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)

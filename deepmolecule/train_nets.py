@@ -48,3 +48,4 @@ def random_net_linear_output(net_builder_fun, smiles, raw_targets, arch_params, 
                                      np.dot(train_outputs.T, targets))
     return lambda new_smiles : undo_norm(np.dot(output_layer_fun(net_weights, new_smiles),
                                                 linear_weights))
+

@@ -2,7 +2,7 @@ import os
 import itertools
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')   # Cluster-friendly backend.
 import matplotlib.pyplot as plt
 
 from rdkit import Chem
@@ -10,9 +10,23 @@ from rdkit.Chem import Draw
 
 from features import N_atom_features, N_bond_features
 
+def print_performance(pred_func, train_inputs, train_targets, test_inputs,
+                      test_targets, target_name="", filename=None):
+    train_preds = pred_func(train_inputs)
+    test_preds = pred_func(test_inputs)
+    print "\nPerformance (RMSE) on " + target_name + ":"
+    print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
+    print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
+    print "-" * 80
+    if filename:
+        np.savez_compressed(file=filename,
+                            train_preds=train_preds, train_targets=train_targets,
+                            test_preds=test_preds, test_targets=test_targets,
+                            target_name=target_name)
+
+
 def plot_predictions(results_filename, outdir):
     """Generates prediction vs actual scatterplots."""
-
     def scatterplot(x, y, title, outfilename):
         fig = plt.figure()
         fig.add_subplot(1,1,1)
@@ -23,7 +37,6 @@ def plot_predictions(results_filename, outdir):
         plt.title(title)
         plt.savefig(os.path.join(outdir, outfilename + '.png'))
         plt.savefig(os.path.join(outdir, outfilename + '.eps'))
-        #plt.draw()
         plt.close()
 
     preds = np.load(results_filename)
@@ -72,42 +85,43 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
         Draw.MolToFile(mol, outfilename, fitImage=True)
 
 
-
-def print_weight_meanings(weights_file, outdir, outfilename):
+def plot_weight_meanings(weights_file, outdir, outfilename):
     saved_net = np.load(weights_file)
     weights = saved_net['weights']
+    arch_params = saved_net['arch_params'][()]
 
     atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
     masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
-    atom_weights = weights[N_atom_features]   # TODO: Index these in a more robust way.
+    atom_weights = weights[:N_atom_features]   # TODO: Index these in a more robust way.
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot( masses, weights[:len(masses)], 'o')
+    ax.plot( masses, atom_weights, 'o')
 
     for ix, atom in enumerate(atoms):
-        print "Atom: ", atom, " has weight", weights[ix]
-        ax.text( masses[ix], weights[ix], atom)
+        print "Atom: ", atom, " has weight", atom_weights[ix]
+        ax.text( masses[ix], atom_weights[ix], atom)
     ax.set_xlabel("True mass")
     ax.set_ylabel("Weights")
     plt.savefig(os.path.join(outdir, outfilename + '-atoms.png'))
     plt.savefig(os.path.join(outdir, outfilename + '-atoms.eps'))
     plt.close()
 
-    bond_names = ['bias', 'single', 'double', 'triple', 'aromatic', 'conjugated']
-    bond_masses = [0.0, 1.0, 2.0, 3.0, 1.5, 4.0]
-    bond_weights = weights[N_atom_features:N_atom_features+N_bond_features]
+    if arch_params['bond_vec_dim'] > 0:
+        bond_names = ['bias', 'single', 'double', 'triple', 'aromatic', 'conjugated']
+        bond_masses = [0.0, 1.0, 2.0, 3.0, 1.5, 4.0]
+        bond_weights = weights[N_atom_features:N_atom_features+N_bond_features]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot( bond_masses, bond_weights[:len(masses)], 'o')
-    for ix, bond in enumerate(bond_names):
-        print "Bond: ", bond, " has weight", weights[ix]
-        ax.text( bond_masses[ix], bond_weights[ix], bond)
-    ax.set_xlabel("True mass")
-    ax.set_ylabel("Weights")
-    plt.savefig(os.path.join(outdir, outfilename + '-bonds.png'))
-    plt.savefig(os.path.join(outdir, outfilename + '-bonds.eps'))
-    plt.close()
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        ax.plot( bond_masses, bond_weights, 'o')
+        for ix, bond in enumerate(bond_names):
+            print "Bond: ", bond, " has weight", bond_weights[ix]
+            ax.text( bond_masses[ix], bond_weights[ix], bond)
+        ax.set_xlabel("True mass")
+        ax.set_ylabel("Weights")
+        plt.savefig(os.path.join(outdir, outfilename + '-bonds.png'))
+        plt.savefig(os.path.join(outdir, outfilename + '-bonds.eps'))
+        plt.close()
 
 

@@ -12,8 +12,8 @@ import numpy as np
 
 from deepmolecule import tictoc, get_data_file, load_data
 from deepmolecule import build_universal_net, output_dir, get_output_file
-from deepmolecule import plot_predictions, plot_maximizing_inputs, print_weight_meanings
-from deepmolecule import train_nn, rms_prop
+from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
+from deepmolecule import train_nn, rms_prop, print_performance
 
 def main():
     # Parameters for convolutional net.
@@ -24,7 +24,7 @@ def main():
                          'param_scale' : 0.1,
                          'gamma': 0.9}
     conv_arch_params = {'num_hidden_features' : [1, 1],
-                        'bond_vec_dim' : 1,
+                        'bond_vec_dim' : 0,
                         'permutations' : False,
                         'l2_penalty': 0.01}
 
@@ -46,19 +46,6 @@ def main():
     val_inputs, val_targets = valdata['smiles'], valdata[task_params['target_name']]
     test_inputs, test_targets = testdata['smiles'], testdata[task_params['target_name']]
 
-    def print_performance(pred_func, filename=None):
-        train_preds = pred_func(train_inputs)
-        test_preds = pred_func(test_inputs)
-        print "\nPerformance (RMSE) on " + task_params['target_name'] + ":"
-        print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
-        print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
-        print "-" * 80
-        if filename:
-            np.savez_compressed(file=get_output_file(filename),
-                                train_preds=train_preds, train_targets=train_targets,
-                                test_preds=test_preds, test_targets=test_targets,
-                                target_name=task_params['target_name'])
-
     def save_net(weights, arch_params, filename):
         np.savez_compressed(file=get_output_file(filename), weights=weights,
                             arch_params=arch_params)
@@ -66,7 +53,8 @@ def main():
     print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
-    print_performance(lambda x : y_train_mean)
+    print_performance(lambda x : y_train_mean, train_inputs, train_targets,
+                      test_inputs, test_targets)
 
     print "-" * 80
     print "Training custom neural net: RMSProp"
@@ -75,16 +63,17 @@ def main():
                              conv_arch_params, conv_train_params, val_inputs, val_targets,
                              optimization_routine=rms_prop)
         print "\n"
-    print_performance(predictor, 'convnet-predictions-mass')
+    print_performance(predictor, train_inputs, train_targets,
+                      test_inputs, test_targets, task_params['target_name'],
+                      get_output_file('convnet-predictions-mass'))
+
+    save_net(weights, conv_arch_params, 'conv-net-weights')
 
     plot_predictions(get_output_file('convnet-predictions-mass.npz'),
                      os.path.join(output_dir(), 'convnet-prediction-mass-plots'))
-    save_net(weights, conv_arch_params, 'conv-net-weights')
-
     plot_maximizing_inputs(build_universal_net, get_output_file('conv-net-weights.npz'),
                            os.path.join(output_dir(), 'convnet-features-mass'))
-
-    print_weight_meanings(get_output_file('conv-net-weights.npz'),
+    plot_weight_meanings(get_output_file('conv-net-weights.npz'),
                                           os.path.join(output_dir(), 'convnet-prediction-mass-plots'),
                                           'true-vs-atomvecs')
 
