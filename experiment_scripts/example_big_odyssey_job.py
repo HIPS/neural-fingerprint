@@ -29,7 +29,7 @@ def job_generator():
                              'arch_params' : arch_params,
                              'task_params' : task_params,
                              'net_type': 'conv',
-                             'optimizer': 'rms_prop'}
+                             'optimizer': 'rmsprop'}
 
 def collate_jobs():
     pass
