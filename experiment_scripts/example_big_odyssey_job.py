@@ -25,8 +25,8 @@ def job_generator():
         for h_ix, num_hid in enumerate((1, 20, 50)):
             arch_params['num_hidden_features'] = [num_hid] * 3
             job_name = 'rates_and_hids_' + str(l_ix) + '_' + str(h_ix)
-            yield job_name, {'conv_train_params': train_params,
-                             'conv_arch_params' : arch_params,
+            yield job_name, {'train_params': train_params,
+                             'arch_params' : arch_params,
                              'task_params' : task_params,
                              'net_type': 'conv',
                              'optimizer': 'rms_prop'}

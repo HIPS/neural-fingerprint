@@ -23,10 +23,12 @@ def conv_job_generator():
         train_params['learn_rate'] = learn_rate
         for h_ix, num_hid in enumerate((1, 20, 50, 100)):
             arch_params['num_hidden_features'] = [num_hid] * 3
-            job_name = 'conv_rh_' + str(l_ix) + '_' + str(h_ix)
-            yield job_name, {'conv_train_params': train_params,
-                             'conv_arch_params': arch_params,
-                             'task_params': task_params}
+            job_name = 'crh_' + str(l_ix) + '_' + str(h_ix)
+            yield job_name, {'train_params': train_params,
+                             'arch_params': arch_params,
+                             'task_params': task_params,
+                             'net_type': 'conv',
+                             'optimizer': 'rms_prop'}
 
 def morgan_job_generator():
     # Parameters for standard net build on Morgan fingerprints.
@@ -38,10 +40,12 @@ def morgan_job_generator():
         train_params['learn_rate'] = learn_rate
         for h_ix, num_hid in enumerate((50, 100, 500)):
             arch_params['h1_size'] = num_hid
-            job_name = 'morg_rh_' + str(l_ix) + '_' + str(h_ix)
-            yield job_name, {'morgan_train_params': train_params,
-                             'morgan_arch_params': arch_params,
-                             'task_params': task_params}
+            job_name = 'mrh_' + str(l_ix) + '_' + str(h_ix)
+            yield job_name, {'train_params': train_params,
+                             'arch_params': arch_params,
+                             'task_params': task_params,
+                             'net_type': 'morgan',
+                             'optimizer': 'rms_prop'}
 
 def collate_jobs():
     pass
@@ -60,10 +64,10 @@ if __name__ == "__main__":
     experiment_name = "compare-rate-accuracy-conv"
     experiment_dir = time.strftime("%Y-%m-%d-") + experiment_name
     dir_prefix = os.path.join(output_dir(), experiment_dir)
-    run_jobs(conv_job_generator, 'run_convnet.py', dir_prefix)
+    run_jobs(conv_job_generator, '../deepmolecule/train_nets.py', dir_prefix)
 
     experiment_name = "compare-rate-accuracy-morgan"
     experiment_dir = time.strftime("%Y-%m-%d-") + experiment_name
     dir_prefix = os.path.join(output_dir(), experiment_dir)
-    run_jobs(morgan_job_generator, 'run_morgan_net.py', dir_prefix)
+    run_jobs(morgan_job_generator, '../deepmolecule/train_nets.py', dir_prefix)
     #collate_jobs()
