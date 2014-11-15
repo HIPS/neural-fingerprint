@@ -8,9 +8,12 @@ def job_generator():
                          'batch_size'  : 10,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
-                         'param_scale' : 0.1}
+                         'param_scale' : 0.1,
+                         'gamma': 0.9}
     arch_params = {'num_hidden_features' : [10, 10, 10],
-                        'permutations' : False}
+                        'permutations' : False,
+                        'l2_penalty': 0.001,
+                        'bond_vec_dim' : 1}
     task_params = {'N_train'        : 20,
                    'N_valid'        : 10,
                    'N_test'         : 10,
