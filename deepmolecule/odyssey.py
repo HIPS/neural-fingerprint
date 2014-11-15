@@ -21,11 +21,11 @@ def run_jobs(job_generator, python_script, dir_prefix):
 def call_on_odyssey(python_script, params_file, outdir, jobname):
     slurm_string = \
 """#!/bin/bash
-#SBATCH -n 2 # Number of cores requested
+#SBATCH -n 1 # Number of cores requested
 #SBATCH -N 1 # Ensure that all cores are on one machine
-#SBATCH -t 12:00:00
+#SBATCH -t 16:00:00
 #SBATCH -p hips
-#SBATCH --mem-per-cpu=4000
+#SBATCH --mem-per-cpu=8000
 #SBATCH -o """ + outdir + """/stdout.txt
 #SBATCH -e """ + outdir + """/stderr.txt
 #SBATCH -J """ + jobname + """

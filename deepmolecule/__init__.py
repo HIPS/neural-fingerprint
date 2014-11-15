@@ -9,4 +9,4 @@ from build_vanilla_net import build_morgan_deep_net, build_morgan_flat_net
 from figures_and_analysis import plot_predictions, plot_maximizing_inputs,\
     plot_weight_meanings, print_performance
 from odyssey import call_on_odyssey, run_jobs
-from train_nets import train_nn, random_net_linear_output
+from train_nets import train_nn, random_net_linear_output, load_and_train_nn, run_nn_with_params

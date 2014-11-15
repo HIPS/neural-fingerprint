@@ -1,19 +1,15 @@
 # Runs a big experiment.
-import os
-import time
-
-from deepmolecule import get_data_file, run_jobs, call_on_odyssey
-from deepmolecule import output_dir, get_output_file
-from deepmolecule import plot_predictions, plot_maximizing_inputs
+import os, time
+from deepmolecule import get_data_file, run_jobs, output_dir
 
 def job_generator():
     # Parameters for convolutional net.
-    conv_train_params = {'num_epochs'  : 5,
-                         'batch_size'  : 200,
+    train_params = {'num_epochs'  : 5,
+                         'batch_size'  : 10,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
                          'param_scale' : 0.1}
-    conv_arch_params = {'num_hidden_features' : [10, 10, 10],
+    arch_params = {'num_hidden_features' : [10, 10, 10],
                         'permutations' : False}
     task_params = {'N_train'        : 20,
                    'N_valid'        : 10,
@@ -21,14 +17,16 @@ def job_generator():
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    for l_ix, learn_rate in enumerate((1e-2, 1e-3, 1e-4, 1e-5)):
-        conv_train_params['learn_rate'] = learn_rate
-        for h_ix, num_hid in enumerate((1,  20,   50)):
-            conv_arch_params['num_hidden_features'] = [num_hid] * 3
+    for l_ix, learn_rate in enumerate((1e-2, 1e-3, 1e-4)):
+        train_params['learn_rate'] = learn_rate
+        for h_ix, num_hid in enumerate((1, 20, 50)):
+            arch_params['num_hidden_features'] = [num_hid] * 3
             job_name = 'rates_and_hids_' + str(l_ix) + '_' + str(h_ix)
-            yield job_name, {'conv_train_params': conv_train_params,
-                             'conv_arch_params' : conv_arch_params,
-                             'task_params' : task_params}
+            yield job_name, {'conv_train_params': train_params,
+                             'conv_arch_params' : arch_params,
+                             'task_params' : task_params,
+                             'net_type': 'conv',
+                             'optimizer': 'rms_prop'}
 
 def collate_jobs():
     pass
@@ -48,6 +46,5 @@ experiment_dir = time.strftime("%Y-%m-%d-") + experiment_name
 dir_prefix = os.path.join(output_dir(), experiment_dir)
 
 if __name__ == "__main__":
-
-    run_jobs(job_generator, 'run_convnet.py', dir_prefix)
+    run_jobs(job_generator, 'train_nets.py', dir_prefix)
     #collate_jobs()

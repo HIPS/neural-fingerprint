@@ -3,7 +3,7 @@
 import sys, os
 
 from deepmolecule import build_universal_net
-from deepmolecule import plot_predictions, plot_maximizing_inputs, print_weight_meanings
+from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
 
 def main():
     figures_dir = os.path.expanduser("~/repos/DeepMolecules/paper/figures")
@@ -17,7 +17,7 @@ def main():
     plot_maximizing_inputs(build_universal_net, atom2vec_weights_file,
                            os.path.join(figures_dir, 'convnet-features-mass'))
     print "Plotting vector representations..."
-    print_weight_meanings(atom2vec_weights_file,
+    plot_weight_meanings(atom2vec_weights_file,
                           os.path.join(figures_dir, 'atom2vec-mass-plots'), 'true-vs-vecs')
 
 if __name__ == '__main__':
