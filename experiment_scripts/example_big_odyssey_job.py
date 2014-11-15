@@ -49,5 +49,5 @@ experiment_dir = time.strftime("%Y-%m-%d-") + experiment_name
 dir_prefix = os.path.join(output_dir(), experiment_dir)
 
 if __name__ == "__main__":
-    run_jobs(job_generator, 'train_nets.py', dir_prefix)
+    run_jobs(job_generator, '../deepmolecule/train_nets.py', dir_prefix)
     #collate_jobs()
