@@ -82,3 +82,8 @@ class WeightsContainer(object):
     def print_shapes(self):
         for weights, name in zip(self._weights_list, self._names_list):
             print name, ":", weights.shape
+
+    def lookup_by_name(self, name):
+        # Perhaps it'd be better to replace the two lists with a defaultdict.
+        match_ix = [ix for (ix, cur_name) in enumerate(self._names_list) if cur_name is name][0]
+        return self._weights_list[match_ix]

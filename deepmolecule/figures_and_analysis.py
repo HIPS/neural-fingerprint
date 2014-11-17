@@ -86,14 +86,18 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
         Draw.MolToFile(mol, outfilename, fitImage=True)
 
 
-def plot_weight_meanings(weights_file, outdir, outfilename):
+def plot_weight_meanings(net_building_func, weights_file, outdir, outfilename):
     saved_net = np.load(weights_file)
-    weights = saved_net['weights']
+    trained_weights_vec = saved_net['weights']
     arch_params = saved_net['arch_params'][()]
+    _, _, _, _, weights_container = net_building_func(**arch_params)
+    assert(len(trained_weights_vec) == weights_container.N)
+    weights_container.value = trained_weights_vec  # Put back in a nice structure.
 
     atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
     masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
-    atom_weights = weights[:N_atom_features]   # TODO: Index these in a more robust way.
+
+    atom_weights = weights_container.lookup_by_name('atom2vec').value.ravel()
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -111,7 +115,7 @@ def plot_weight_meanings(weights_file, outdir, outfilename):
     if arch_params['bond_vec_dim'] > 0:
         bond_names = ['single', 'double', 'triple', 'aromatic', 'conjugated', 'in ring']
         bond_masses = [1.0, 2.0, 3.0, 1.5, 4.0, 1.5]
-        bond_weights = weights[N_atom_features + 1:N_atom_features+1+N_bond_features]
+        bond_weights = weights_container.lookup_by_name('bond2vec').value.ravel()
 
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)

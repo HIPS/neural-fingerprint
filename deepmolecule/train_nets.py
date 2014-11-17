@@ -141,11 +141,10 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
 
     plot_predictions(get_output_file('predictions.npz'),
                      os.path.join(output_dir, 'prediction-plots'))
-    plot_maximizing_inputs(build_universal_net, get_output_file('net-weights.npz'),
+    plot_maximizing_inputs(net_training_function, get_output_file('net-weights.npz'),
                            os.path.join(output_dir, 'features'))
-    plot_weight_meanings(get_output_file('net-weights.npz'),
-                         os.path.join(output_dir, 'prediction-plots'),
-                         'true-vs-atomvecs')
+    plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
+                         os.path.join(output_dir, 'prediction-plots'), 'true-vs-atomvecs')
     plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)
 
 
