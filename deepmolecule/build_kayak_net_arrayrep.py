@@ -50,24 +50,26 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     mol_graph = mk.MolGraphNode(smiles_input) 
     cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
                            weights.new((N_atom_features, num_hidden_features[0]),
-                                       name='atom2vec')) + weights.new((1,1), name="atom bias")
+                                       name='atom2vec'))
     cur_bonds = ky.MatMult(mol_graph.get_feature_array('bond'),
                            weights.new((N_bond_features, bond_vec_dim),
-                                       name='bond2vec')) + weights.new((1,1), name="bond bias")
+                                       name='bond2vec'))
     for N_prev, N_cur in zip(num_hidden_features[:-1], num_hidden_features[1:]):
         new_weights_func = lambda : weights.new((N_prev + bond_vec_dim, N_cur), name="other filter")
-        neighbour_activations = matmult_neighbors(mol_graph, 'atom',
-            ('atom', 'bond'), (cur_atoms, cur_bonds), new_weights_func, permutations)
-        cur_atoms = ky.TanH(ky.MatAdd(
-            ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter')),
-            neighbour_activations))
+        neighbour_activations = matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'),
+            (cur_atoms, cur_bonds), new_weights_func, permutations)
+        self_activations = ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter'))
+        layer_bias = weights.new((1, N_cur), name="layer biases")
+        cur_atoms = ky.TanH(self_activations + neighbour_activations + layer_bias)
 
     # Include both a softened-max and a sum node to pool all atom features together.
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
     fixed_sized_softmax = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
     fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)
     fixed_sized_output = ky.Concatenate(1, fixed_sized_softmax, fixed_sized_sum)
-    output = ky.MatMult(fixed_sized_output, weights.new((N_cur * 2, ), "output"))
+    output_bias = weights.new((1, ), "output bias")
+    output_weights = weights.new((N_cur * 2, ), "output")
+    output = ky.MatMult(fixed_sized_output, output_weights) + output_bias
     target = ky.Blank()
     unreg_loss = ky.L2Loss(output, target)
     l2regs = [ky.L2Loss(w, ky.Parameter(np.zeros(w.shape))) * ky.Parameter(l2_penalty)
