@@ -19,9 +19,9 @@ def main():
                          'momentum'    : 0.98,
                          'param_scale' : 0.1,
                          'gamma': 0.9}
-    arch_params = {'num_hidden_features' : [10, 10, 10],
-                        'bond_vec_dim' : 3,
-                        'permutations' : False,
+    arch_params = {'num_hidden_features' : [1, 1],
+                        'bond_vec_dim' : 1,
+                        'permutations' : True,
                         'l2_penalty': 0.001}
 
     task_params = {'N_train'     : 2000,

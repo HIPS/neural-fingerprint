@@ -25,8 +25,8 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
             *[mk.NeighborStack(neighbor_list(degree, other_ntype), features, degree)
               for other_ntype, features in zip(other_ntypes, feature_sets)])
         if permutations:
-            weightses = [weights_gen() for i in range(degree)]
-            neighbors = [ky.Take(stacked_neighbors, i, axis=1) for i in range(degree)]
+            weightses = [weights_gen(d) for d in range(degree)]
+            neighbors = [ky.Take(stacked_neighbors, d, axis=1) for d in range(degree)]
             products = [[ky.MatMult(n, w) for w in weightses] for n in neighbors]
             candidates = [ky.MatAdd(*[products[i][j] for i, j in enumerate(p)])
                           for p in all_permutations(degree)]
@@ -34,7 +34,7 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
             result_by_degree.append(softened_max(candidates))
         else:
             result_by_degree.append(ky.MatSum(
-                ky.TensorMult(stacked_neighbors, weights_gen(), axes=((2,), (0,))),
+                ky.TensorMult(stacked_neighbors, weights_gen(degree), axes=((2,), (0,))),
                 axis=1, keepdims=False))
 
     # This is brittle! Relies on atoms being sorted by degree in the first place,
@@ -49,18 +49,21 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     smiles_input = ky.Blank()
     mol_graph = mk.MolGraphNode(smiles_input) 
     cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
-                           weights.new((N_atom_features, num_hidden_features[0]),
-                                       name='atom2vec'))
+        weights.new((N_atom_features, num_hidden_features[0]), name='atom2vec'))
     cur_bonds = ky.MatMult(mol_graph.get_feature_array('bond'),
-                           weights.new((N_bond_features, bond_vec_dim),
-                                       name='bond2vec'))
-    for N_prev, N_cur in zip(num_hidden_features[:-1], num_hidden_features[1:]):
-        new_weights_func = lambda : weights.new((N_prev + bond_vec_dim, N_cur), name="other filter")
+        weights.new((N_bond_features, bond_vec_dim), name='bond2vec'))
+
+    in_and_out_sizes = zip(num_hidden_features[:-1], num_hidden_features[1:])
+    for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
+        def new_weights_func(degree):
+            return weights.new((N_prev + bond_vec_dim, N_cur),
+                name="layer " + str(layer) + " degree " + str(degree) + " filter")
+        layer_bias = weights.new((1, N_cur), name="layer " + str(layer) + " biases")
+        self_activations = ky.MatMult(cur_atoms,
+            weights.new((N_prev, N_cur), name="layer " + str(layer) + " self filter"))
         neighbour_activations = matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'),
             (cur_atoms, cur_bonds), new_weights_func, permutations)
-        self_activations = ky.MatMult(cur_atoms, weights.new((N_prev, N_cur), name='self filter'))
-        layer_bias = weights.new((1, N_cur), name="layer biases")
-        cur_atoms = ky.TanH(self_activations + neighbour_activations + layer_bias)
+        cur_atoms = ky.TanH(layer_bias + self_activations + neighbour_activations)
 
     # Include both a softened-max and a sum node to pool all atom features together.
     mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
@@ -68,7 +71,7 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)
     fixed_sized_output = ky.Concatenate(1, fixed_sized_softmax, fixed_sized_sum)
     output_bias = weights.new((1, ), "output bias")
-    output_weights = weights.new((N_cur * 2, ), "output")
+    output_weights = weights.new((N_cur * 2, ), "output weights")
     output = ky.MatMult(fixed_sized_output, output_weights) + output_bias
     target = ky.Blank()
     unreg_loss = ky.L2Loss(output, target)
