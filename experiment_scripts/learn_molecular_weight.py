@@ -19,6 +19,7 @@ def main():
                          'momentum'    : 0.98,
                          'param_scale' : 0.1,
                          'gamma': 0.9}
+
     arch_params = {'num_hidden_features' : [1, 1],
                         'bond_vec_dim' : 1,
                         'permutations' : True,
