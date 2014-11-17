@@ -22,12 +22,12 @@ def main():
 
     arch_params = {'num_hidden_features' : [1, 1],
                         'bond_vec_dim' : 1,
-                        'permutations' : True,
+                        'permutations' : False,
                         'l2_penalty': 0.001}
 
-    task_params = {'N_train'     : 2000,
-                   'N_valid'     : 1000,
-                   'N_test'      : 3000,
+    task_params = {'N_train'     : 20,
+                   'N_valid'     : 10,
+                   'N_test'      : 30,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 

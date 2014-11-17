@@ -25,7 +25,7 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
             *[mk.NeighborStack(neighbor_list(degree, other_ntype), features, degree)
               for other_ntype, features in zip(other_ntypes, feature_sets)])
         if permutations:
-            weightses = [weights_gen(degree) for d in range(degree)]
+            weightses = [weights_gen(degree, " neighbour " + str(n)) for n in range(degree)]
             neighbors = [ky.Take(stacked_neighbors, d, axis=1) for d in range(degree)]
             products = [[ky.MatMult(n, w) for w in weightses] for n in neighbors]
             candidates = [ky.MatAdd(*[products[i][j] for i, j in enumerate(p)])
@@ -55,9 +55,9 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
 
     in_and_out_sizes = zip(num_hidden_features[:-1], num_hidden_features[1:])
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
-        def new_weights_func(degree):
+        def new_weights_func(degree, neighbourstr=""):
             return weights.new((N_prev + bond_vec_dim, N_cur),
-                name="layer " + str(layer) + " degree " + str(degree) + " filter")
+                name="layer " + str(layer) + " degree " + str(degree) + neighbourstr + " filter" )
         layer_bias = weights.new((1, N_cur), name="layer " + str(layer) + " biases")
         self_activations = ky.MatMult(cur_atoms,
             weights.new((N_prev, N_cur), name="layer " + str(layer) + " self filter"))

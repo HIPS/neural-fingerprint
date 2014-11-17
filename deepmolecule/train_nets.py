@@ -13,6 +13,14 @@ import numpy.random as npr
 from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, plot_learning_curve
 from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_deep_net
 from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
+from deepmolecule import plot_weights, plot_weights_container
+
+import matplotlib
+#matplotlib.use('Agg')   # Cluster-friendly backend.
+import matplotlib.pyplot as plt
+
+import resource
+import gc
 
 
 def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
@@ -20,13 +28,24 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              optimization_routine=rms_prop):
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    loss_fun, grad_fun, pred_fun, _, weights = net_builder_fun(**arch_params)
+    loss_fun, grad_fun, pred_fun, _, weights_container = net_builder_fun(**arch_params)
     print "Weight matrix shapes:"
-    weights.print_shapes()
-    print "Total number of weights in the network:", weights.N
+    weights_container.print_shapes()
+    print "Total number of weights in the network:", weights_container.N
+
+    #plt.ion()
+    #fig = plt.figure(figsize=(12,10))
 
     training_curve = []
     def callback(epoch, weights):
+        print 'Memory usage: %s (MB)' % (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000000.0)
+
+        #fig = plt.figure(figsize=(12,10))
+        #plot_weights_container(weights_container, fig)
+        #plt.draw()
+        #plt.pause(0.05)
+        #plt.title(str(epoch))
+
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
             cur_loss = loss_fun(weights, smiles, targets).flatten()[0]
@@ -40,8 +59,10 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
         else:
             print ".",
 
+    #plt.close()
+
     grad_fun_with_data = lambda idxs, w: grad_fun(w, smiles[idxs], targets[idxs])
-    trained_weights = optimization_routine(grad_fun_with_data, len(targets), weights.N,
+    trained_weights = optimization_routine(grad_fun_with_data, len(targets), weights_container.N,
                                            callback, **train_params)
     predict_func = lambda new_smiles: undo_norm(pred_fun(trained_weights, new_smiles))
     return predict_func, trained_weights, training_curve
@@ -140,11 +161,13 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
     np.savez_compressed(file=get_output_file('learning-curve'), learning_curve=learning_curve)
 
     plot_predictions(get_output_file('predictions.npz'),
-                     os.path.join(output_dir, 'prediction-plots'))
+                     os.path.join(output_dir, 'plots'))
     plot_maximizing_inputs(net_training_function, get_output_file('net-weights.npz'),
                            os.path.join(output_dir, 'features'))
+    plot_weights(net_training_function, get_output_file('net-weights.npz'),
+                 os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
     plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
-                         os.path.join(output_dir, 'prediction-plots'), 'true-vs-atomvecs')
+                         os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
     plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)
 
 

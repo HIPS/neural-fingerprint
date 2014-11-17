@@ -20,14 +20,14 @@ def main():
                          'param_scale' : 0.1,
                          'gamma': 0.9}
 
-    arch_params = {'num_hidden_features' : [10, 10, 10, 10],
+    arch_params = {'num_hidden_features' : [50, 50, 50],
                         'bond_vec_dim' : 3,
-                        'permutations' : False,
+                        'permutations' : True,
                         'l2_penalty': 0.001}
 
-    task_params = {'N_train'     : 2000,
-                   'N_valid'     : 1000,
-                   'N_test'      : 3000,
+    task_params = {'N_train'     : 20000,
+                   'N_valid'     : 10000,
+                   'N_test'      : 10000,
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 

@@ -6,6 +6,6 @@ from io_utils import get_output_file, get_data_file, load_data, output_dir
 from rdkit_utils import smiles_to_fps
 from build_vanilla_net import build_morgan_deep_net, build_morgan_flat_net
 from figures_and_analysis import plot_predictions, plot_maximizing_inputs,\
-    plot_weight_meanings, plot_learning_curve
+    plot_weight_meanings, plot_learning_curve, plot_weights_container, plot_weights
 from odyssey import run_jobs
 from train_nets import run_nn_with_params

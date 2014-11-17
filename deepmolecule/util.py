@@ -13,10 +13,7 @@ class memoize(object):
         self.cache = {}
 
     def __call__(self, *args):
-        try:
-            return self.cache[args]
-        except KeyError:
-            return self.cache.setdefault(args, self.func(*args))
+        return self.cache.setdefault(args, self.func(*args))
 
     def __get__(self, obj, objtype):
         return partial(self.__call__, obj)

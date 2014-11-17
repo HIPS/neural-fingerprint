@@ -2,7 +2,7 @@ import os
 import itertools
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')   # Cluster-friendly backend.
+#matplotlib.use('Agg')   # Cluster-friendly backend.  TODO: Add a flag depending on Odyssey.
 import matplotlib.pyplot as plt
 
 from rdkit import Chem
@@ -129,4 +129,33 @@ def plot_weight_meanings(net_building_func, weights_file, outdir, outfilename):
         plt.savefig(os.path.join(outdir, outfilename + '-bonds.eps'))
         plt.close()
 
+def plot_weights_container(wc, fig):
+    N_groups = len(wc._weights_list)
+    N_side = np.ceil(np.sqrt(N_groups))
+
+    for ix in range(N_groups):
+        ax = fig.add_subplot(N_side, N_side, ix + 1)
+        #ax.imshow(wc._weights_list[ix].value)
+        ax.pcolormesh(np.atleast_2d(wc._weights_list[ix].value))
+        ax.set_title(wc._names_list[ix])
+        plt.setp(ax.get_xticklabels(), visible=False)
+    plt.draw()
+
+
+
+
+def plot_weights(net_building_func, weights_file, outdir, outfilename):
+    saved_net = np.load(weights_file)
+    trained_weights_vec = saved_net['weights']
+    arch_params = saved_net['arch_params'][()]
+    _, _, _, _, weights_container = net_building_func(**arch_params)
+    assert(len(trained_weights_vec) == weights_container.N)
+    weights_container.value = trained_weights_vec  # Put back in a nice structure.
+
+    fig = plt.figure()
+    plot_weights_container(weights_container, fig)
+
+    plt.savefig(os.path.join(outdir, outfilename + '-atoms.png'))
+    plt.savefig(os.path.join(outdir, outfilename + '-atoms.eps'))
+    plt.close()
 
