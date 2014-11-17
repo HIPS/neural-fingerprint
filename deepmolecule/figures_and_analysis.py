@@ -10,20 +10,19 @@ from rdkit.Chem import Draw
 
 from features import N_atom_features, N_bond_features
 
-def print_performance(pred_func, train_inputs, train_targets, test_inputs,
-                      test_targets, target_name="", filename=None):
-    train_preds = pred_func(train_inputs)
-    test_preds = pred_func(test_inputs)
-    print "\nPerformance (RMSE) on " + target_name + ":"
-    print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
-    print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
-    print "-" * 80
-    if filename:
-        np.savez_compressed(file=filename,
-                            train_preds=train_preds, train_targets=train_targets,
-                            test_preds=test_preds, test_targets=test_targets,
-                            target_name=target_name)
 
+def plot_learning_curve(results_filename, outdir):
+    curve = np.load(results_filename)['learning_curve']
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    fig = plt.figure()
+    fig.add_subplot(1,1,1)
+    plt.plot(curve)
+    matplotlib.rcParams.update({'font.size': 16})
+    plt.xlabel("Epoch")
+    plt.ylabel("Training Loss")
+    plt.savefig(os.path.join(outdir, 'learning_curve.png'))
+    plt.close()
 
 def plot_predictions(results_filename, outdir):
     """Generates prediction vs actual scatterplots."""
@@ -45,6 +44,8 @@ def plot_predictions(results_filename, outdir):
         os.makedirs(outdir)
     scatterplot(preds['train_preds'], preds['train_targets'],
                 "Training Accuracy on " + target_name, "training_" + target_name)
+    scatterplot(preds['val_preds'], preds['val_targets'],
+                "Validation Accuracy on " + target_name, "val_" + target_name)
     scatterplot(preds['test_preds'], preds['test_targets'],
                 "Test Accuracy on " + target_name, "testing_" + target_name)
 

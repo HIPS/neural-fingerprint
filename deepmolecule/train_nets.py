@@ -10,7 +10,7 @@ import sys, os
 import numpy as np
 import numpy.random as npr
 
-from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, print_performance
+from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, plot_learning_curve
 from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_deep_net
 from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
 
@@ -25,10 +25,12 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
     weights.print_shapes()
     print "Total number of weights in the network:", weights.N
 
+    training_curve = []
     def callback(epoch, weights):
         if epoch % 10 == 0:
             train_preds = undo_norm(pred_fun(weights, smiles))
             cur_loss = loss_fun(weights, smiles, targets).flatten()[0]
+            training_curve.append(cur_loss)
             print "\nEpoch", epoch, "loss", cur_loss, "train RMSE", \
                 np.sqrt(np.mean((train_preds - raw_targets) ** 2)),
             if validation_smiles is not None:
@@ -41,7 +43,8 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
     grad_fun_with_data = lambda idxs, w: grad_fun(w, smiles[idxs], targets[idxs])
     trained_weights = optimization_routine(grad_fun_with_data, len(targets), weights.N,
                                            callback, **train_params)
-    return lambda new_smiles: undo_norm(pred_fun(trained_weights, new_smiles)), trained_weights
+    predict_func = lambda new_smiles: undo_norm(pred_fun(trained_weights, new_smiles))
+    return predict_func, trained_weights, training_curve
 
 
 def random_net_linear_output(net_builder_fun, smiles, raw_targets, arch_params, train_params):
@@ -89,15 +92,26 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
     val_inputs, val_targets = valdata['smiles'], valdata[task_params['target_name']]
     test_inputs, test_targets = testdata['smiles'], testdata[task_params['target_name']]
 
-    def save_net(weights, arch_params, filename):
-        np.savez_compressed(file=get_output_file(filename), weights=weights,
-                            arch_params=arch_params)
+    def print_performance(pred_func, filename=None):
+        train_preds = pred_func(train_inputs)
+        val_preds = pred_func(val_inputs)
+        test_preds = pred_func(test_inputs)
+        print "\nPerformance (RMSE) on " + task_params['target_name'] + ":"
+        print "Train:", np.sqrt(np.mean((train_preds - train_targets)**2))
+        print "Validation:", np.sqrt(np.mean((val_preds - val_targets)**2))
+        print "Test: ", np.sqrt(np.mean((test_preds - test_targets)**2))
+        print "-" * 80
+
+        if filename:
+            np.savez_compressed(file=filename, target_name=task_params['target_name'],
+                                train_preds=train_preds, train_targets=train_targets,
+                                val_preds=train_preds, val_targets=train_targets,
+                                test_preds=test_preds, test_targets=test_targets)
 
     print "-" * 80
     print "Mean predictor"
     y_train_mean = np.mean(train_targets)
-    print_performance(lambda x: y_train_mean, train_inputs, train_targets,
-                      test_inputs, test_targets)
+    print_performance(lambda x: y_train_mean)
 
     print "-" * 80
     print "Training neural net:"
@@ -116,22 +130,23 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
         raise Exception("No such optimization routine.")
 
     with tictoc():
-        predictor, weights = train_nn(net_training_function, train_inputs, train_targets,
-                                      arch_params, train_params, val_inputs, val_targets,
-                                      optimization_routine=optimization_routine)
+        predictor, weights, learning_curve = train_nn(net_training_function,
+            train_inputs, train_targets, arch_params, train_params, val_inputs,
+            val_targets, optimization_routine=optimization_routine)
         print "\n"
-    print_performance(predictor, train_inputs, train_targets,
-                      test_inputs, test_targets, task_params['target_name'],
-                      get_output_file('predictions-mass'))
-    save_net(weights, arch_params, 'net-weights')
+    print_performance(predictor, get_output_file('predictions'))
+    np.savez_compressed(file=get_output_file('net-weights'),
+                        weights=weights, arch_params=arch_params)
+    np.savez_compressed(file=get_output_file('learning-curve'), learning_curve=learning_curve)
 
-    plot_predictions(get_output_file('predictions-mass.npz'),
-                     os.path.join(output_dir, 'prediction-mass-plots'))
+    plot_predictions(get_output_file('predictions.npz'),
+                     os.path.join(output_dir, 'prediction-plots'))
     plot_maximizing_inputs(build_universal_net, get_output_file('net-weights.npz'),
-                           os.path.join(output_dir, 'features-mass'))
+                           os.path.join(output_dir, 'features'))
     plot_weight_meanings(get_output_file('net-weights.npz'),
-                         os.path.join(output_dir, 'prediction-mass-plots'),
+                         os.path.join(output_dir, 'prediction-plots'),
                          'true-vs-atomvecs')
+    plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)
 
 
 if __name__ == '__main__':

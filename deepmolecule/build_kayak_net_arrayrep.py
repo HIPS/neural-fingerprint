@@ -25,7 +25,7 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
             *[mk.NeighborStack(neighbor_list(degree, other_ntype), features, degree)
               for other_ntype, features in zip(other_ntypes, feature_sets)])
         if permutations:
-            weightses = [weights_gen(d) for d in range(degree)]
+            weightses = [weights_gen(degree) for d in range(degree)]
             neighbors = [ky.Take(stacked_neighbors, d, axis=1) for d in range(degree)]
             products = [[ky.MatMult(n, w) for w in weightses] for n in neighbors]
             candidates = [ky.MatAdd(*[products[i][j] for i, j in enumerate(p)])
