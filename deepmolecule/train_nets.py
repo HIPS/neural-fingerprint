@@ -165,7 +165,7 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
     plot_maximizing_inputs(net_training_function, get_output_file('net-weights.npz'),
                            os.path.join(output_dir, 'features'))
     plot_weights(net_training_function, get_output_file('net-weights.npz'),
-                 os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
+                 os.path.join(output_dir, 'plots'))
     plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
                          os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
     plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)

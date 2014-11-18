@@ -97,7 +97,7 @@ def plot_weight_meanings(net_building_func, weights_file, outdir, outfilename):
     atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
     masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
 
-    atom_weights = weights_container.lookup_by_name('atom2vec').value.ravel()
+    atom_weights = weights_container.lookup_by_name('atom2vec').value[:,0]
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -115,7 +115,7 @@ def plot_weight_meanings(net_building_func, weights_file, outdir, outfilename):
     if arch_params['bond_vec_dim'] > 0:
         bond_names = ['single', 'double', 'triple', 'aromatic', 'conjugated', 'in ring']
         bond_masses = [1.0, 2.0, 3.0, 1.5, 4.0, 1.5]
-        bond_weights = weights_container.lookup_by_name('bond2vec').value.ravel()
+        bond_weights = weights_container.lookup_by_name('bond2vec').value[:,0]
 
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
@@ -135,16 +135,12 @@ def plot_weights_container(wc, fig):
 
     for ix in range(N_groups):
         ax = fig.add_subplot(N_side, N_side, ix + 1)
-        #ax.imshow(wc._weights_list[ix].value)
         ax.pcolormesh(np.atleast_2d(wc._weights_list[ix].value))
         ax.set_title(wc._names_list[ix])
         plt.setp(ax.get_xticklabels(), visible=False)
     plt.draw()
 
-
-
-
-def plot_weights(net_building_func, weights_file, outdir, outfilename):
+def plot_weights(net_building_func, weights_file, outdir):
     saved_net = np.load(weights_file)
     trained_weights_vec = saved_net['weights']
     arch_params = saved_net['arch_params'][()]
@@ -152,10 +148,8 @@ def plot_weights(net_building_func, weights_file, outdir, outfilename):
     assert(len(trained_weights_vec) == weights_container.N)
     weights_container.value = trained_weights_vec  # Put back in a nice structure.
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(18,14))
     plot_weights_container(weights_container, fig)
-
-    plt.savefig(os.path.join(outdir, outfilename + '-atoms.png'))
-    plt.savefig(os.path.join(outdir, outfilename + '-atoms.eps'))
+    plt.savefig(os.path.join(outdir, 'weights.png'))
     plt.close()
 

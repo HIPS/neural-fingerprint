@@ -54,8 +54,6 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
         mol_nodes[('bond_neighbors', degree)] = ky.Blank()
 
     weights = WeightsContainer()
-    #smiles_input = ky.Blank()
-    #mol_graph = mk.MolGraphNode(smiles_input)
     cur_atoms = ky.MatMult(mol_nodes['atom_features'],
         weights.new((N_atom_features, num_hidden_features[0]), name='atom2vec'))
     cur_bonds = ky.MatMult(mol_nodes['bond_features'],

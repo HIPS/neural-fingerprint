@@ -13,21 +13,21 @@ from deepmolecule import get_data_file, run_nn_with_params, output_dir
 
 def main():
     # Parameters for convolutional net.
-    train_params = {'num_epochs'  : 50,
+    train_params = {'num_epochs'  : 1,
                          'batch_size'  : 10,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
                          'param_scale' : 0.1,
                          'gamma': 0.9}
 
-    arch_params = {'num_hidden_features' : [50, 50, 50],
+    arch_params = {'num_hidden_features' : [20, 20, 20],
                         'bond_vec_dim' : 3,
                         'permutations' : True,
                         'l2_penalty': 0.001}
 
-    task_params = {'N_train'     : 2000,
-                   'N_valid'     : 1000,
-                   'N_test'      : 1000,
+    task_params = {'N_train'     : 20,
+                   'N_valid'     : 10,
+                   'N_test'      : 10,
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
