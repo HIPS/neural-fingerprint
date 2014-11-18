@@ -2,13 +2,12 @@ import os
 import itertools
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')   # Cluster-friendly backend.  TODO: Add a flag depending on Odyssey.
+matplotlib.use('Agg')   # Cluster-friendly backend.  TODO: Add a flag depending on Odyssey.
 import matplotlib.pyplot as plt
 
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from features import N_atom_features, N_bond_features
 
 
 def plot_learning_curve(results_filename, outdir):

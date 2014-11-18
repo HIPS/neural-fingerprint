@@ -15,12 +15,12 @@ from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_de
 from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
 from deepmolecule import plot_weights, plot_weights_container
 
-import matplotlib
+#import matplotlib
 #matplotlib.use('Agg')   # Cluster-friendly backend.
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import resource
-import gc
+
 
 
 def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
