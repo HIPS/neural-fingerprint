@@ -25,7 +25,7 @@ def call_on_odyssey(python_script, params_file, outdir, jobname):
 #SBATCH -N 1 # Ensure that all cores are on one machine
 #SBATCH -t 16:00:00
 #SBATCH -p hips
-#SBATCH --mem-per-cpu=8000
+#SBATCH --mem-per-cpu=12000
 #SBATCH -o """ + outdir + """/stdout.txt
 #SBATCH -e """ + outdir + """/stderr.txt
 #SBATCH -J """ + jobname + """

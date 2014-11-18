@@ -3,7 +3,8 @@ import kayak as ky
 import kayak_ops as mk
 import numpy as np
 from features import N_atom_features, N_bond_features
-from util import WeightsContainer, c_value, c_grad
+from util import WeightsContainer, c_value, c_grad, memoize
+from mol_graph import graph_from_smiles_tuple
 
 def all_permutations(N):
     return [permutation for permutation in it.permutations(range(N))]
@@ -14,10 +15,9 @@ def softened_max(X_list):
     return ky.MatSum(ky.MatElemMult(X_cat, ky.SoftMax(X_feature_0, axis=0)),
                      axis=0, keepdims=False)
 
-def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
-                      weights_gen, permutations=False):
+def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, weights_gen, permutations=False):
     def neighbor_list(degree, other_ntype):
-        return mol_graph.get_neighbor_list((self_ntype, degree), other_ntype)
+        return mol_nodes[(other_ntype + '_neighbors', degree)]
     result_by_degree = []
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
@@ -41,16 +41,24 @@ def matmult_neighbors(mol_graph, self_ntype, other_ntypes, feature_sets,
     # in Node.graph_from_smiles_tuple()
     return ky.Concatenate(0, *result_by_degree)
 
+
 def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
                         permutations=False, l2_penalty=0.0):
     """Sets up a Kayak graph to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
+    mol_nodes = {'atom_features' : ky.Blank(),
+                 'bond_features' : ky.Blank(),
+                 'mol_atom_neighbors' : ky.Blank()}
+    for degree in [1, 2, 3, 4]:
+        mol_nodes[('atom_neighbors', degree)] = ky.Blank()
+        mol_nodes[('bond_neighbors', degree)] = ky.Blank()
+
     weights = WeightsContainer()
-    smiles_input = ky.Blank()
-    mol_graph = mk.MolGraphNode(smiles_input) 
-    cur_atoms = ky.MatMult(mol_graph.get_feature_array('atom'),
+    #smiles_input = ky.Blank()
+    #mol_graph = mk.MolGraphNode(smiles_input)
+    cur_atoms = ky.MatMult(mol_nodes['atom_features'],
         weights.new((N_atom_features, num_hidden_features[0]), name='atom2vec'))
-    cur_bonds = ky.MatMult(mol_graph.get_feature_array('bond'),
+    cur_bonds = ky.MatMult(mol_nodes['bond_features'],
         weights.new((N_bond_features, bond_vec_dim), name='bond2vec'))
 
     in_and_out_sizes = zip(num_hidden_features[:-1], num_hidden_features[1:])
@@ -61,12 +69,12 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
         layer_bias = weights.new((1, N_cur), name="layer " + str(layer) + " biases")
         self_activations = ky.MatMult(cur_atoms,
             weights.new((N_prev, N_cur), name="layer " + str(layer) + " self filter"))
-        neighbour_activations = matmult_neighbors(mol_graph, 'atom', ('atom', 'bond'),
+        neighbour_activations = matmult_neighbors(mol_nodes, ('atom', 'bond'),
             (cur_atoms, cur_bonds), new_weights_func, permutations)
         cur_atoms = ky.TanH(layer_bias + self_activations + neighbour_activations)
 
     # Include both a softened-max and a sum node to pool all atom features together.
-    mol_atom_neighbors = mol_graph.get_neighbor_list('molecule', 'atom')
+    mol_atom_neighbors = mol_nodes['mol_atom_neighbors']
     fixed_sized_softmax = mk.NeighborSoftenedMax(mol_atom_neighbors, cur_atoms)
     fixed_sized_sum = mk.NeighborSum(mol_atom_neighbors, cur_atoms)
     fixed_sized_output = ky.Concatenate(1, fixed_sized_softmax, fixed_sized_sum)
@@ -79,13 +87,43 @@ def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
               for w in weights._weights_list ]
     loss = ky.MatAdd(unreg_loss, *l2regs)
 
-    def grad_fun(w, s, t):
-        return c_grad(loss, weights, {weights : w, smiles_input : s, target : t})
-    def loss_fun(w, s, t):
-        return c_value(loss, {weights : w, smiles_input : s, target : t})
-    def pred_fun(w, s):
-        return c_value(output, {weights : w, smiles_input : s})
-    def output_layer_fun(w, s):
-        return c_value(fixed_sized_output, {weights : w, smiles_input : s})
+    def make_input_dict(smiles):
+        array_rep = arrayrep_from_smiles(tuple(smiles))
+        return {mol_nodes[k] : v for k, v in array_rep.iteritems()}
+
+    def grad_fun(w, smiles, t):
+        input_dict = make_input_dict(smiles)
+        input_dict[weights] = w
+        input_dict[target] = t
+        return c_grad(loss, weights, input_dict)
+    def loss_fun(w, smiles, t):
+        input_dict = make_input_dict(smiles)
+        input_dict[weights] = w
+        input_dict[target] = t
+        return c_value(loss, input_dict)
+    def pred_fun(w, smiles):
+        input_dict = make_input_dict(smiles)
+        input_dict[weights] = w
+        return c_value(output, input_dict)
+    def output_layer_fun(w, smiles):
+        input_dict = make_input_dict(smiles)
+        input_dict[weights] = w
+        return c_value(fixed_sized_output, input_dict)
 
     return loss_fun, grad_fun, pred_fun, output_layer_fun, weights
+
+@memoize
+def arrayrep_from_smiles(smiles):
+    """Precompute everything we need from MolGraph so that we can free the memory asap."""
+    molgraph = graph_from_smiles_tuple(smiles)
+    arrayrep = {'atom_features' : molgraph.feature_array('atom'),
+                'bond_features' : molgraph.feature_array('bond'),
+                'mol_atom_neighbors' : molgraph.neighbor_list('molecule', 'atom')}
+
+    for degree in [1, 2, 3, 4]:
+        arrayrep[('atom_neighbors', degree)] = \
+                molgraph.neighbor_list(('atom', degree), 'atom')
+        arrayrep[('bond_neighbors', degree)] = \
+                molgraph.neighbor_list(('atom', degree), 'bond')
+
+    return arrayrep
