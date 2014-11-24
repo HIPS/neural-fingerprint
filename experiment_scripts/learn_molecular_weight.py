@@ -25,14 +25,23 @@ def main():
                         'permutations' : False,
                         'l2_penalty': 0.001}
 
-    task_params = {'N_train'     : 20,
-                   'N_valid'     : 10,
-                   'N_test'      : 30,
+    task_params = {'N_train'     : 2000,
+                   'N_valid'     : 1000,
+                   'N_test'      : 3000,
                    'target_name' : 'Molecular Weight',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    run_nn_with_params(train_params=train_params,
-                       arch_params=arch_params,task_params=task_params,
+    #run_nn_with_params(train_params=train_params,
+    #                   arch_params=arch_params,task_params=task_params,
+    #                   output_dir=output_dir())
+
+    morgan_arch_params = {'h1_size': 10,
+                          'h1_dropout': 0.01,
+                          'fp_length': 512,
+                          'fp_radius': 4}
+
+    run_nn_with_params(net_type='morgan', train_params=train_params,
+                       arch_params=morgan_arch_params,task_params=task_params,
                        output_dir=output_dir())
 
 if __name__ == '__main__':

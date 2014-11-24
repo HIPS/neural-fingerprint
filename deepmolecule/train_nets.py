@@ -9,6 +9,7 @@
 import sys, os
 import numpy as np
 import numpy.random as npr
+import resource
 
 from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, plot_learning_curve
 from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_deep_net
@@ -18,10 +19,6 @@ from deepmolecule import plot_weights, plot_weights_container
 #import matplotlib
 #matplotlib.use('Agg')   # Cluster-friendly backend.
 #import matplotlib.pyplot as plt
-
-import resource
-
-
 
 def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None,
@@ -38,7 +35,7 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
 
     training_curve = []
     def callback(epoch, weights):
-        print 'Memory usage: %s (MB)' % (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000000.0)
+
 
         #fig = plt.figure(figsize=(12,10))
         #plot_weights_container(weights_container, fig)
@@ -47,6 +44,7 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
         #plt.title(str(epoch))
 
         if epoch % 10 == 0:
+            print 'Memory usage: %s (MB)' % (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000000.0)
             train_preds = undo_norm(pred_fun(weights, smiles))
             cur_loss = loss_fun(weights, smiles, targets).flatten()[0]
             training_curve.append(cur_loss)
@@ -166,8 +164,9 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
                            os.path.join(output_dir, 'features'))
     plot_weights(net_training_function, get_output_file('net-weights.npz'),
                  os.path.join(output_dir, 'plots'))
-    plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
-                         os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
+    if net_type is "conv":
+        plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
+                             os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
     plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)
 
 

@@ -9,12 +9,12 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
     weights = WeightsContainer()
     # Need to give fake data here so that the dropout node can make a mask.
     inputs =  ky.Inputs(np.zeros((1, num_inputs)))
-    W1 = weights.new((num_inputs, h1_size))
-    B1 = weights.new((1, h1_size))
+    W1 = weights.new((num_inputs, h1_size), name='layer 1 weights')
+    B1 = weights.new((1, h1_size), name='layer 1 biases')
     hidden = ky.HardReLU(ky.MatMult(inputs, W1) + B1)
     dropout = ky.Dropout(hidden, drop_prob=h1_dropout, rng=npr.RandomState(1))
-    W2 = weights.new(h1_size)
-    B2 = weights.new(1)
+    W2 = weights.new(h1_size, name='layer 2 weights')
+    B2 = weights.new(1, name='layer 2 bias')
     output =  ky.MatMult(dropout, W2) + B2
     target =  ky.Blank()
     loss =  ky.L2Loss(output, target)

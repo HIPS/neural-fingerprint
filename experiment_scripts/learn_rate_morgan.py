@@ -20,10 +20,10 @@ def main():
                          'param_scale' : 0.1,
                          'gamma': 0.9}
 
-    arch_params = {'num_hidden_features' : [1, 1],
-                        'bond_vec_dim' : 1,
-                        'permutations' : False,
-                        'l2_penalty': 0.001}
+    arch_params = {'h1_size': 10,
+                   'h1_dropout': 0.01,
+                   'fp_length': 512,
+                   'fp_radius': 4}
 
     task_params = {'N_train'     : 2000,
                    'N_valid'     : 1000,
@@ -31,7 +31,7 @@ def main():
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    run_nn_with_params(train_params=train_params,
+    run_nn_with_params(net_type='morgan', train_params=train_params,
                        arch_params=arch_params,task_params=task_params,
                        output_dir=output_dir())
 
