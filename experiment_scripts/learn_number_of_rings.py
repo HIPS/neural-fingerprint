@@ -31,10 +31,18 @@ def main():
                    'target_name' : 'Number of Rings',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    run_nn_with_params(train_params=train_params,
-                       arch_params=arch_params,task_params=task_params,
-                       output_dir=output_dir(),
-                       )
+    #run_nn_with_params(train_params=train_params,
+    #                   arch_params=arch_params,task_params=task_params,
+    #                   output_dir=output_dir())
+
+    morgan_arch_params = {'h1_size': 100,
+                          'h1_dropout': 0.01,
+                          'fp_length': 512,
+                          'fp_radius': 4}
+
+    run_nn_with_params(net_type='morgan', train_params=train_params,
+                       arch_params=morgan_arch_params,task_params=task_params,
+                       output_dir=output_dir())
 
 if __name__ == '__main__':
     sys.exit(main())

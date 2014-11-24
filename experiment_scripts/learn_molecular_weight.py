@@ -35,7 +35,7 @@ def main():
     #                   arch_params=arch_params,task_params=task_params,
     #                   output_dir=output_dir())
 
-    morgan_arch_params = {'h1_size': 10,
+    morgan_arch_params = {'h1_size': 100,
                           'h1_dropout': 0.01,
                           'fp_length': 512,
                           'fp_radius': 4}
