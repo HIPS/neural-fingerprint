@@ -1,20 +1,20 @@
 import numpy as np
 import numpy.random as npr
 
-def sgd_with_momentum(grad, N_x, N_w, callback=None,
+def sgd_with_momentum(grad, num_training_examples, num_weights, callback=None,
                       batch_size=100, num_epochs=100, learn_rate=0.1,
-                      momentum=0.9, param_scale=0.1, **kwargs):
+                      mass=0.9, param_scale=0.1, **kwargs):
     """Stochastic gradient descent with momentum."""
-    w = npr.randn(N_w) * param_scale
-    cur_dir = np.zeros(N_w)
-    batches = batch_idx_generator(batch_size, N_x)
+    weights = npr.randn(num_weights) * param_scale   # Initialize with random weights.
+    velocity = np.zeros(num_weights)
+    batches = batch_idx_generator(batch_size, num_training_examples)
     for epoch in xrange(num_epochs):
         for batch in batches:
-            cur_grad = grad(batch, w)
-            cur_dir = momentum * cur_dir - (1.0 - momentum) * cur_grad
-            w += learn_rate * cur_dir
-        if callback: callback(epoch, w)
-    return w
+            cur_grad = grad(batch, weights)
+            velocity = mass * velocity - (1.0 - mass) * cur_grad
+            weights += learn_rate * velocity
+        if callback: callback(epoch, weights)
+    return weights
 
 def rms_prop(grad, N_x, N_w, callback=None,
              batch_size=100, num_epochs=100, learn_rate=0.1,

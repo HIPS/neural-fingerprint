@@ -24,7 +24,7 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None,
              optimization_routine=rms_prop):
     npr.seed(1)
-    targets, undo_norm = normalize_array(raw_targets)
+    targets, undo_normalization = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, weights_container = net_builder_fun(**arch_params)
     print "Weight matrix shapes:"
     weights_container.print_shapes()
@@ -59,10 +59,14 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
 
     #plt.close()
 
-    grad_fun_with_data = lambda idxs, w: grad_fun(w, smiles[idxs], targets[idxs])
+    def grad_fun_with_data(training_idxs, weights):
+        return grad_fun(weights, smiles[training_idxs], targets[training_idxs])
     trained_weights = optimization_routine(grad_fun_with_data, len(targets), weights_container.N,
                                            callback, **train_params)
-    predict_func = lambda new_smiles: undo_norm(pred_fun(trained_weights, new_smiles))
+
+    def predict_func(new_smiles):
+        """Returns to the original units that the raw targets were in."""
+        return undo_normalization(pred_fun(trained_weights, new_smiles))
     return predict_func, trained_weights, training_curve
 
 

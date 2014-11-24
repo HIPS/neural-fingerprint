@@ -35,15 +35,15 @@ def tictoc():
     print "--- Stop clock: %s seconds elapsed ---" % dt
 
 # "Counterfactual value" - helper function to allow testing different inputs
-def c_value(output, node_values):
-    for node, new_value in node_values.iteritems():
+def c_value(output, nodes_and_values):
+    for node, new_value in nodes_and_values.iteritems():
         node.value = new_value
     return output.value
 
-def c_grad(loss, var, node_values):
-    for node, new_value in node_values.iteritems():
+def c_grad(ky_function, var, nodes_and_values):
+    for node, new_value in nodes_and_values.iteritems():
         node.value = new_value
-    return loss.grad(var)
+    return ky_function.grad(var)
 
 class WeightsContainer(object):
     """Container for a collection of weights that camouflages itself as a kayak object."""

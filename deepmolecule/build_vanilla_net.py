@@ -23,7 +23,7 @@ def build_vanilla_net(num_inputs, h1_size, h1_dropout):
     def grad_fun(w, X, t):
         """X is a matrix of size num_training_examples by num_features."""
         inputs.value = X      # Necessary so that the dropout mask will be the right size.
-        dropout.draw_new_mask()
+        dropout.draw_new_mask()   # TODO: Should be wrapped in a stochastic setup callback.
         return c_grad(loss, weights, {weights : w, target : t})
     def loss_fun(w, X, t):
         return c_value(loss, {weights : w, inputs : X, target : t})
