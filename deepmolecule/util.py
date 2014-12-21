@@ -84,3 +84,24 @@ class WeightsContainer(object):
         # Perhaps it'd be better to replace the two lists with a defaultdict.
         match_ix = [ix for (ix, cur_name) in enumerate(self._names_list) if cur_name is name][0]
         return self._weights_list[match_ix]
+
+
+class WeightsParser(object):
+    """A kind of dictionary of weights shapes,
+       which can pick out named subsets from a long vector.
+       Does not actually store any weights itself."""
+    def __init__(self):
+        self.idxs_and_shapes = {}
+        self.N = 0
+
+    def add_weights(self, name, shape):
+        start = self.N
+        self.N += np.prod(shape)
+        self.idxs_and_shapes[name] = (slice(start, self.N), shape)
+
+    def get(self, vect, name):
+        """Takes in a vector and returns the subset indexed by name."""
+        idxs, shape = self.idxs_and_shapes[name]
+        return np.reshape(vect[idxs], shape)
+
+

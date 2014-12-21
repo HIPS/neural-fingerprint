@@ -1,27 +1,11 @@
 
 from funkyyak import grad, numpy_wrapper as np
 from features import N_atom_features, N_bond_features
-from util import memoize
+from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple
 
-class WeightsParser(object):
-    """A kind of dictionary of weights shapes,
-       which can pick out named subsets from a long vector.
-       Does not actually store any weights itself."""
-    def __init__(self):
-        self.idxs_and_shapes = {}
-        self.N = 0
-
-    def add_weights(self, name, shape):
-        start = self.N
-        self.N += np.prod(shape)
-        self.idxs_and_shapes[name] = (slice(start, self.N), shape)
-
-    def get(self, vect, name):
-        """Takes in a vector and returns the subset indexed by name."""
-        idxs, shape = self.idxs_and_shapes[name]
-        return np.reshape(vect[idxs], shape)
-
+from rdkit.Chem import MolFromSmiles
+from features import atom_features, bond_features
 
 
 def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
@@ -47,10 +31,6 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
 
     # The recursive net has 3 functions which need to be applied to shrink
     # the net while keeping (in principle) all information about the graph.
-
-    def nonlinearity(units, weights):
-        return np.tanh(np.dot(units, weights))
-
     parser.add_weights('combine cores', (2*core_vec_dim + 2*site_vec_dim, core_vec_dim))
     def combine_nodes(weights, core_left, core_right, site_left, site_right):
         """Combines two nodes along an edge,
