@@ -52,10 +52,11 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
         return nonlinearity(concat_units, parser.get(weights, 'remove loop'))
 
     def hidden_units(weights, smiles):
-
         """Recursively combine nodes to get a fixed-size representation."""
         molgraph = graph_from_smiles_tuple(smiles)
 
+        # Check which two nodes should be merged
+        pairs = itertools.combinations(molgraph.atoms)
 
     def predictions(weights, smiles):
         """Go from the fixed-size representation to a prediction."""
@@ -68,7 +69,3 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
 
     return loss, grad(loss), predictions, hidden_units, parser
 
-
-@memoize
-def parsetree_from_smiles(smiles):
-    molgraph = graph_from_smiles_tuple(smiles)

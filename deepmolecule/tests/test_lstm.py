@@ -1,17 +1,17 @@
 
-from deepmolecule import build_lstm_rnn, rms_prop, conj_grad
+from deepmolecule import build_lstm_rnn, rms_prop, conj_grad, build_vanilla_rnn
 
 import numpy as np
 import numpy.random as npr
 
 
-def generate_counting_example(length=30, input_size=9):
+def generate_counting_example(length=15, input_size=4):
     #length = npr.randint(low=10, high=30)
     seq = npr.randint(low=0, high=input_size, size=(length,1))
     answer = np.sum(seq == 1)
     return seq, answer
 
-def generate_parens_example(length=30, input_size=9):
+def generate_parens_example(length=15, input_size=4):
     #length = npr.randint(low=10, high=30)
     seq = npr.randint(low=0, high=input_size, size=(length,1))
     answer = np.sum(seq == 1) - 2.5*np.sum(seq == 2)
@@ -21,24 +21,27 @@ def build_dataset(N, seq_length, example_generator):
     seqs = np.zeros((N, seq_length))
     targets = np.zeros((N))
     for ix in xrange(N):
-         cur_seq, cur_target = example_generator(seq_length)
-         seqs[ix, :] = np.squeeze(cur_seq[:,])
-         targets[ix] = cur_target
+        cur_seq, cur_target = example_generator(seq_length)
+        seqs[ix, :] = np.squeeze(cur_seq[:,])
+        targets[ix] = cur_target
     return seqs, targets
 
 def test_lstm():
     N_train = 1000
     N_test = 100
-    state_size = 20
-    input_size = 9
-    seq_length = 35
+    state_size = 2
+    input_size = 3
+    seq_length = 1
     datagen_fun = generate_counting_example
+    #datagen_fun = generate_parens_example
 
     train_seqs, train_targets = build_dataset(N_train, seq_length, datagen_fun)
-    test_seqs, test_targets = build_dataset(N_test, seq_length, datagen_fun)
+    test_seqs,  test_targets  = build_dataset(N_test,  seq_length, datagen_fun)
 
+#    loss_fun, grad_fun, pred_fun, hidden_fun, parser = \
+#        build_lstm_rnn(input_size, state_size, l2_penalty=0.0)
     loss_fun, grad_fun, pred_fun, hidden_fun, parser = \
-        build_lstm_rnn(input_size, state_size, l2_penalty=0.0)
+        build_vanilla_rnn(input_size, state_size, l2_penalty=0.0)
 
     def training_grad_with_idxs(idxs, weights):
         return grad_fun(weights, train_seqs[idxs], train_targets[idxs])
