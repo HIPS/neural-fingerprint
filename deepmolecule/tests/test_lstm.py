@@ -4,6 +4,7 @@ from deepmolecule import build_lstm_rnn, rms_prop, conj_grad
 import numpy as np
 import numpy.random as npr
 
+
 def generate_counting_example(length=30, input_size=9):
     #length = npr.randint(low=10, high=30)
     seq = npr.randint(low=0, high=input_size, size=(length,1))
@@ -61,13 +62,12 @@ def test_lstm():
 
     def callback(epoch, weights):
         print "Epoch", epoch, "Train loss: ", loss_fun(weights, train_seqs, train_targets), \
-                              "Train error: ", train_accuracy(weights),\
-                              "Test error: ", test_accuracy(weights)
+                               "Test error: ", test_accuracy(weights)
 
-    #trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
-    #                           learn_rate = 0.00001)
+    trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
+                               learn_rate = 0.001)
 
-    trained_weights = conj_grad(training_loss_all, training_grad_all,
-                                parser.N, callback)
+    #trained_weights = conj_grad(training_loss_all, training_grad_all,
+    #                            parser.N, callback)
 
 test_lstm()

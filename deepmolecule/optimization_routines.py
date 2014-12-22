@@ -3,7 +3,6 @@ import numpy.random as npr
 from scipy.optimize import fmin_cg
 
 
-
 def conj_grad(objfun, gradfun, num_weights, callback=None, num_epochs=100, param_scale=0.1):
     """Conjugate gradients."""
     init_x = npr.randn(num_weights) * param_scale   # Initialize with random weights.
