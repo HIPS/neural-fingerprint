@@ -1,5 +1,5 @@
 
-from deepmolecule import build_lstm_rnn, rms_prop
+from deepmolecule import build_lstm_rnn, rms_prop, conj_grad
 
 import numpy as np
 import numpy.random as npr
@@ -41,6 +41,12 @@ def test_lstm():
 
     def training_grad_with_idxs(idxs, weights):
         return grad_fun(weights, train_seqs[idxs], train_targets[idxs])
+    def training_loss_with_idxs(idxs, weights):
+        return loss_fun(weights, train_seqs[idxs], train_targets[idxs])
+    def training_grad_all(weights):
+        return grad_fun(weights, train_seqs, train_targets)
+    def training_loss_all(weights):
+        return loss_fun(weights, train_seqs, train_targets)
 
     def pred_rmse(weights, seqs, targets):
         preds = pred_fun(weights, seqs)
@@ -54,10 +60,14 @@ def test_lstm():
     print "Random accuracy: ", test_accuracy(npr.randn(parser.N))
 
     def callback(epoch, weights):
-        print "Epoch", epoch, "Train error: ", train_accuracy(weights),\
-                               "Test error: ", test_accuracy(weights)
+        print "Epoch", epoch, "Train loss: ", loss_fun(weights, train_seqs, train_targets), \
+                              "Train error: ", train_accuracy(weights),\
+                              "Test error: ", test_accuracy(weights)
 
-    trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
-                               learn_rate = 0.00001)
+    #trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
+    #                           learn_rate = 0.00001)
+
+    trained_weights = conj_grad(training_loss_all, training_grad_all,
+                                parser.N, callback)
 
 test_lstm()

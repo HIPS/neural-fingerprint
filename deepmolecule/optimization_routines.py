@@ -1,5 +1,24 @@
 import numpy as np
 import numpy.random as npr
+from scipy.optimize import fmin_cg
+
+
+
+def conj_grad(objfun, gradfun, num_weights, callback=None, num_epochs=100, param_scale=0.1):
+    """Conjugate gradients."""
+    init_x = npr.randn(num_weights) * param_scale   # Initialize with random weights.
+
+    def epoch_generator():
+        epoch = 0
+        while True:
+            yield epoch
+            epoch += 1
+    eg = epoch_generator()
+    def wrapped_callback(x):
+        callback(next(eg), x)
+
+    return fmin_cg(objfun, init_x, fprime=gradfun, maxiter=num_epochs, callback=wrapped_callback)
+
 
 def sgd_with_momentum(grad, num_training_examples, num_weights, callback=None,
                       batch_size=100, num_epochs=100, learn_rate=0.1,
