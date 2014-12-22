@@ -33,23 +33,31 @@ def test_lstm():
     seq_length = 35
     datagen_fun = generate_counting_example
 
-    training_seqs, training_targets = build_dataset(N_train, seq_length, datagen_fun)
+    train_seqs, train_targets = build_dataset(N_train, seq_length, datagen_fun)
     test_seqs, test_targets = build_dataset(N_test, seq_length, datagen_fun)
 
     loss_fun, grad_fun, pred_fun, hidden_fun, parser = \
         build_lstm_rnn(input_size, state_size, l2_penalty=0.0)
 
     def training_grad_with_idxs(idxs, weights):
-        return grad_fun(weights, training_seqs[idxs], training_targets[idxs])
+        return grad_fun(weights, train_seqs[idxs], train_targets[idxs])
+
+    def pred_rmse(weights, seqs, targets):
+        preds = pred_fun(weights, seqs)
+        return np.sqrt(np.mean((preds - targets)**2))
 
     def test_accuracy(weights):
-        return loss_fun(weights, test_seqs, test_targets)
+        return pred_rmse(weights, test_seqs, test_targets)
+    def train_accuracy(weights):
+        return pred_rmse(weights, train_seqs, train_targets)
 
     print "Random accuracy: ", test_accuracy(npr.randn(parser.N))
 
     def callback(epoch, weights):
-        print "Epoch", epoch, "Test accuracy: ", test_accuracy(weights)
+        print "Epoch", epoch, "Train error: ", train_accuracy(weights),\
+                               "Test error: ", test_accuracy(weights)
 
-    trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback)
+    trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
+                               learn_rate = 0.00001)
 
 test_lstm()

@@ -3,50 +3,50 @@ from funkyyak import grad, numpy_wrapper as np
 
 from util import WeightsParser
 
-def nonlinearity(units, weights):
-    """Should have output ranging from 0 to 1."""
-    return 0.5*(np.tanh(np.dot(units, weights)) + 1)
-
 def squash(x):
     return 0.5*(np.tanh(x) + 1)
 
+def nonlinearity(input, state, weights):
+    """Should have output ranging from 0 to 1."""
+    num_inputs = input.shape[1]
+    num_state = state.shape[1]
+    input_weights = weights[0:num_inputs, :]
+    state_weights = weights[num_inputs:num_inputs+num_state, :]
+    inner_sum = np.dot(input, input_weights) + np.dot(state, state_weights) + weights[-1, :]
+    return squash(inner_sum)
+
+# Version without concatenation.
 def lstm(gate_weights, change_weights, keep_weights, input, state):
     """Implements one iteration of an LSTM node without an output."""
-    bias = np.ones((1))#state.shape[0], 1))
-    combined = np.concatenate((input, state, bias), axis=0)
-    change = nonlinearity(combined, change_weights)
-    gate   = nonlinearity(combined, gate_weights)
-    keep   = nonlinearity(combined, keep_weights)
+    change = nonlinearity(input, state, change_weights)
+    gate   = nonlinearity(input, state, gate_weights)
+    keep   = nonlinearity(input, state, keep_weights)
     return state * keep + gate * change
-
 
 one_hot = lambda x, K : np.array(x[:,None] == np.arange(K)[None, :], dtype=int)
 
-def build_lstm_rnn(input_size, state_size, l2_penalty=0.0):
+def build_lstm_rnn(input_size, state_size, output_size=1, l2_penalty=0.0):
 
     parser = WeightsParser()
     parser.add_weights('gate',   (input_size + state_size + 1, state_size))
     parser.add_weights('change', (input_size + state_size + 1, state_size))
     parser.add_weights('keep',   (input_size + state_size + 1, state_size))
 
-    def apply_lstm_to_seq(weights, seq):
+    def apply_lstm_to_seqs(weights, seqs):
         """Goes from right to left, updating the state."""
-        state = np.zeros(state_size)
-        gate_weights = parser.get(weights,   'gate')
+        n = seqs.shape[0]
+        state = np.zeros((n, state_size))
+        gate_weights   = parser.get(weights, 'gate')
         change_weights = parser.get(weights, 'change')
-        keep_weights = parser.get(weights, 'keep')
-        input_matrix = one_hot(seq, input_size)
-        for cur_input in input_matrix:
-            state = lstm(gate_weights, change_weights, keep_weights, cur_input, state)
+        keep_weights   = parser.get(weights, 'keep')
+        for cur_input in seqs.T:
+            # Update states based on new inputs.
+            input_onehot = one_hot(cur_input, input_size)
+            state = lstm(gate_weights, change_weights, keep_weights,
+                         input_onehot, state)
         return state
 
-    def apply_lstm_to_seqs(weights, seqs):
-        states = np.zeros((seqs.shape[0], state_size))
-        for ix, seq in enumerate(seqs):
-            states[ix, :] = apply_lstm_to_seq(weights, seq)
-        return states
-
-    parser.add_weights('output', (state_size, input_size))
+    parser.add_weights('output', (state_size, output_size))
 
     def predictions(weights, seqs):
         """Go from the fixed-size representation to a prediction."""
