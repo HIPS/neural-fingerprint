@@ -30,7 +30,7 @@ def test_lstm():
     N_test = 100
     state_size = 20
     input_size = 9
-    seq_length = 30
+    seq_length = 35
     datagen_fun = generate_counting_example
 
     training_seqs, training_targets = build_dataset(N_train, seq_length, datagen_fun)

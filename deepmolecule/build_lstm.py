@@ -7,34 +7,37 @@ def nonlinearity(units, weights):
     """Should have output ranging from 0 to 1."""
     return 0.5*(np.tanh(np.dot(units, weights)) + 1)
 
-def lstm(gate_weights, change_weights, forget_weights, input, old_state):
-    """Implements one iteration of an LSTM node without an output.
-       This version doesn't have a separate output gate."""
-    change = nonlinearity(input, change_weights)
-    gate = nonlinearity(input, gate_weights)
-    forget = nonlinearity(input, forget_weights)
-    return old_state * forget + gate * change
-    # Question 1: Should we forget everything, or just the old state?
-    # Question 2: Should any of these depend on the current state?
+def squash(x):
+    return 0.5*(np.tanh(x) + 1)
+
+def lstm(gate_weights, change_weights, keep_weights, input, state):
+    """Implements one iteration of an LSTM node without an output."""
+    bias = np.ones((1))#state.shape[0], 1))
+    combined = np.concatenate((input, state, bias), axis=0)
+    change = nonlinearity(combined, change_weights)
+    gate   = nonlinearity(combined, gate_weights)
+    keep   = nonlinearity(combined, keep_weights)
+    return state * keep + gate * change
+
 
 one_hot = lambda x, K : np.array(x[:,None] == np.arange(K)[None, :], dtype=int)
 
 def build_lstm_rnn(input_size, state_size, l2_penalty=0.0):
 
     parser = WeightsParser()
-    parser.add_weights('gate', (input_size, state_size))
-    parser.add_weights('change', (input_size, state_size))
-    parser.add_weights('forget', (input_size, state_size))
+    parser.add_weights('gate',   (input_size + state_size + 1, state_size))
+    parser.add_weights('change', (input_size + state_size + 1, state_size))
+    parser.add_weights('keep',   (input_size + state_size + 1, state_size))
 
     def apply_lstm_to_seq(weights, seq):
         """Goes from right to left, updating the state."""
         state = np.zeros(state_size)
-        gate_weights = parser.get(weights, 'gate')
+        gate_weights = parser.get(weights,   'gate')
         change_weights = parser.get(weights, 'change')
-        forget_weights = parser.get(weights, 'forget')
-        input_matrix = one_hot(seq, gate_weights.shape[0])
+        keep_weights = parser.get(weights, 'keep')
+        input_matrix = one_hot(seq, input_size)
         for cur_input in input_matrix:
-            state = lstm(gate_weights, change_weights, forget_weights, cur_input, state)
+            state = lstm(gate_weights, change_weights, keep_weights, cur_input, state)
         return state
 
     def apply_lstm_to_seqs(weights, seqs):
@@ -55,41 +58,3 @@ def build_lstm_rnn(input_size, state_size, l2_penalty=0.0):
         return -log_prior - log_lik
 
     return loss, grad(loss), predictions, apply_lstm_to_seqs, parser
-
-
-def build_vanilla_rnn(input_size, state_size, l2_penalty=0.0):
-
-    parser = WeightsParser()
-    parser.add_weights('gate', (input_size, state_size))
-    parser.add_weights('change', (input_size, state_size))
-    parser.add_weights('forget', (input_size, state_size))
-
-    def apply_lstm_to_seq(weights, seq):
-        """Goes from right to left, updating the state."""
-        state = np.zeros(state_size)
-        gate_weights = parser.get(weights, 'gate')
-        change_weights = parser.get(weights, 'change')
-        forget_weights = parser.get(weights, 'forget')
-        input_matrix = one_hot(seq, gate_weights.shape[0])
-        for cur_input in input_matrix:
-            state = lstm(gate_weights, change_weights, forget_weights, cur_input, state)
-        return state
-
-    def apply_lstm_to_seqs(weights, seqs):
-        states = np.zeros((state_size, seqs.shape[0]))
-        for ix, seq in enumerate(seqs):
-            states[ix, :] = apply_lstm_to_seq(weights, seq)
-        return states
-
-    parser.add_weights('output', (input_size, state_size))
-
-    def predictions(weights, seqs):
-        """Go from the fixed-size representation to a prediction."""
-        return apply_lstm_to_seqs(weights, seqs) * parser.get(weights, 'output')
-
-    def loss(weights, seqs, targets):
-        log_lik = np.sum((predictions(weights, seqs) - targets)**2)
-        log_prior = -l2_penalty * np.dot(weights, weights)
-        return - log_prior - log_lik
-
-    return loss, grad(loss), predictions, apply_lstm_to_seq, parser
