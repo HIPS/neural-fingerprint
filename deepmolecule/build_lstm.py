@@ -15,11 +15,8 @@ def nonlinearity(input, state, weights):
               + np.dot(state, state_weights) + bias
     return squash(inner_sum)
 
-def update_lstm(weights, parser, input, state):
+def update_lstm(input, state, change_weights, gate_weights, keep_weights):
     """One iteration of an LSTM node without an output."""
-    gate_weights   = parser.get(weights, 'gate')
-    change_weights = parser.get(weights, 'change')
-    keep_weights   = parser.get(weights, 'keep')
     change = nonlinearity(input, state, change_weights)
     gate   = nonlinearity(input, state, gate_weights)
     keep   = nonlinearity(input, state, keep_weights)
@@ -30,8 +27,8 @@ def one_hot(x, K):
 
 def build_lstm_rnn(input_size, state_size, output_size=1, l2_penalty=0.0):
     parser = WeightsParser()
-    parser.add_weights('gate',   (input_size + state_size + 1, state_size))
     parser.add_weights('change', (input_size + state_size + 1, state_size))
+    parser.add_weights('gate',   (input_size + state_size + 1, state_size))
     parser.add_weights('keep',   (input_size + state_size + 1, state_size))
     parser.add_weights('output', (state_size, output_size))
 
@@ -40,8 +37,12 @@ def build_lstm_rnn(input_size, state_size, output_size=1, l2_penalty=0.0):
         num_seqs = seqs.shape[0]
         state = np.zeros((num_seqs, state_size))
         for cur_input in seqs.T:  # Iterate over time steps.
-            inputs_onehot = one_hot(cur_input, input_size)
-            state = update_lstm(weights, parser, inputs_onehot, state)
+            inputs = one_hot(cur_input, input_size)
+            change_weights = parser.get(weights, 'change')
+            gate_weights   = parser.get(weights, 'gate')
+            keep_weights   = parser.get(weights, 'keep')
+            state = update_lstm(inputs, state,
+                                change_weights, gate_weights, keep_weights)
         return state
 
     def predictions(weights, seqs):
