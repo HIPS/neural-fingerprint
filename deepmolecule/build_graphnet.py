@@ -60,29 +60,31 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
         # TODO: make the ranking be learned instead of random.
         return npr.randn((len(atom_and_site_pairs), 1))
 
-    def hidden_units(weights, smiles):
+    def hidden_units(weights, smile):
         """Recursively combines nodes to get a fixed-size representation."""
-        atomgraph = graph_from_smiles_tuple(smiles)
+        atomgraph = graph_from_smile(smile)
 
         def get_next_pair_to_merge():
-            atom_pairs = combinations_with_replacement(atomgraph.atoms)
-            # with replacement to allow for self-loops.
+            atom_pairs = combinations_with_replacement(atomgraph.get_atoms())
+            # with replacement to allow for self-loops,
+            # and for joining left-to-right instead of right-to-left.
             atom_and_site_pairs = \
-                [(atom_pair, site_pair)
+                [(atom_pair, edge)
                  for atom_pair in atom_pairs
-                 for site_pair in atomgraph.get_connecting_sites(atom_pair)]
+                 for edge in atomgraph.get_connecting_edges(atom_pair)]
             rankings = combination_ranker(atom_and_site_pairs)
             # TODO: only re-rank new pairs, to save time.
             return atom_and_site_pairs[np.argmax(rankings)]
 
-        def merge_atoms(left_atom, right_atom, left_site, right_site):
+        def merge_atoms(left_atom, right_atom, edge):
             """Updates atomgraph in place."""
-            #TODO: combined_sites[left_site].delete
-            #TODO: combined_sites[right_site].delete
+            left_site  = edge.this_site(left_atom)
+            right_site = edge.this_site(right_atom)
             if left_atom is right_atom:  # Self-loop
                 self_loop_weights = parser.get(weights, 'remove loop')
                 left_atom.core = remove_self_loop(self_loop_weights, left_atom.core,
                                                   left_site, right_site)
+                atomgraph.remove_edge(edge)
             else:
                 combine_weights = parser.get(weights, 'combine cores')
                 new_core = combine_cores(combine_weights, left_atom.core, right_atom.core,
@@ -96,6 +98,8 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
                     site.attached_to = new_atom
 
                 # Now update the graph.
+                #TODO: combined_sites[left_site].delete
+                #TODO: combined_sites[right_site].delete
                 # TODO: delete old atoms
                 # TODO: introduce new atom.
 
@@ -119,11 +123,11 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
 
 class AtomGraph(object):
     def __init__(self):
-        self.verts = []
+        self.atoms = []
         self.edges = []
 
     def add_atom(self, atom):
-        self.verts.append(atom)
+        self.atoms.append(atom)
 
     def add_edge(self, edge):
         assert edge.get_atoms()[0] in self.atoms \
@@ -131,18 +135,17 @@ class AtomGraph(object):
             "Edge refers to non-existent atom."
         self.edges.append(edge)
 
+    def remove_edge(self, edge):
+        self.edges.remove(edge)
+
     def get_atoms(self):
         return self.atoms
 
     def get_edges(self):
         return self.edges
 
-    def get_connecting_sites(left_atom, right_atom):
-        """Return pairs of sites (in same order as atoms)
-           connecting these two atoms."""
-        right_site  = right_atom.sites[left_atom]
-        left_site = left_atom.sites[right_atom]
-        return left_site, right_site
+    def get_connecting_edges(left_atom, right_atom):
+        return intersect(left_atom.edges, right_atom.edges)
 
 class Atom(object):
     def __init__(self, core):
@@ -181,3 +184,29 @@ class Edge(object):
             return self.atom1
         else:
             raise Exception("Edge does not connect this atom.")
+
+    def this_site(self, atom):
+        if self.atom1 is atom:
+            return self.site1
+        elif self.atom2 is atom:
+            return self.site2
+        else:
+            raise Exception("Edge does not connect this atom.")
+
+def graph_from_smile(smile):
+    graph = AtomGraph()
+    mol = MolFromSmiles(smile)
+
+    for atom in mol.GetAtoms():
+        graph.add_atom( Atom(atom_features(atom)))
+
+    for bond in mol.GetBonds():
+        atom1_node = atoms_by_rd_idx[bond.GetBeginAtom().GetIdx()]
+        atom2_node = atoms_by_rd_idx[bond.GetEndAtom().GetIdx()]
+        new_bond_node = graph.new_node('bond', )
+        new_bond_node.add_neighbors((atom1_node, atom2_node))
+        atom1_node.add_neighbors((atom2_node,))
+
+    mol_node = graph.new_node('molecule')
+    mol_node.add_neighbors(graph.nodes['atom'])
+    return graph
