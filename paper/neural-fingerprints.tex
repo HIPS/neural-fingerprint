@@ -99,6 +99,9 @@
 %% Insert self-defined macros here.
 %% \newcommand definitions are recommended; \def definitions are supported
 
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+
 %\newcommand{\mfrac}[2]{\frac{\displaystyle #1}{\displaystyle #2}}
 %\def\s{\sigma}
 
@@ -242,6 +245,12 @@ Not having them be nodes is slightly simpler, so we'll do that for now.
 \paragraph{What kind of max-pooling?}
 k-max pooling might be appropriate.
 
+\section{Extended Connectivity Fingerprints}
+
+
+
+
+
 \subsection{Things we might be able to predict}
 
 \begin{itemize}
@@ -255,13 +264,13 @@ k-max pooling might be appropriate.
 \end{itemize}
 
 
-\begin{figure}[h]
+\begin{figure}
 \centerline{\includegraphics[width=0.4\textwidth]{figures/3d-nets/net1}}
 \caption{A visualization of one of the convolutional nets constructed on a molecule.}
 \label{placeholder}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
 \centerline{
 \includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-0}
 \includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-1}}
@@ -473,6 +482,45 @@ Treatment 3 & 0.0009271 & 0.296 \\
 \hline
 \end{tabular}
 \end{table}
+
+
+\begin{algorithm}
+  \caption{Pseudocode of ECFP}
+  \textbf{Input:} {molecule m, radius $r$, atom features $g$, hash function $h$}
+  \begin{algorithmic}
+    \For {each atom $a$ in molecule} 
+	    \State $r_a \leftarrow g(a)$ \Comment {Represent each atom by given properties}
+    \EndFor
+    \For {$\ell = 1$ to $r$} \Comment {Repeat for as many iterations as the radius}
+	    \For {each atom $a$ in molecule}
+		    \State $v \leftarrow c[r_a, r_{n1} \dots r_{nN} ]$ \Comment {Concatenate representation of self and neighbours}	    
+		    \State $r_a \leftarrow h(v)$ \Comment {Compute hash of concatenated representation}
+	    \EndFor
+    \EndFor
+    \For {each feature $f$ in bitstrings}
+	    \State $o_f \leftarrow \max[r_{1f} \dots r_{Mf}]$ \Comment {Combine duplicate features by a max or sum}
+    \EndFor    
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Pseudocode of Neural Fingerprints}
+  \textbf{Input:} {molecule m, radius $r$, learned atom vectors $g$, {\color{blue} learned smooth functions $f_1 \dots f_r$}}
+  \begin{algorithmic}
+    \For {each atom $a$ in molecule} 
+	    \State $r_a \leftarrow g(a)$ \Comment {Represent each atom by a learned vector}
+    \EndFor
+    \For {$\ell = 1$ to $r$} \Comment {For R layers}
+	    \For {each atom $a$ in molecule}
+		    \State $v \leftarrow c[r_a, r_{n1} \dots r_{nN} ]$ \Comment {Concatenate representation of self and neighbours}	    
+		    \State $r_a \leftarrow {\color{blue}f_{\ell}}(v)$ \Comment {Compute learned, smooth function of concatenated representation}
+	    \EndFor  \Comment {Each layer's smooth function can be distinct}
+    \EndFor
+    \For {each feature $f$ in bitstrings}
+	    \State $o_f \leftarrow \max[r_{1f} \dots r_{Mf}]$ \Comment {Combine duplicate features by a max or sum}
+    \EndFor    
+  \end{algorithmic}
+\end{algorithm}
 
 %% For two column figures and tables, use the following:
 
