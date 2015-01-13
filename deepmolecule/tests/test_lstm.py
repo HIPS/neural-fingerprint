@@ -11,6 +11,12 @@ def generate_counting_example(length=15, input_size=4):
     answer = np.sum(seq == 1)
     return seq, answer
 
+def generate_summing_example(length=15, input_size=4):
+    #length = npr.randint(low=10, high=30)
+    seq = npr.rand(low=0, high=input_size, size=(length,1))
+    answer = np.sum(seq == 1)
+    return float(seq), float(answer)
+
 def generate_parens_example(length=15, input_size=4):
     #length = npr.randint(low=10, high=30)
     seq = npr.randint(low=0, high=input_size, size=(length,1))
@@ -27,11 +33,12 @@ def build_dataset(N, seq_length, example_generator):
     return seqs, targets
 
 def test_lstm():
+    npr.seed(1)
     N_train = 1000
     N_test = 100
     state_size = 2
     input_size = 3
-    seq_length = 1
+    seq_length = 2
     datagen_fun = generate_counting_example
     #datagen_fun = generate_parens_example
 
@@ -67,10 +74,10 @@ def test_lstm():
         print "Epoch", epoch, "Train loss: ", loss_fun(weights, train_seqs, train_targets), \
                                "Test error: ", test_accuracy(weights)
 
-    trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
-                               learn_rate = 0.001)
+    #trained_weights = rms_prop(training_grad_with_idxs, N_train, parser.N, callback,
+    #                           learn_rate = 0.001)
 
-    #trained_weights = conj_grad(training_loss_all, training_grad_all,
-    #                            parser.N, callback)
+    trained_weights = conj_grad(training_loss_all, training_grad_all,
+                                parser.N, callback)
 
 test_lstm()

@@ -1,4 +1,5 @@
-from funkyyak import grad, numpy_wrapper as np
+import numpy as np
+from funkyyak import grad
 from util import WeightsParser
 
 def squash(x):
