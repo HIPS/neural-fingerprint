@@ -486,12 +486,12 @@ Treatment 3 & 0.0009271 & 0.296 \\
 
 \begin{algorithm}
   \caption{Pseudocode of ECFP}
-  \textbf{Input:} {molecule m, radius $r$, atom features $g$, hash function $h$}
+  \textbf{Input:} {molecule m, radius $R$, atom features $g$, hash function $h$}
   \begin{algorithmic}
     \For {each atom $a$ in molecule} 
 	    \State $r_a \leftarrow g(a)$ \Comment {Represent each atom by given properties}
     \EndFor
-    \For {$\ell = 1$ to $r$} \Comment {Repeat for as many iterations as the radius}
+    \For {$\ell = 1$ to $R$} \Comment {For R iterations}
 	    \For {each atom $a$ in molecule}
 		    \State $v \leftarrow c[r_a, r_{n1} \dots r_{nN} ]$ \Comment {Concatenate representation of self and neighbours}	    
 		    \State $r_a \leftarrow h(v)$ \Comment {Compute hash of concatenated representation}
@@ -510,7 +510,7 @@ Treatment 3 & 0.0009271 & 0.296 \\
     \For {each atom $a$ in molecule} 
 	    \State $r_a \leftarrow g(a)$ \Comment {Represent each atom by a learned vector}
     \EndFor
-    \For {$\ell = 1$ to $r$} \Comment {For R layers}
+    \For {$\ell = 1$ to $R$} \Comment {For R layers}
 	    \For {each atom $a$ in molecule}
 		    \State $v \leftarrow c[r_a, r_{n1} \dots r_{nN} ]$ \Comment {Concatenate representation of self and neighbours}	    
 		    \State $r_a \leftarrow {\color{blue}f_{\ell}}(v)$ \Comment {Compute learned, smooth function of concatenated representation}
