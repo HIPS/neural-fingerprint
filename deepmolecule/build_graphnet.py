@@ -1,5 +1,7 @@
 
-from funkyyak import grad, numpy_wrapper as np
+import numpy as np
+
+from funkyyak import grad
 from features import N_atom_features, N_bond_features
 from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple
@@ -9,8 +11,8 @@ from rdkit.Chem import MolFromSmiles
 from features import atom_features, bond_features
 
 from itertools import combinations_with_replacement
-import numpy.random as npr
 
+import numpy.random as npr
 
 def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
     """Sets up a recursive computation graph that
@@ -38,21 +40,20 @@ def build_graphnet(site_vec_dim=10, core_vec_dim=20, l2_penalty=0.0):
     def combine_cores(weights, core_left, core_right, site_left, site_right):
         """Combines two nodes along an edge,
            returns a new vector representing the new node."""
-        concat_units = [core_left, core_right, site_left, site_right]
+        concat_units = np.concatenate([core_left, core_right, site_left, site_right])
         return nonlinearity(concat_units, parser.get(weights, 'combine cores'))
 
     parser.add_weights('update site', (2*core_vec_dim + 3*site_vec_dim, site_vec_dim))
     def update_site(weights, core_left, core_right, site_left, site_right, site_self):
         """Updates a site (connection parameters) to account for the fact that
            the node it was connected to was merged."""
-        #TODO: Sort out concatenation in funkyyak or rewrite these.
-        concat_units = [core_left, core_right, site_left, site_right, site_self]
+        concat_units = np.concatenate([core_left, core_right, site_left, site_right, site_self])
         return nonlinearity(concat_units, parser.get(weights, 'update site'))
 
     parser.add_weights('remove loop', (core_vec_dim + 2*site_vec_dim, core_vec_dim))
     def remove_self_loop(weights,  core_self, site_left, site_right):
         """Removes a self-loop and updates the core vector."""
-        concat_units = [core_self, site_left, site_right]
+        concat_units = np.concatenate([core_self, site_left, site_right])
         return nonlinearity(concat_units, parser.get(weights, 'remove loop'))
 
     def combination_ranker(atom_and_site_pairs, weights):
