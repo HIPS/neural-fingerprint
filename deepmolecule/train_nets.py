@@ -24,7 +24,7 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
              validation_smiles=None, validation_targets=None,
              optimization_routine=rms_prop):
     npr.seed(1)
-    targets, undo_normalization = normalize_array(raw_targets)
+    targets, undo_norm = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, weights_container = net_builder_fun(**arch_params)
     print "Weight matrix shapes:"
     weights_container.print_shapes()
@@ -32,10 +32,8 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
 
     #plt.ion()
     #fig = plt.figure(figsize=(12,10))
-
     training_curve = []
     def callback(epoch, weights):
-
 
         #fig = plt.figure(figsize=(12,10))
         #plot_weights_container(weights_container, fig)
@@ -56,7 +54,6 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
                     np.sqrt(np.mean((validation_preds - validation_targets) ** 2)),
         else:
             print ".",
-
     #plt.close()
 
     def grad_fun_with_data(training_idxs, weights):
@@ -66,7 +63,7 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
 
     def predict_func(new_smiles):
         """Returns to the original units that the raw targets were in."""
-        return undo_normalization(pred_fun(trained_weights, new_smiles))
+        return undo_norm(pred_fun(trained_weights, new_smiles))
     return predict_func, trained_weights, training_curve
 
 
@@ -74,8 +71,8 @@ def random_net_linear_output(net_builder_fun, smiles, raw_targets, arch_params, 
     """Creates a network with random weights, and trains a ridge regression model on top."""
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
-    _, _, _, output_layer_fun, N_weights = net_builder_fun(**arch_params)
-    net_weights = npr.randn(N_weights) * train_params['param_scale']
+    _, _, _, output_layer_fun, weights = net_builder_fun(**arch_params)
+    net_weights = npr.randn(weights.N) * train_params['param_scale']
     train_outputs = output_layer_fun(net_weights, smiles)
     linear_weights = np.linalg.solve(np.dot(train_outputs.T, train_outputs)
                                      + np.eye(train_outputs.shape[1]) * train_params['l2_reg'],
@@ -142,6 +139,10 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
         net_training_function = build_universal_net
     elif net_type is "morgan":
         net_training_function = build_morgan_deep_net
+    elif net_type is "morgan-linear":
+        net_training_function = build_morgan_linear
+    elif net_type is "conv-linear":
+        net_training_function = random_net_linear_output
     else:
         raise Exception("No such type of neural network.")
 

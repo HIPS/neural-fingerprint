@@ -66,4 +66,4 @@ def build_morgan_flat_net(fp_length=512, fp_radius=4):
     def pred_fun(w, s):    return 0.0
     def hiddens_fun(w, s): return smiles_to_fps(s, fp_length, fp_radius)
 
-    return loss_fun, grad_fun, pred_fun, hiddens_fun, fp_length
+    return loss_fun, grad_fun, pred_fun, hiddens_fun, WeightsContainer()
