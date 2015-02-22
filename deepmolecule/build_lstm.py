@@ -1,87 +1,71 @@
 import numpy as np
 from funkyyak import grad
-from util import WeightsParser
+from util import VectorParser
 
 def squash(x):
     return 0.5*(np.tanh(x) + 1)   # Output ranges from 0 to 1.
 
-def nonlinearity(input, state, weights):
-    # Divide up weight matrix.
-    num_inputs = input.shape[1]
-    num_state = state.shape[1]
-    input_weights = weights[0:num_inputs, :]
-    state_weights = weights[num_inputs:num_inputs+num_state, :]
-    bias = weights[-1,:]
-    inner_sum = np.dot(input, input_weights) \
-              + np.dot(state, state_weights) + bias
-    return squash(inner_sum)
+def activations(input, state, weights):
+    cat_state = np.concatenate((input, state, np.ones((input.shape[0],1))), axis=1)
+    return squash(np.dot(cat_state, weights))
 
-def update_lstm(input, state, change_weights, gate_weights, keep_weights):
-    """One iteration of an LSTM node without an output."""
-    change = nonlinearity(input, state, change_weights)
-    gate   = nonlinearity(input, state, gate_weights)
-    keep   = nonlinearity(input, state, keep_weights)
-    return state * keep + gate * change
+def build_lstm(seq_width, state_size, output_size, l2_penalty=0.0):
+    parser = VectorParser()
+    parser.add_shape('change', (seq_width + state_size + 1, state_size))
+    parser.add_shape('gate',   (seq_width + state_size + 1, state_size))
+    parser.add_shape('keep',   (seq_width + state_size + 1, state_size))
+    parser.add_shape('output', (state_size, output_size))
 
-def one_hot(x, K):
-    return np.array(x[:,None] == np.arange(K)[None, :], dtype=int)
+    def update_lstm(input, state, change_weights, gate_weights, keep_weights):
+        """One iteration of an LSTM layer without an output."""
+        change = activations(input, state, change_weights)
+        gate   = activations(input, state, gate_weights)
+        keep   = activations(input, state, keep_weights)
+        return state * keep + gate * change
 
-def build_lstm_rnn(input_size, state_size, output_size=1, l2_penalty=0.0):
-    parser = WeightsParser()
-    parser.add_weights('change', (input_size + state_size + 1, state_size))
-    parser.add_weights('gate',   (input_size + state_size + 1, state_size))
-    parser.add_weights('keep',   (input_size + state_size + 1, state_size))
-    parser.add_weights('output', (state_size, output_size))
-
-    def compute_hiddens(weights, seqs):
+    def compute_hiddens(weights_vect, seqs):
         """Goes from right to left, updating the state."""
-        num_seqs = seqs.shape[0]
+        weights = parser.new_vect(weights_vect)
+        num_seqs = seqs.shape[1]
         state = np.zeros((num_seqs, state_size))
-        for cur_input in seqs.T:  # Iterate over time steps.
-            inputs = one_hot(cur_input, input_size)
-            change_weights = parser.get(weights, 'change')
-            gate_weights   = parser.get(weights, 'gate')
-            keep_weights   = parser.get(weights, 'keep')
-            state = update_lstm(inputs, state,
-                                change_weights, gate_weights, keep_weights)
+        for cur_input in seqs:  # Iterate over time steps.
+            state = update_lstm(cur_input, state,
+                                weights['change'], weights['gate'], weights['keep'])
         return state
 
-    def predictions(weights, seqs):
-        return np.dot(compute_hiddens(weights, seqs), parser.get(weights, 'output'))
+    def predictions(weights_vect, seqs):
+        weights = parser.new_vect(weights_vect)
+        return np.dot(compute_hiddens(weights_vect, seqs), weights['output'])
 
     def loss(weights, seqs, targets):
         log_lik = -np.sum((predictions(weights, seqs) - targets)**2)
         log_prior = -l2_penalty * np.dot(weights, weights)
-        return -log_prior - log_lik
+        return (-log_prior - log_lik) / targets.shape[0]
 
     return loss, grad(loss), predictions, compute_hiddens, parser
 
 
-def update_rnn(weights, parser, input, state):
-    """One iteration of a standard RNN node without an output."""
-    change_weights = parser.get(weights, 'update')
-    return nonlinearity(input, state, change_weights)
+def build_rnn(seq_width, state_size, output_size, l2_penalty=0.0):
+    parser = VectorParser()
+    parser.add_shape('update', (seq_width + state_size + 1, state_size))
+    parser.add_shape('output', (state_size, output_size))
 
-def build_vanilla_rnn(input_size, state_size, output_size=1, l2_penalty=0.0):
-    parser = WeightsParser()
-    parser.add_weights('update', (input_size + state_size + 1, state_size))
-    parser.add_weights('output', (state_size, output_size))
-
-    def compute_hiddens(weights, seqs):
+    def compute_hiddens(weights_vect, seqs):
         """Goes from right to left, updating the state."""
-        num_seqs = seqs.shape[0]
+        weights = parser.new_vect(weights_vect)
+        num_seqs = seqs.shape[1]
         state = np.zeros((num_seqs, state_size))
-        for cur_input in seqs.T:  # Iterate over time steps.
-            inputs_onehot = one_hot(cur_input, input_size)
-            state = update_rnn(weights, parser, inputs_onehot, state)
+        for cur_input in seqs:  # Iterate over time steps.
+            state = activations(cur_input, state, weights['update'])
         return state
 
-    def predictions(weights, seqs):
-        return np.dot(compute_hiddens(weights, seqs), parser.get(weights, 'output'))
+    def predictions(weights_vect, seqs):
+        weights = parser.new_vect((weights_vect))
+        return np.dot(compute_hiddens(weights.vect, seqs), weights['output'])
 
-    def loss(weights, seqs, targets):
-        log_lik = -np.sum((predictions(weights, seqs) - targets)**2)
-        log_prior = -l2_penalty * np.dot(weights, weights)
-        return -log_prior - log_lik
+    def loss(weights_vect, seqs, targets):
+        log_lik = -np.sum((predictions(weights_vect, seqs) - targets)**2)
+        log_prior = -l2_penalty * np.dot(weights_vect, weights_vect)
+        return (-log_prior - log_lik) / targets.shape[0]
 
     return loss, grad(loss), predictions, compute_hiddens, parser

@@ -13,12 +13,16 @@ from deepmolecule import get_data_file, run_nn_with_params, output_dir
 
 def main():
     # Parameters for convolutional net.
-    train_params = {'num_epochs'  : 50,
+    rmsprop_params = {'num_epochs'  : 50,
                          'batch_size'  : 10,
                          'learn_rate'  : 1e-3,
                          'momentum'    : 0.98,
                          'param_scale' : 0.1,
                          'gamma': 0.9}
+
+    conj_grad_params = {'num_epochs'  : 50,
+                         'batch_size'  : 100,
+                         'param_scale' : 0.1}
 
     arch_params = {'num_hidden_features' : [1, 1],
                         'bond_vec_dim' : 1,
@@ -31,7 +35,7 @@ def main():
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
-    run_nn_with_params(train_params=train_params,
+    run_nn_with_params(train_params=conj_grad_params, optimizer="conj_grad",
                        arch_params=arch_params,task_params=task_params,
                        output_dir=output_dir())
 

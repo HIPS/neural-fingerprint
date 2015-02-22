@@ -11,10 +11,10 @@ import numpy as np
 import numpy.random as npr
 import resource
 
-from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, plot_learning_curve
+from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, conj_grad
 from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_deep_net
 from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
-from deepmolecule import plot_weights, plot_weights_container
+from deepmolecule import plot_weights, plot_weights_container, plot_learning_curve
 
 #import matplotlib
 #matplotlib.use('Agg')   # Cluster-friendly backend.
@@ -148,8 +148,10 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
 
     if optimizer is "rmsprop":
         optimization_routine = rms_prop
-    elif net_type is "sgd":
+    elif optimizer is "sgd":
         optimization_routine = sgd_with_momentum
+    elif optimizer is "conj_grad":
+        optimization_routine = conj_grad
     else:
         raise Exception("No such optimization routine.")
 
