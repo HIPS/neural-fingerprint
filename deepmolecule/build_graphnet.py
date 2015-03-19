@@ -5,7 +5,6 @@ from funkyyak import grad
 from features import N_atom_features, N_bond_features
 from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple
-from build_lstm import update_lstm, nonlinearity
 
 from rdkit.Chem import MolFromSmiles
 from features import atom_features, bond_features

@@ -7,14 +7,13 @@
 #
 # Sept 2014
 
-import sys, os
+import sys
 import numpy as np
-import numpy.random as npr
 
-from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
-from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
+from deepmolecule import get_data_file, load_data
+from deepmolecule import build_morgan_flat_net
 from deepmolecule import build_universal_net, output_dir, get_output_file
-from deepmolecule import plot_predictions, plot_maximizing_inputs, random_net_linear_output
+from deepmolecule import random_net_linear_output
 
 
 def main():
@@ -81,8 +80,6 @@ def main():
     predictor = random_net_linear_output(build_morgan_flat_net, train_inputs, train_targets,
                                          morgan_flat_arch_params, linear_train_params)
     print_performance(predictor)
-
-
 
 
 if __name__ == '__main__':
