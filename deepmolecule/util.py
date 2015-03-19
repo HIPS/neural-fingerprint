@@ -92,7 +92,7 @@ class WeightsParser(object):
        which can pick out named subsets from a long vector.
        Does not actually store any weights itself."""
     def __init__(self):
-        self.idxs_and_shapes = {}
+        self.idxs_and_shapes = OrderedDict()
         self.N = 0
 
     def add_weights(self, name, shape):
