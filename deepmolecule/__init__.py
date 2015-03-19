@@ -1,5 +1,6 @@
 
 from build_convnet import build_universal_net
+from build_convnet import build_universal_net_ag
 from util import tictoc, normalize_array, c_value, c_grad, WeightsParser
 from optimization_routines import sgd_with_momentum, rms_prop, make_batcher,\
     batch_idx_generator, conj_grad
