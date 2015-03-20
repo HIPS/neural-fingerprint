@@ -36,6 +36,11 @@ def main():
     weights = npr.randn(parser1.N)
     #weights = 0.5 * np.ones(parser1.N)
 
+    grad1 = grad_fun1(weights, train_inputs, train_targets)
+    grad2 = grad_fun2(weights, train_inputs, train_targets)
+    print "gradient diff:", np.sum(np.abs(grad1 - grad2))
+
+
     print "Difference in outputs: ", np.sum(np.abs(pred_fun1(weights, train_inputs) - pred_fun2(weights, train_inputs)))
     print "Difference in loss: ", np.sum(np.abs(loss_fun1(weights, train_inputs, train_targets) - loss_fun2(weights, train_inputs, train_targets)))
 

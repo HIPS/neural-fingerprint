@@ -12,10 +12,12 @@ def all_permutations(N):
 
 def neighbor_stack(idxs, features, num_neighbors):
     """dims of result are (atoms, neighbors, features)"""
-    result_rows = np.zeros((len(idxs), num_neighbors, features.shape[1]))
-    for i, idx_list in enumerate(idxs):
-        result_rows[i, :, :] = features[idx_list, :]
-    return result_rows
+    #result_rows = np.zeros((len(idxs), num_neighbors, features.shape[1]))
+    #for i, idx_list in enumerate(idxs):
+    #    result_rows[i, :, :] = features[idx_list, :]
+    #return result_rows
+    results = [np.expand_dims(features[idx_list, :], axis=0) for idx_list in idxs]
+    return np.concatenate(results, axis=0)
 
 def neighbor_cat(idxs, features):
     result_rows = []
@@ -32,14 +34,14 @@ def neighbor_softened_max(idxs, features):
 
     result_rows = []
     for idx_list in idxs:
-        result_rows.append(neighbour_softened_max(features[idx_list, :]))
-    return np.array(result_rows)
+        result_rows.append(np.expand_dims(neighbour_softened_max(features[idx_list, :]), axis=0))
+    return np.concatenate(result_rows, axis=0)
 
 def neighbor_sum(idxs, features):
     result_rows = []
     for idx_list in idxs:
-        result_rows.append(np.sum(features[idx_list, :], axis=0))
-    return np.array(result_rows)
+        result_rows.append(np.expand_dims(np.sum(features[idx_list, :], axis=0), axis=0))
+    return np.concatenate(result_rows, axis=0)
 
 def safe_tensordot(A, B, axes):
     """Allows dimensions of length zero"""
@@ -54,6 +56,10 @@ def safe_tensordot(A, B, axes):
 def logsumexp(X, axis=None):
     maxes = np.max(X, axis=axis, keepdims=True)
     return np.log(np.sum(np.exp(X - maxes), axis=axis, keepdims=True)) + maxes
+
+#def logsumexp(X, axis):
+#    max_X = np.max(X)
+#    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
 
 def softened_max_ag(Xlist):
     X = np.concatenate([p[None, :] for p in Xlist], axis=0)
