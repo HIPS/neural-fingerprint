@@ -34,6 +34,19 @@ def tictoc():
     dt = time() - t1
     print "--- Stop clock: %s seconds elapsed ---" % dt
 
+def safe_tensordot(A, B, axes):
+    """Allows dimensions of length zero"""
+    Adims, Bdims = list(A.shape), list(B.shape)
+    if np.any([d is 0 for d in Adims + Bdims]):
+        Anewdims = [d for i, d in enumerate(Adims) if i not in axes[0]]
+        Bnewdims = [d for i, d in enumerate(Bdims) if i not in axes[1]]
+        return np.zeros(Anewdims + Bnewdims)
+    else:
+        return np.tensordot(A, B, axes)
+
+def logsumexp(X, axis):
+    max_X = np.max(X)
+    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
 
 class WeightsParser(object):
     """A kind of dictionary of weights shapes,

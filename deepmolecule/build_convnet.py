@@ -1,7 +1,7 @@
 import itertools as it
 import numpy as np
 from features import N_atom_features, N_bond_features
-from util import memoize, WeightsParser
+from util import memoize, WeightsParser, logsumexp, safe_tensordot
 from mol_graph import graph_from_smiles_tuple
 from autograd import grad
 
@@ -13,21 +13,10 @@ def neighbor_stack(idxs, features):
     results = [np.expand_dims(features[idx_list, :], axis=0) for idx_list in idxs]
     return np.concatenate(results, axis=0)
 
-def neighbor_cat(idxs, features):
-    result_rows = []
-    for idx_list in idxs:
-        result_rows.append(np.concatenate(
-            [features[i, :] for i in idx_list]))
-    return np.array(result_rows)
-
 def neighbor_softened_max(idxs, features):
-    def neighbour_softened_max(X):
-        exp_X = np.exp(X)
-        return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
-
     result_rows = []
     for idx_list in idxs:
-        result_rows.append(np.expand_dims(neighbour_softened_max(features[idx_list, :]), axis=0))
+        result_rows.append(np.expand_dims(softened_max(features[idx_list, :]), axis=0))
     return np.concatenate(result_rows, axis=0)
 
 def neighbor_sum(idxs, features):
@@ -36,19 +25,10 @@ def neighbor_sum(idxs, features):
         result_rows.append(np.expand_dims(np.sum(features[idx_list, :], axis=0), axis=0))
     return np.concatenate(result_rows, axis=0)
 
-def safe_tensordot(A, B, axes):
-    """Allows dimensions of length zero"""
-    Adims, Bdims = list(A.shape), list(B.shape)
-    if np.any([d is 0 for d in Adims + Bdims]):
-        Anewdims = [d for i, d in enumerate(Adims) if i not in axes[0]]
-        Bnewdims = [d for i, d in enumerate(Bdims) if i not in axes[1]]
-        return np.zeros(Anewdims + Bnewdims)
-    else:
-        return np.tensordot(A, B, axes)
-
-def logsumexp(X, axis):
-    max_X = np.max(X)
-    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
+def softened_max(X):
+    """Takes the row-wise max, but in a soft way."""
+    exp_X = np.exp(X)
+    return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
 
 def weighted_softened_max(Xlist):
     X = np.concatenate([p[None, :] for p in Xlist], axis=0)
