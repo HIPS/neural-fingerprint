@@ -27,9 +27,9 @@ def main():
     linear_train_params = {'param_scale' : 0.1,
                            'l2_reg'      : 0.1}
 
-    task_params = {'N_train'     : 200,
-                   'N_valid'     : 100,
-                   'N_test'      : 100,
+    task_params = {'N_train'     : 2000,
+                   'N_valid'     : 1000,
+                   'N_test'      : 1000,
                    #'target_name' : 'Molecular Weight',
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}

@@ -1,3 +1,4 @@
+"""An experimental tree-structured network architecture."""
 
 import numpy as np
 
