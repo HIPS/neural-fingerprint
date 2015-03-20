@@ -10,12 +10,8 @@ from autograd import grad
 def all_permutations(N):
     return [permutation for permutation in it.permutations(range(N))]
 
-def neighbor_stack(idxs, features, num_neighbors):
+def neighbor_stack(idxs, features):
     """dims of result are (atoms, neighbors, features)"""
-    #result_rows = np.zeros((len(idxs), num_neighbors, features.shape[1]))
-    #for i, idx_list in enumerate(idxs):
-    #    result_rows[i, :, :] = features[idx_list, :]
-    #return result_rows
     results = [np.expand_dims(features[idx_list, :], axis=0) for idx_list in idxs]
     return np.concatenate(results, axis=0)
 
@@ -27,7 +23,6 @@ def neighbor_cat(idxs, features):
     return np.array(result_rows)
 
 def neighbor_softened_max(idxs, features):
-
     def neighbour_softened_max(X):
         exp_X = np.exp(X)
         return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
@@ -53,15 +48,11 @@ def safe_tensordot(A, B, axes):
     else:
         return np.tensordot(A, B, axes)
 
-def logsumexp(X, axis=None):
-    maxes = np.max(X, axis=axis, keepdims=True)
-    return np.log(np.sum(np.exp(X - maxes), axis=axis, keepdims=True)) + maxes
+def logsumexp(X, axis):
+    max_X = np.max(X)
+    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
 
-#def logsumexp(X, axis):
-#    max_X = np.max(X)
-#    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
-
-def softened_max_ag(Xlist):
+def weighted_softened_max(Xlist):
     X = np.concatenate([p[None, :] for p in Xlist], axis=0)
     # X is now permutations x atoms x features.
     # The first feature softly scales how much each
@@ -82,7 +73,7 @@ def matmult_neighbors_ag(mol_nodes, other_ntypes, feature_sets, get_weights_fun,
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
         stacked_neighbors = np.concatenate(
-            [neighbor_stack(neighbor_list(degree, other_ntype), features, degree)
+            [neighbor_stack(neighbor_list(degree, other_ntype), features)
               for other_ntype, features in zip(other_ntypes, feature_sets)], axis=2)
         if permutations:
             weightses = [get_weights_fun(degree, " neighbour " + str(n)) for n in range(degree)]
@@ -91,7 +82,7 @@ def matmult_neighbors_ag(mol_nodes, other_ntypes, feature_sets, get_weights_fun,
             candidates = [sum([products[i][j] for i, j in enumerate(p)])
                           for p in all_permutations(degree)]
             # dims of each candidate are (atoms, features)
-            result_by_degree.append(softened_max_ag(candidates))
+            result_by_degree.append(weighted_softened_max(candidates))
         else:
             result_by_degree.append(np.sum(
                 safe_tensordot(stacked_neighbors, get_weights_fun(degree), axes=((2,), (0,))),
