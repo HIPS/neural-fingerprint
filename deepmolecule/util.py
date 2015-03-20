@@ -2,7 +2,6 @@ import numpy as np
 from contextlib import contextmanager
 from time import time
 from functools import partial
-import kayak as ky
 from collections import OrderedDict
 
 def slicedict(d, ixs):
@@ -34,57 +33,6 @@ def tictoc():
     yield
     dt = time() - t1
     print "--- Stop clock: %s seconds elapsed ---" % dt
-
-# "Counterfactual value" - helper function to allow testing different inputs
-def c_value(output, nodes_and_values):
-    for node, new_value in nodes_and_values.iteritems():
-        node.value = new_value
-    return output.value
-
-def c_grad(ky_function, var, nodes_and_values):
-    for node, new_value in nodes_and_values.iteritems():
-        node.value = new_value
-    return ky_function.grad(var)
-
-class WeightsContainer(object):
-    """Container for a collection of weights that camouflages itself as a kayak object."""
-    def __init__(self):
-        self.N = 0
-        self._weights_list = []
-        self._names_list = []
-
-    def new(self, shape, name=""):
-        w_new = ky.Parameter(np.zeros(shape))
-        self._weights_list.append(w_new)
-        self.N += np.prod(shape)
-        self._names_list.append(name)
-        return w_new
-
-    def _d_out_d_self(self, out):
-        """Concatenates the gradients of all it contains into a vector,
-        so that it can be called by a general-purpose optimizer."""
-        grad_list = [out.grad(w) for w in self._weights_list]
-        return np.concatenate([arr.ravel() for arr in grad_list])
-
-    @property
-    def value(self):
-        return np.concatenate([w.val.ravel() for w in self._weights_list])
-        
-    @value.setter
-    def value(self, vect):
-        """Re-packages a vector in the original format."""
-        for w in self._weights_list:
-            sub_vect, vect = np.split(vect, [np.prod(w.shape)])
-            w.value = sub_vect.reshape(w.shape)
-
-    def print_shapes(self):
-        for weights, name in zip(self._weights_list, self._names_list):
-            print name, ":", weights.shape
-
-    def lookup_by_name(self, name):
-        # Perhaps it'd be better to replace the two lists with a defaultdict.
-        match_ix = [ix for (ix, cur_name) in enumerate(self._names_list) if cur_name is name][0]
-        return self._weights_list[match_ix]
 
 
 class WeightsParser(object):

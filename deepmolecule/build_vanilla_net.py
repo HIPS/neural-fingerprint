@@ -1,5 +1,5 @@
 import numpy as np
-from util import WeightsContainer, memoize, WeightsParser
+from util import memoize, WeightsParser
 from deepmolecule import smiles_to_fps
 from autograd import grad
 
