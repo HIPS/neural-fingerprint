@@ -44,9 +44,6 @@ def safe_tensordot(A, B, axes):
     else:
         return np.tensordot(A, B, axes)
 
-def logsumexp(X, axis):
-    max_X = np.max(X)
-    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
 
 class WeightsParser(object):
     """A kind of dictionary of weights shapes,

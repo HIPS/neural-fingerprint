@@ -1,9 +1,11 @@
 import itertools as it
 import numpy as np
 from features import N_atom_features, N_bond_features
-from util import memoize, WeightsParser, logsumexp, safe_tensordot
+from util import memoize, WeightsParser, safe_tensordot
 from mol_graph import graph_from_smiles_tuple
 from autograd import grad
+
+from scipy.misc import logsumexp
 
 def all_permutations(N):
     return [permutation for permutation in it.permutations(range(N))]
@@ -36,7 +38,8 @@ def weighted_softened_max(Xlist):
     # The first feature softly scales how much each
     # permutation is used to weight the final activations.
     scale_feature = X[:, :, 0:1]
-    return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis=0)), axis=0)
+    # The next line needs at least scipy 0.15, when keepdims was introduced to logsumexp.
+    return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis=0, keepdims=True)), axis=0)
 
 def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, permutations=False):
     def neighbor_list(degree, other_ntype):
