@@ -1,4 +1,4 @@
-import numpy as np
+import autograd.numpy as np
 from contextlib import contextmanager
 from time import time
 from functools import partial
@@ -63,6 +63,9 @@ class WeightsParser(object):
         idxs, shape = self.idxs_and_shapes[name]
         return np.reshape(vect[idxs], shape)
 
+    def __len__(self):
+        return self.N
+
 
 class VectorParser(object):
     def __init__(self):
@@ -106,3 +109,6 @@ class VectorParser(object):
 
         idxs, shape = self.idxs_and_shapes[name]
         self.vect[idxs].reshape(shape)[:] = val
+
+    def __len__(self):
+        return self.N

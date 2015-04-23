@@ -12,7 +12,7 @@ import numpy as np
 
 from deepmolecule import get_data_file, load_data
 from deepmolecule import build_morgan_flat_net
-from deepmolecule import build_universal_net, output_dir, get_output_file
+from deepmolecule import build_convnet, output_dir, get_output_file
 from deepmolecule import random_net_linear_output
 
 
@@ -72,7 +72,7 @@ def main():
     print_performance(lambda x : y_train_mean)
 
     print "Random convolutional net with linear weights"
-    predictor = random_net_linear_output(build_universal_net, train_inputs, train_targets,
+    predictor = random_net_linear_output(build_convnet, train_inputs, train_targets,
                                          conv_arch_params, linear_train_params)
     print_performance(predictor)
 

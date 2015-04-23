@@ -7,7 +7,7 @@ import sys, os
 import numpy.random as npr
 
 from deepmolecule import get_data_file, load_data
-from deepmolecule import build_universal_net
+from deepmolecule import build_convnet
 
 def main():
 
@@ -28,7 +28,7 @@ def main():
     (traindata, ) = load_data(task_params['data_file'], (task_params['N_train'],))
     train_inputs, train_targets = traindata['smiles'], traindata[task_params['target_name']]
 
-    loss_fun, grad_fun, pred_fun, hiddens_fun, parser = build_universal_net(**conv_arch_params)
+    loss_fun, grad_fun, pred_fun, hiddens_fun, parser = build_convnet(**conv_arch_params)
     npr.seed(0)
     weights = npr.randn(parser.N)
     print "Grad: ", grad_fun(weights, train_inputs, train_targets)

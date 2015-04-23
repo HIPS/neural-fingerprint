@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import numpy as np
+import autograd.numpy as np
 from util import slicedict
 
 def load_data(filename, sizes):

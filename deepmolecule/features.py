@@ -1,4 +1,4 @@
-import numpy as np
+import autograd.numpy as np
 from rdkit import Chem
 import time
 time.sleep(0.2)   # To deal with a race condition bug in rdkit.

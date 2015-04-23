@@ -1,9 +1,10 @@
 import itertools as it
-import numpy as np
+import autograd.numpy as np
 from features import N_atom_features, N_bond_features
 from util import memoize, WeightsParser, safe_tensordot
 from mol_graph import graph_from_smiles_tuple
 from autograd import grad
+from build_vanilla_net import build_vanilla_net
 
 from scipy.misc import logsumexp
 
@@ -68,7 +69,7 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, pe
     return np.concatenate(result_by_degree, axis=0)
 
 
-def build_universal_net(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
+def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
                         permutations=False, l2_penalty=0.0):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
@@ -149,3 +150,38 @@ def arrayrep_from_smiles(smiles):
                 molgraph.neighbor_list(('atom', degree), 'bond')
 
     return arrayrep
+
+
+def build_convnet_with_vanilla_ontop(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
+                        permutations=False, l2_penalty=0.0, vanilla_hidden=100):
+    """A network with a convnet on the bottom, and vanilla fully-connected net on top."""
+
+    _, _, _, conv_hiddens_fun, conv_parser = \
+        build_convnet(bond_vec_dim, num_hidden_features, permutations)
+
+    v_loss_fun, _, v_pred_fun, v_hiddens_fun, v_parser = \
+        build_vanilla_net(num_inputs=num_hidden_features[-1]*2, h1_size=vanilla_hidden)
+
+    parser = WeightsParser()
+    parser.add_weights('convnet weights', len(conv_parser))
+    parser.add_weights('vanilla weights', len(v_parser))
+
+    def hiddens_fun(weights, smiles):
+        convnet_weights = parser.get(weights, 'convnet weights')
+        vanilla_weights = parser.get(weights, 'vanilla weights')
+        conv_output = conv_hiddens_fun(convnet_weights, smiles)
+        return v_hiddens_fun(vanilla_weights, conv_output)
+
+    def pred_fun(weights, smiles):
+        convnet_weights = parser.get(weights, 'convnet weights')
+        vanilla_weights = parser.get(weights, 'vanilla weights')
+        conv_output = conv_hiddens_fun(convnet_weights, smiles)
+        return v_pred_fun(vanilla_weights, conv_output)
+
+    def loss_fun(weights, smiles, targets):
+        preds = pred_fun(weights, smiles)
+        acc_loss = np.sum((preds - targets)**2)
+        l2reg = l2_penalty * np.sum(np.sum(weights**2))
+        return acc_loss + l2reg
+
+    return loss_fun, grad(loss_fun), pred_fun, hiddens_fun, parser

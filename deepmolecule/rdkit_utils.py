@@ -1,6 +1,6 @@
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
-import numpy as np
+import autograd.numpy as np
 
 def smiles_to_fps(data, fp_length, fp_radius):
     return stringlist2intarray(np.array([smile_to_fp(s, fp_length, fp_radius) for s in data]))

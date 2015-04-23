@@ -7,14 +7,15 @@
 # Sept 2014
 
 import sys, os
-import numpy as np
-import numpy.random as npr
+import autograd.numpy as np
+import autograd.numpy.random as npr
 import resource
 
 from deepmolecule import normalize_array, sgd_with_momentum, rms_prop, conj_grad
-from deepmolecule import tictoc, load_data, build_universal_net, build_morgan_deep_net
+from deepmolecule import tictoc, load_data, build_convnet, build_morgan_deep_net
 from deepmolecule import plot_predictions, plot_maximizing_inputs, plot_weight_meanings
 from deepmolecule import plot_weights, plot_weights_container, plot_learning_curve
+from deepmolecule import build_convnet_with_vanilla_ontop, minibatch_conj_grad
 
 #import matplotlib
 #matplotlib.use('Agg')   # Cluster-friendly backend.
@@ -26,9 +27,9 @@ def train_nn(net_builder_fun, smiles, raw_targets, arch_params, train_params,
     npr.seed(1)
     targets, undo_norm = normalize_array(raw_targets)
     loss_fun, grad_fun, pred_fun, _, weights_container = net_builder_fun(**arch_params)
-    print "Weight matrix shapes:"
-    weights_container.print_shapes()
-    print "Total number of weights in the network:", weights_container.N
+    #print "Weight matrix shapes:"
+    #weights_container.print_shapes()
+    print "Total number of weights in the network:", len(weights_container)
 
     #plt.ion()
     #fig = plt.figure(figsize=(12,10))
@@ -136,15 +137,17 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
     print "-" * 80
     print "Training neural net:"
     if net_type is "conv":
-        net_training_function = build_universal_net
-    elif net_type is "morgan":
-        net_training_function = build_morgan_deep_net
-    elif net_type is "morgan-linear":
-        net_training_function = build_morgan_linear
-    elif net_type is "conv-linear":
-        net_training_function = random_net_linear_output
+        net_building_function = build_convnet
+    elif net_type == "morgan":
+        net_building_function = build_morgan_deep_net
+    elif net_type == "morgan-linear":
+        net_building_function = build_morgan_linear
+    elif net_type == "conv-linear":
+        net_building_function = random_net_linear_output
+    elif net_type == "conv-plus-nn":
+        net_building_function = build_convnet_with_vanilla_ontop
     else:
-        raise Exception("No such type of neural network.")
+        raise Exception("No such type of neural network:", net_type)
 
     if optimizer is "rmsprop":
         optimization_routine = rms_prop
@@ -152,11 +155,13 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
         optimization_routine = sgd_with_momentum
     elif optimizer is "conj_grad":
         optimization_routine = conj_grad
+    elif optimizer is "minibatch_conj_grad":
+        optimization_routine = minibatch_conj_grad
     else:
         raise Exception("No such optimization routine.")
 
     with tictoc():
-        predictor, weights, learning_curve = train_nn(net_training_function,
+        predictor, weights, learning_curve = train_nn(net_building_function,
             train_inputs, train_targets, arch_params, train_params, val_inputs,
             val_targets, optimization_routine=optimization_routine)
         print "\n"
@@ -167,12 +172,12 @@ def run_nn_with_params(train_params, arch_params, task_params, output_dir,
 
     plot_predictions(get_output_file('predictions.npz'),
                      os.path.join(output_dir, 'plots'))
-    plot_maximizing_inputs(net_training_function, get_output_file('net-weights.npz'),
+    plot_maximizing_inputs(net_building_function, get_output_file('net-weights.npz'),
                            os.path.join(output_dir, 'features'))
-    plot_weights(net_training_function, get_output_file('net-weights.npz'),
+    plot_weights(net_building_function, get_output_file('net-weights.npz'),
                  os.path.join(output_dir, 'plots'))
     if net_type is "conv":
-        plot_weight_meanings(net_training_function, get_output_file('net-weights.npz'),
+        plot_weight_meanings(net_building_function, get_output_file('net-weights.npz'),
                              os.path.join(output_dir, 'plots'), 'true-vs-atomvecs')
     plot_learning_curve(get_output_file('learning-curve.npz'), output_dir)
 

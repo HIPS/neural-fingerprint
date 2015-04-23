@@ -13,7 +13,7 @@ import numpy.random as npr
 
 from deepmolecule import tictoc, normalize_array, sgd_with_momentum, get_data_file, load_data
 from deepmolecule import build_morgan_deep_net, build_morgan_flat_net
-from deepmolecule import build_universal_net, output_dir, get_output_file
+from deepmolecule import build_convnet, output_dir, get_output_file
 from deepmolecule import plot_predictions, plot_maximizing_inputs
 
 # for old net
