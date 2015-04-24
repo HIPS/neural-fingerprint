@@ -8,10 +8,7 @@ from build_vanilla_net import build_vanilla_net
 
 from scipy.misc import logsumexp
 
-def all_permutations(N):
-    return [permutation for permutation in it.permutations(range(N))]
-
-def neighbor_apply_and_stack(idxs, features, op=lambda x: x):
+def apply_and_stack(idxs, features, op=lambda x: x):
     result_rows = []
     for idx_list in idxs:
         result_rows.append(np.expand_dims(op(features[idx_list, :]), axis=0))
@@ -38,14 +35,14 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, pe
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
         stacked_neighbors = np.concatenate(
-            [neighbor_apply_and_stack(neighbor_list(degree, other_ntype), features)
+            [apply_and_stack(neighbor_list(degree, other_ntype), features)
               for other_ntype, features in zip(other_ntypes, feature_sets)], axis=2)
         if permutations:
             weightses = [get_weights_fun(degree, " neighbour " + str(n)) for n in range(degree)]
             neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
             products = [[np.dot(n, w) for w in weightses] for n in neighbors]
             candidates = [sum([products[i][j] for i, j in enumerate(p)])
-                          for p in all_permutations(degree)]
+                          for p in it.permutations(range(degree))]
             # dims of each candidate are (atoms, features)
             result_by_degree.append(weighted_softened_max(candidates))
         else:
@@ -106,23 +103,23 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
 
         # Include both a softened-max and a sum node to pool all atom features together.
         mol_atom_neighbors = mol_nodes['mol_atom_neighbors']
-        fixed_sized_softmax = neighbor_apply_and_stack(mol_atom_neighbors, cur_atoms, softened_max)
-        fixed_sized_sum = neighbor_apply_and_stack(mol_atom_neighbors, cur_atoms, lambda x: np.sum(x, axis=0))
+        fixed_sized_softmax = apply_and_stack(mol_atom_neighbors, cur_atoms, softened_max)
+        fixed_sized_sum = apply_and_stack(mol_atom_neighbors, cur_atoms, lambda x: np.sum(x, axis=0))
         return np.concatenate((fixed_sized_softmax, fixed_sized_sum), axis=1)
 
-    def pred_fun(weights, smiles):
+    def prediction_fun(weights, smiles):
         output_weights = parser.get(weights, 'output weights')
         output_bias = parser.get(weights, 'output bias')
         hiden_units = output_layer_fun(weights, smiles)
         return np.dot(hiden_units, output_weights) + output_bias
 
     def loss_fun(weights, smiles, targets):
-        preds = pred_fun(weights, smiles)
+        preds = prediction_fun(weights, smiles)
         acc_loss = np.sum((preds - targets)**2)
-        l2reg = l2_penalty * np.sum(np.sum(weights**2))
+        l2reg = l2_penalty * np.sum(weights**2)
         return acc_loss + l2reg
 
-    return loss_fun, grad(loss_fun), pred_fun, output_layer_fun, parser
+    return loss_fun, grad(loss_fun), prediction_fun, output_layer_fun, parser
 
 @memoize
 def arrayrep_from_smiles(smiles):

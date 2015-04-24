@@ -23,9 +23,9 @@ def main():
                         'vanilla_hidden' : 100,
                         'l2_penalty': 0.001}
 
-    task_params = {'N_train'     : 200,
-                   'N_valid'     : 100,
-                   'N_test'      : 300,
+    task_params = {'N_train'     : 20,
+                   'N_valid'     : 10,
+                   'N_test'      : 30,
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 
