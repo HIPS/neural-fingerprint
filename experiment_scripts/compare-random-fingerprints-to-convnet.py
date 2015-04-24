@@ -15,6 +15,9 @@ from deepmolecule import build_morgan_flat_net
 from deepmolecule import build_convnet, output_dir, get_output_file
 from deepmolecule import random_net_linear_output
 
+import os
+os.environ['DATA_DIR'] = "/Users/dkd/repos/DeepMoleculesData/data"
+os.environ['OUTPUT_DIR'] = "/tmp"
 
 def main():
     # Parameters for convolutional net.

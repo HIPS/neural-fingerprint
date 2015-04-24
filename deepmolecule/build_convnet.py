@@ -11,25 +11,14 @@ from scipy.misc import logsumexp
 def all_permutations(N):
     return [permutation for permutation in it.permutations(range(N))]
 
-def neighbor_stack(idxs, features):
-    """dims of result are (atoms, neighbors, features)"""
-    results = [np.expand_dims(features[idx_list, :], axis=0) for idx_list in idxs]
-    return np.concatenate(results, axis=0)
-
-def neighbor_softened_max(idxs, features):
+def neighbor_apply_and_stack(idxs, features, op=lambda x: x):
     result_rows = []
     for idx_list in idxs:
-        result_rows.append(np.expand_dims(softened_max(features[idx_list, :]), axis=0))
-    return np.concatenate(result_rows, axis=0)
-
-def neighbor_sum(idxs, features):
-    result_rows = []
-    for idx_list in idxs:
-        result_rows.append(np.expand_dims(np.sum(features[idx_list, :], axis=0), axis=0))
+        result_rows.append(np.expand_dims(op(features[idx_list, :]), axis=0))
     return np.concatenate(result_rows, axis=0)
 
 def softened_max(X):
-    """Takes the row-wise max, but in a soft way."""
+    """Takes the row-wise max, but gently."""
     exp_X = np.exp(X)
     return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
 
@@ -49,7 +38,7 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, pe
     for degree in [1, 2, 3, 4]:
         # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
         stacked_neighbors = np.concatenate(
-            [neighbor_stack(neighbor_list(degree, other_ntype), features)
+            [neighbor_apply_and_stack(neighbor_list(degree, other_ntype), features)
               for other_ntype, features in zip(other_ntypes, feature_sets)], axis=2)
         if permutations:
             weightses = [get_weights_fun(degree, " neighbour " + str(n)) for n in range(degree)]
@@ -117,8 +106,8 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
 
         # Include both a softened-max and a sum node to pool all atom features together.
         mol_atom_neighbors = mol_nodes['mol_atom_neighbors']
-        fixed_sized_softmax = neighbor_softened_max(mol_atom_neighbors, cur_atoms)
-        fixed_sized_sum = neighbor_sum(mol_atom_neighbors, cur_atoms)
+        fixed_sized_softmax = neighbor_apply_and_stack(mol_atom_neighbors, cur_atoms, softened_max)
+        fixed_sized_sum = neighbor_apply_and_stack(mol_atom_neighbors, cur_atoms, lambda x: np.sum(x, axis=0))
         return np.concatenate((fixed_sized_softmax, fixed_sized_sum), axis=1)
 
     def pred_fun(weights, smiles):
