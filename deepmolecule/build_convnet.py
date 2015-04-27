@@ -24,10 +24,10 @@ def weighted_softened_max(X, axis=0):
     # logsumexp with keepdims requires scipy >= 0.15.
     return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis, keepdims=True)), axis)
 
-def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, permutations):
+def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permutations):
     def neighbor_list(degree, other_ntype):
         return mol_nodes[(other_ntype + '_neighbors', degree)]
-    result_by_degree = []
+    activations_by_degree = []
     for degree in [1, 2, 3, 4]:
         neighbor_features = [features[neighbor_list(degree, other_ntype)]
                              for other_ntype, features in zip(other_ntypes, feature_sets)]
@@ -35,23 +35,24 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, pe
             # dims of stacked_neighbors are [atoms, degree, features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
             if permutations:
-                weightses = [get_weights_fun(degree, neighbor=n) for n in range(degree)]
+                weightses = [get_weights(degree, neighbor=n) for n in range(degree)]
                 neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
                 products = [[np.dot(n, w) for w in weightses] for n in neighbors]
                 candidates = [sum([products[i][j] for i, j in enumerate(p)])
                               for p in it.permutations(range(degree))]
                 # dims of each candidate are (atoms, features)
-                result_by_degree.append(weighted_softened_max(np.array(candidates)))
+                activations_by_degree.append(weighted_softened_max(np.array(candidates)))
             else:
                 # (Atoms x degrees x features), (features x hiddens) -> (atoms x hiddens)
-                result_by_degree.append(np.einsum("adf,fh->ah", stacked_neighbors, get_weights_fun(degree)))
+                activations = np.einsum("adf,fh->ah", stacked_neighbors, get_weights(degree))
+                activations_by_degree.append(activations)
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
-    return np.concatenate(result_by_degree, axis=0)
+    return np.concatenate(activations_by_degree, axis=0)
 
 def weights_name(layer, degree, neighbor=None):
     if neighbor:
-        neighborstr = " neighbour " + str(neighbor)
+        neighborstr = " neighbor " + str(neighbor)
     else:
         neighborstr = ""
     return "layer " + str(layer) + " degree " + str(degree) + neighborstr + " filter"
