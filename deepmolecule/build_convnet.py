@@ -8,47 +8,48 @@ from build_vanilla_net import build_vanilla_net
 
 from scipy.misc import logsumexp
 
-def apply_and_stack(idxs, features, op=lambda x: x):
+def apply_and_stack(idxs, features, op):
     result_rows = []
     for idx_list in idxs:
         result_rows.append(np.expand_dims(op(features[idx_list, :]), axis=0))
     return np.concatenate(result_rows, axis=0)
 
-def softened_max(X):
+def softened_max(X, axis=0):
     """Takes the row-wise max, but gently."""
     exp_X = np.exp(X)
-    return np.sum(exp_X * X, axis=0) / np.sum(exp_X, axis=0)
+    return np.sum(exp_X * X, axis) / np.sum(exp_X, axis)
 
-def weighted_softened_max(Xlist):
-    X = np.concatenate([p[None, :] for p in Xlist], axis=0)
+def weighted_softened_max(Xlist, axis=0):
+    X = np.concatenate([p[None, :] for p in Xlist], axis=axis)
     # X is now permutations x atoms x features.
     # The first feature softly scales how much each
     # permutation is used to weight the final activations.
     scale_feature = X[:, :, 0:1]
-    # The next line needs at least scipy 0.15, when keepdims was introduced to logsumexp.
-    return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis=0, keepdims=True)), axis=0)
+    # logsumexp with keepdims requires scipy >= 0.15.
+    return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis, keepdims=True)), axis)
 
 def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, permutations=False):
     def neighbor_list(degree, other_ntype):
         return mol_nodes[(other_ntype + '_neighbors', degree)]
     result_by_degree = []
     for degree in [1, 2, 3, 4]:
-        # dims of stacked_neighbors are [atoms, neighbors (as in atom-bond pairs), features]
-        stacked_neighbors = np.concatenate(
-            [apply_and_stack(neighbor_list(degree, other_ntype), features)
-              for other_ntype, features in zip(other_ntypes, feature_sets)], axis=2)
-        if permutations:
-            weightses = [get_weights_fun(degree, " neighbour " + str(n)) for n in range(degree)]
-            neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
-            products = [[np.dot(n, w) for w in weightses] for n in neighbors]
-            candidates = [sum([products[i][j] for i, j in enumerate(p)])
-                          for p in it.permutations(range(degree))]
-            # dims of each candidate are (atoms, features)
-            result_by_degree.append(weighted_softened_max(candidates))
-        else:
-            result_by_degree.append(np.sum(
-                safe_tensordot(stacked_neighbors, get_weights_fun(degree), axes=((2,), (0,))),
-                axis=1, keepdims=False))
+        neighbor_features = [features[neighbor_list(degree, other_ntype)]
+                             for other_ntype, features in zip(other_ntypes, feature_sets)]
+        if any([len(feat) > 0 for feat in neighbor_features]):
+            # dims of stacked_neighbors are [atoms, degree, features]
+            stacked_neighbors = np.concatenate(neighbor_features, axis=2)
+            if permutations:
+                weightses = [get_weights_fun(degree, " neighbour " + str(n)) for n in range(degree)]
+                neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
+                products = [[np.dot(n, w) for w in weightses] for n in neighbors]
+                candidates = [sum([products[i][j] for i, j in enumerate(p)])
+                              for p in it.permutations(range(degree))]
+                # dims of each candidate are (atoms, features)
+                result_by_degree.append(weighted_softened_max(candidates))
+            else:
+                result_by_degree.append(np.sum(
+                    np.tensordot(stacked_neighbors, get_weights_fun(degree), axes=((2,), (0,))),
+                    axis=1, keepdims=False))
 
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
@@ -110,8 +111,8 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     def prediction_fun(weights, smiles):
         output_weights = parser.get(weights, 'output weights')
         output_bias = parser.get(weights, 'output bias')
-        hiden_units = output_layer_fun(weights, smiles)
-        return np.dot(hiden_units, output_weights) + output_bias
+        hidden_units = output_layer_fun(weights, smiles)
+        return np.dot(hidden_units, output_weights) + output_bias
 
     def loss_fun(weights, smiles, targets):
         preds = prediction_fun(weights, smiles)
@@ -130,10 +131,12 @@ def arrayrep_from_smiles(smiles):
                 'mol_atom_neighbors' : molgraph.neighbor_list('molecule', 'atom')}
 
     for degree in [1, 2, 3, 4]:
+        # Since we know the number of neighbors, we can cast to arrays here
+        # instead of using lists of lists.
         arrayrep[('atom_neighbors', degree)] = \
-                molgraph.neighbor_list(('atom', degree), 'atom')
+                np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
         arrayrep[('bond_neighbors', degree)] = \
-                molgraph.neighbor_list(('atom', degree), 'bond')
+                np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
 
     return arrayrep
 
