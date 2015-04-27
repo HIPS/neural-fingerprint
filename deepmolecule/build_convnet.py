@@ -24,7 +24,7 @@ def weighted_softened_max(X, axis=0):
     # logsumexp with keepdims requires scipy >= 0.15.
     return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis, keepdims=True)), axis)
 
-def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, permutations=False):
+def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, permutations):
     def neighbor_list(degree, other_ntype):
         return mol_nodes[(other_ntype + '_neighbors', degree)]
     result_by_degree = []
@@ -43,10 +43,8 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights_fun, pe
                 # dims of each candidate are (atoms, features)
                 result_by_degree.append(weighted_softened_max(np.array(candidates)))
             else:
-                result_by_degree.append(np.sum(
-                    np.tensordot(stacked_neighbors, get_weights_fun(degree), axes=((2,), (0,))),
-                    axis=1, keepdims=False))
-
+                # (Atoms x degrees x features), (features x hiddens) -> (atoms x hiddens)
+                result_by_degree.append(np.einsum("adf,fh->ah", stacked_neighbors, get_weights_fun(degree)))
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
     return np.concatenate(result_by_degree, axis=0)
@@ -85,28 +83,27 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     parser.add_weights('output bias', (1, ))
     parser.add_weights('output weights', (num_hidden_features[-1] * 2, ))
 
-
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
         mol_nodes = arrayrep_from_smiles(tuple(smiles))
 
-        cur_atoms = np.dot(mol_nodes['atom_features'], parser.get(weights, 'atom2vec'))
-        cur_bonds = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
+        atom_features = np.dot(mol_nodes['atom_features'], parser.get(weights, 'atom2vec'))
+        bond_features = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
 
         for layer in xrange(len(num_hidden_features) - 1):
             def get_weights_func(degree, neighbor=None):
                 return parser.get(weights, weights_name(layer, degree, neighbor))
             layer_bias = parser.get(weights, "layer " + str(layer) + " biases")
             layer_self_weights = parser.get(weights, "layer " + str(layer) + " self filter")
-            self_activations = np.dot(cur_atoms, layer_self_weights)
+            self_activations = np.dot(atom_features, layer_self_weights)
             neighbour_activations = matmult_neighbors(mol_nodes, ('atom', 'bond'),
-                (cur_atoms, cur_bonds), get_weights_func, permutations)
-            cur_atoms = np.tanh(layer_bias + self_activations + neighbour_activations)
+                (atom_features, bond_features), get_weights_func, permutations)
+            atom_features = np.tanh(layer_bias + self_activations + neighbour_activations)
 
         # Include both a softened-max and a sum node to pool all atom features together.
-        mol_atom_neighbors = mol_nodes['mol_atom_neighbors']
-        fixed_sized_softmax = apply_and_stack(mol_atom_neighbors, cur_atoms, softened_max)
-        fixed_sized_sum     = apply_and_stack(mol_atom_neighbors, cur_atoms, lambda x: np.sum(x, axis=0))
+        atom_neighbor_idxs = mol_nodes['mol_atom_neighbors']
+        fixed_sized_softmax = apply_and_stack(atom_neighbor_idxs, atom_features, softened_max)
+        fixed_sized_sum     = apply_and_stack(atom_neighbor_idxs, atom_features, lambda x: np.sum(x, axis=0))
         return np.concatenate((fixed_sized_softmax, fixed_sized_sum), axis=1)
 
     def prediction_fun(weights, smiles):
