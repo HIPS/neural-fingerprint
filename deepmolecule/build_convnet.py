@@ -163,7 +163,7 @@ def build_convnet_with_vanilla_ontop(bond_vec_dim=1, num_hidden_features=[20, 50
         build_convnet(bond_vec_dim, num_hidden_features, permutations)
 
     v_loss_fun, _, v_pred_fun, v_hiddens_fun, v_parser = \
-        build_vanilla_net(num_inputs=num_hidden_features[-1]*2, h1_size=vanilla_hidden)
+        build_vanilla_net(num_inputs=num_hidden_features[-1], h1_size=vanilla_hidden)
 
     parser = WeightsParser()
     parser.add_weights('convnet weights', len(conv_parser))
