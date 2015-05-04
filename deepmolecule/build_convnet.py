@@ -32,6 +32,7 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permut
         return mol_nodes[(other_ntype + '_neighbors', degree)]
     activations_by_degree = []
     for degree in [1, 2, 3, 4]:
+        # TODO: make this (plus the stacking) into an autograd primitive
         neighbor_features = [features[neighbor_list(degree, other_ntype)]
                              for other_ntype, features in zip(other_ntypes, feature_sets)]
         if any([len(feat) > 0 for feat in neighbor_features]):
@@ -41,8 +42,8 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permut
                 weightses = [get_weights(degree)[n, :, :] for n in range(degree)]
                 neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
                 products = [[np.dot(n, w) for w in weightses] for n in neighbors]
-
-                # (Atoms x neighbors1 x features), (neighbors2 x features x hiddens) -> (atoms x neighbors x hiddens)
+                # (Atoms x neighbors1 x features), (neighbors2 x features x hiddens)
+                # -> (atoms x neighbors x hiddens)
                 #products = np.einsum("anf,mfh->nmah", stacked_neighbors, get_weights(degree))
                 candidates = [sum([products[i][j] for i, j in enumerate(p)])
                               for p in it.permutations(range(degree))]
@@ -50,7 +51,8 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permut
                 activations_by_degree.append(weighted_softened_max(fast_array_from_list(candidates)))
             else:
                 # (Atoms x neighbors x features), (features x hiddens) -> (atoms x hiddens)
-                activations = np.einsum("anf,fh->ah", stacked_neighbors, get_weights(degree))
+                # activations = np.einsum("anf,fh->ah", stacked_neighbors, get_weights(degree))
+                activations = np.dot(np.sum(stacked_neighbors, axis=1), get_weights(degree))
                 activations_by_degree.append(activations)
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
@@ -67,7 +69,6 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
                         permutations=False, l2_penalty=0.0, pool_funcs=['softened_max']):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
-
     parser = WeightsParser()
     parser.add_weights('atom2vec', (N_atom_features, num_hidden_features[0]))
     parser.add_weights('bond2vec', (N_bond_features, bond_vec_dim))
@@ -76,20 +77,13 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
-
-        def new_weights_func(degree, neighbors=False):
-            if neighbors:
-                parser.add_weights(weights_name(layer, degree),
-                                   (degree, N_prev + bond_vec_dim, N_cur))
-            else:
-                parser.add_weights(weights_name(layer, degree),
-                                   (N_prev + bond_vec_dim, N_cur))
+        base_shape = (N_prev + bond_vec_dim, N_cur)
         for degree in [1, 2, 3, 4]:
             if permutations:
-                #for n in range(degree):
-                new_weights_func(degree, neighbors=True)
+                shape = (degree,) + base_shape
             else:
-                new_weights_func(degree)
+                shape = base_shape
+            parser.add_weights(weights_name(layer, degree), shape)
 
     parser.add_weights('output bias', (1, ))
     parser.add_weights('output weights', (num_hidden_features[-1] * 2, ))

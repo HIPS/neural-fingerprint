@@ -12,7 +12,7 @@ from autograd import grad
 
 def main():
 
-    os.environ['DATA_DIR'] = "/Users/dkd/repos/DeepMoleculesData/data"
+    os.environ['DATA_DIR'] = os.path.expanduser("~/repos/DeepMoleculesData/data")
 
     # Parameters for convolutional net.
     conv_arch_params = {'num_hidden_features' : [50, 50, 120],

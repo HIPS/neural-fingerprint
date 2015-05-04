@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 from rdkit.Chem import MolFromSmiles
 from features import atom_features, bond_features
 
