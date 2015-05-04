@@ -13,7 +13,12 @@ class memoize(object):
         self.cache = {}
 
     def __call__(self, *args):
-        return self.cache.setdefault(args, self.func(*args))
+        if args in self.cache:
+            return self.cache[args]
+        else:
+            result = self.func(*args)
+            self.cache[args] = result
+            return result
 
     def __get__(self, obj, objtype):
         return partial(self.__call__, obj)
