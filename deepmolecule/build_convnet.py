@@ -111,6 +111,9 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
         if 'softened_max' in pool_funcs:
             pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
                                                    softened_max))
+        if 'mean' in pool_funcs:
+            pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
+                                                   lambda x: np.mean(x, axis=0)))
         if 'sum' in pool_funcs:
             pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
                                                    lambda x: np.sum(x, axis=0)))
