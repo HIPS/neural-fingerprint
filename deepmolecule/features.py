@@ -6,26 +6,27 @@ time.sleep(0.2)   # To deal with a race condition bug in rdkit.
 
 atom_types = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
 
-def atom_features(atom):
+def atom_features(atom, extra_features):
     if atom.GetSymbol() not in atom_types:
         raise Exception("Atom type %r not modeled" % (atom.GetSymbol()))
 
-    ht = atom.GetHybridization()
-    return np.concatenate(
-        [np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),  # One-of-k encoding.
-         #[
-          #atom.GetAtomicNum(),
-          #atom.GetMass(),
-          #atom.GetExplicitValence(),
-          #atom.GetImplicitValence(),
-          #atom.GetFormalCharge(),
-          #atom.GetIsAromatic(),
-          #ht == Chem.rdchem.HybridizationType.SP,
-          #ht == Chem.rdchem.HybridizationType.SP2,
-          #ht == Chem.rdchem.HybridizationType.SP3,
-          #ht == Chem.rdchem.HybridizationType.SP3D,
-          #3ht == Chem.rdchem.HybridizationType.SP3D2]
-          ])
+    if extra_features:
+        ht = atom.GetHybridization()
+        return np.concatenate(
+            [np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),  # One-of-k encoding.
+            [atom.GetAtomicNum(),
+            atom.GetMass(),
+            atom.GetExplicitValence(),
+            atom.GetImplicitValence(),
+            atom.GetFormalCharge(),
+            atom.GetIsAromatic(),
+            ht == Chem.rdchem.HybridizationType.SP,
+            ht == Chem.rdchem.HybridizationType.SP2,
+            ht == Chem.rdchem.HybridizationType.SP3,
+            ht == Chem.rdchem.HybridizationType.SP3D,
+            ht == Chem.rdchem.HybridizationType.SP3D2]])
+    else:
+        return np.array(map(lambda s: atom.GetSymbol() == s, atom_types)),  # One-of-k encoding.
 
 def bond_features(bond):
     bt = bond.GetBondType()
@@ -38,15 +39,13 @@ def bond_features(bond):
          bond.IsInRing()
          ])
 
-def get_num_atom_features():
+def num_atom_features(extra_features):
     # Return length of feature vector using a very simple molecule.
-    return len(atom_features(Chem.MolFromSmiles('C').GetAtoms()[0]))
+    return len(atom_features(Chem.MolFromSmiles('C').GetAtoms()[0], extra_features))
 
-def get_num_bond_features():
+def num_bond_features():
     # Return length of feature vector using a very simple molecule.
     simple_mol = Chem.MolFromSmiles('CC')
     Chem.SanitizeMol(simple_mol)
     return len(bond_features(simple_mol.GetBonds()[0]))
 
-N_atom_features = get_num_atom_features()
-N_bond_features = get_num_bond_features()

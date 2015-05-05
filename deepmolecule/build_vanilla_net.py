@@ -7,7 +7,7 @@ def relu(X):
     "Rectified linear activation function."
     return X * (X > 0)
 
-def build_vanilla_net(num_inputs, h1_size):
+def build_standard_net(num_inputs, h1_size):
     """Just a plain old 2-layer net, nothing to do with molecules."""
     parser = WeightsParser()
     parser.add_weights('layer 1 weights', (num_inputs, h1_size))
@@ -33,7 +33,7 @@ def build_vanilla_net(num_inputs, h1_size):
 def build_morgan_deep_net(fp_length=512, fp_radius=4, h1_size=500):
     """A 2-layer net whose inputs are Morgan fingerprints."""
     v_loss_fun, v_grad_fun, v_pred_fun, v_hiddens_fun, parser = \
-        build_vanilla_net(num_inputs=fp_length, h1_size=h1_size)
+        build_standard_net(num_inputs=fp_length, h1_size=h1_size)
 
     def fingerprints_from_smiles(smiles):
         return fingerprints_from_smiles_tuple(tuple(smiles))

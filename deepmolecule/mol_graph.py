@@ -56,8 +56,8 @@ class Node(object):
     def get_neighbors(self, ntype):
         return [n for n in self._neighbors if n.ntype == ntype]
 
-def graph_from_smiles_tuple(smiles_tuple):
-    graph_list = [graph_from_smiles(s) for s in smiles_tuple]
+def graph_from_smiles_tuple(smiles_tuple, extra_features):
+    graph_list = [graph_from_smiles(s, extra_features) for s in smiles_tuple]
     big_graph = MolGraph()
     for subgraph in graph_list:
         big_graph.add_subgraph(subgraph)
@@ -66,12 +66,12 @@ def graph_from_smiles_tuple(smiles_tuple):
     big_graph.sort_nodes_by_degree('atom')
     return big_graph
 
-def graph_from_smiles(smiles):
+def graph_from_smiles(smiles, extra_features):
     graph = MolGraph()
     mol = MolFromSmiles(smiles)
     atoms_by_rd_idx = {}
     for atom in mol.GetAtoms():
-        new_atom_node = graph.new_node('atom', features=atom_features(atom))
+        new_atom_node = graph.new_node('atom', features=atom_features(atom, extra_features))
         atoms_by_rd_idx[atom.GetIdx()] = new_atom_node
 
     for bond in mol.GetBonds():
