@@ -70,12 +70,6 @@ def rms_prop(grad, N_x, N_w, callback=None,
         if callback: callback(epoch, w)
     return w
 
-def sgd_nesterov_momentum(grad, N_x, N_w, callback=None,
-             batch_size=100, num_epochs=100, learn_rate=0.1,
-             param_scale=0.1):
-    # TODO
-    pass
-
 def make_batcher(input_data, batch_size):
     batch_idxs = batch_idx_generator(batch_size, len(input_data.values()[0]))
     data_batches = [{k : v[idxs] for k, v in input_data.iteritems()}

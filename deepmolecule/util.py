@@ -39,17 +39,6 @@ def tictoc():
     dt = time() - t1
     print "--- Stop clock: %s seconds elapsed ---" % dt
 
-def safe_tensordot(A, B, axes):
-    """Allows dimensions of length zero"""
-    Adims, Bdims = list(A.shape), list(B.shape)
-    if np.any([d is 0 for d in Adims + Bdims]):
-        Anewdims = [d for i, d in enumerate(Adims) if i not in axes[0]]
-        Bnewdims = [d for i, d in enumerate(Bdims) if i not in axes[1]]
-        return np.zeros(Anewdims + Bnewdims)
-    else:
-        return np.tensordot(A, B, axes)
-
-
 class WeightsParser(object):
     """A kind of dictionary of weights shapes,
        which can pick out named subsets from a long vector.
@@ -71,49 +60,7 @@ class WeightsParser(object):
     def __len__(self):
         return self.N
 
-
-class VectorParser(object):
-    def __init__(self):
-        self.idxs_and_shapes = OrderedDict()
-        self.vect = np.zeros((0,))
-
-    def add_shape(self, name, shape):
-        start = len(self.vect)
-        size = np.prod(shape)
-        self.idxs_and_shapes[name] = (slice(start, start + size), shape)
-        self.vect = np.concatenate((self.vect, np.zeros(size)), axis=0)
-
-    def new_vect(self, vect):
-        assert vect.size == self.vect.size
-        new_parser = self.empty_copy()
-        new_parser.vect = vect
-        return new_parser
-
-    def empty_copy(self):
-        """Creates a parser with a blank vector."""
-        new_parser = VectorParser()
-        new_parser.idxs_and_shapes = self.idxs_and_shapes.copy()
-        new_parser.vect = None
-        return new_parser
-
-    def as_dict(self):
-        return {k : self[k] for k in self.names}
-
-    @property
-    def names(self):
-        return self.idxs_and_shapes.keys()
-
-    def __getitem__(self, name):
-        idxs, shape = self.idxs_and_shapes[name]
-        return np.reshape(self.vect[idxs], shape)
-
-    def __setitem__(self, name, val):
-        if isinstance(val, list): val = np.array(val)
-        if name not in self.idxs_and_shapes:
-            self.add_shape(name, val.shape)
-
-        idxs, shape = self.idxs_and_shapes[name]
-        self.vect[idxs].reshape(shape)[:] = val
-
-    def __len__(self):
-        return self.N
+def one_of_k_encoding(x, allowable_set):
+    if x not in allowable_set:
+        raise Exception("input {0} not in allowable set{1}:".format(x, allowable_set))
+    return map(lambda s: x == s, allowable_set)

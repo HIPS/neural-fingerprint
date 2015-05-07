@@ -65,12 +65,12 @@ def weights_name(layer, degree, neighbor=None):
         neighborstr = ""
     return "layer " + str(layer) + " degree " + str(degree) + neighborstr + " filter"
 
-def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50], extra_features=True,
+def build_convnet(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
                   permutations=False, l2_penalty=0.0, pool_funcs=['softened_max']):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
     parser = WeightsParser()
-    parser.add_weights('atom2vec', (num_atom_features(extra_features), num_hidden_features[0]))
+    parser.add_weights('atom2vec', (num_atom_features(), num_hidden_features[0]))
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
 
     in_and_out_sizes = zip(num_hidden_features[:-1], num_hidden_features[1:])
@@ -90,7 +90,7 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50], extra_featur
 
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
-        mol_nodes = arrayrep_from_smiles(tuple(smiles), extra_features)
+        mol_nodes = arrayrep_from_smiles(tuple(smiles))
 
         atom_features = np.dot(mol_nodes['atom_features'], parser.get(weights, 'atom2vec'))
         bond_features = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
@@ -134,9 +134,9 @@ def build_convnet(bond_vec_dim=1, num_hidden_features=[20, 50, 50], extra_featur
     return loss_fun, grad(loss_fun), prediction_fun, output_layer_fun, parser
 
 @memoize
-def arrayrep_from_smiles(smiles, extra_features):
+def arrayrep_from_smiles(smiles):
     """Precompute everything we need from MolGraph so that we can free the memory asap."""
-    molgraph = graph_from_smiles_tuple(smiles, extra_features)
+    molgraph = graph_from_smiles_tuple(smiles)
     arrayrep = {'atom_features' : molgraph.feature_array('atom'),
                 'bond_features' : molgraph.feature_array('bond'),
                 'mol_atom_neighbors' : molgraph.neighbor_list('molecule', 'atom')}
