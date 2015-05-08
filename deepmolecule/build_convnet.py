@@ -3,8 +3,7 @@ import autograd.numpy as np
 from features import num_atom_features, num_bond_features
 from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple
-from autograd import grad
-from build_vanilla_net import build_standard_net
+from build_vanilla_net import build_fingerprint_deep_net
 
 from autograd.scipy.misc import logsumexp
 
@@ -27,7 +26,24 @@ def weighted_softened_max(X, axis=0):
     # logsumexp with keepdims requires scipy >= 0.15.
     return np.sum(X * np.exp(scale_feature - logsumexp(scale_feature, axis, keepdims=True)), axis)
 
-def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permutations):
+def summing_combine(neighbor_features, weights, degree):
+    # (Atoms x neighbors x features), (features x hiddens) -> (atoms x hiddens)
+    # activations = np.einsum("anf,fh->ah", stacked_neighbors, get_weights(degree))
+    return np.dot(np.sum(neighbor_features, axis=1), weights)
+
+def permute_combine(neighbor_features, weights, degree):
+    weightses = [weights[n, :, :] for n in range(degree)]
+    neighbors = [neighbor_features[:, d, :] for d in range(degree)]
+    products = [[np.dot(n, w) for w in weightses] for n in neighbors]
+    # (Atoms x neighbors1 x features), (neighbors2 x features x hiddens)
+    # -> (atoms x neighbors x hiddens)
+    #products = np.einsum("anf,mfh->nmah", neighbor_features, weights)
+    candidates = [sum([products[i][j] for i, j in enumerate(p)])
+                  for p in it.permutations(range(degree))]
+    # dims candidates is (permutations x atoms x features)
+    return weighted_softened_max(fast_array_from_list(candidates))
+
+def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, combine_func):
     def neighbor_list(degree, other_ntype):
         return mol_nodes[(other_ntype + '_neighbors', degree)]
     activations_by_degree = []
@@ -38,22 +54,8 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights, permut
         if any([len(feat) > 0 for feat in neighbor_features]):
             # dims of stacked_neighbors are [atoms, neighbors, features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
-            if permutations:
-                weightses = [get_weights(degree)[n, :, :] for n in range(degree)]
-                neighbors = [stacked_neighbors[:, d, :] for d in range(degree)]
-                products = [[np.dot(n, w) for w in weightses] for n in neighbors]
-                # (Atoms x neighbors1 x features), (neighbors2 x features x hiddens)
-                # -> (atoms x neighbors x hiddens)
-                #products = np.einsum("anf,mfh->nmah", stacked_neighbors, get_weights(degree))
-                candidates = [sum([products[i][j] for i, j in enumerate(p)])
-                              for p in it.permutations(range(degree))]
-                # dims candidates is (permutations x atoms x features)
-                activations_by_degree.append(weighted_softened_max(fast_array_from_list(candidates)))
-            else:
-                # (Atoms x neighbors x features), (features x hiddens) -> (atoms x hiddens)
-                # activations = np.einsum("anf,fh->ah", stacked_neighbors, get_weights(degree))
-                activations = np.dot(np.sum(stacked_neighbors, axis=1), get_weights(degree))
-                activations_by_degree.append(activations)
+            activations = combine_func(stacked_neighbors, get_weights(degree), degree)
+            activations_by_degree.append(activations)
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
     return np.concatenate(activations_by_degree, axis=0)
@@ -65,10 +67,16 @@ def weights_name(layer, degree, neighbor=None):
         neighborstr = ""
     return "layer " + str(layer) + " degree " + str(degree) + neighborstr + " filter"
 
-def build_convnet(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
-                  permutations=False, l2_penalty=0.0, pool_funcs=['softened_max']):
+def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
+                  permutations=True, pool_funcs=['softened_max']):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
+
+    if permutations:
+        composition_func=permute_combine
+    else:
+        composition_func=summing_combine
+
     parser = WeightsParser()
     parser.add_weights('atom2vec', (num_atom_features(), num_hidden_features[0]))
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
@@ -79,7 +87,7 @@ def build_convnet(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
         base_shape = (N_prev + bond_vec_dim, N_cur)
         for degree in [1, 2, 3, 4]:
-            if permutations:
+            if composition_func == permute_combine:
                 shape = (degree,) + base_shape
             else:
                 shape = base_shape
@@ -96,16 +104,17 @@ def build_convnet(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
         bond_features = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
 
         for layer in xrange(len(num_hidden_features) - 1):
+            #atom_features = combine_func(atom_features)
             def get_weights_func(degree):#, neighbor=None):
                 return parser.get(weights, weights_name(layer, degree))#, neighbor))
             layer_bias = parser.get(weights, "layer " + str(layer) + " biases")
             layer_self_weights = parser.get(weights, "layer " + str(layer) + " self filter")
             self_activations = np.dot(atom_features, layer_self_weights)
             neighbour_activations = matmult_neighbors(mol_nodes, ('atom', 'bond'),
-                (atom_features, bond_features), get_weights_func, permutations)
+                (atom_features, bond_features), get_weights_func, composition_func)
             atom_features = np.tanh(layer_bias + self_activations + neighbour_activations)
 
-        # Include both a softened-max and a sum node to pool all atom features together.
+        # Pool all atom features together.
         atom_neighbor_idxs = mol_nodes['mol_atom_neighbors']
         pooled_features = []
         if 'softened_max' in pool_funcs:
@@ -119,19 +128,7 @@ def build_convnet(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
                                                    lambda x: np.sum(x, axis=0)))
         return np.concatenate(pooled_features, axis=1)
 
-    def prediction_fun(weights, smiles):
-        output_weights = parser.get(weights, 'output weights')
-        output_bias = parser.get(weights, 'output bias')
-        hidden_units = output_layer_fun(weights, smiles)
-        return np.dot(hidden_units, output_weights) + output_bias
-
-    def loss_fun(weights, smiles, targets):
-        preds = prediction_fun(weights, smiles)
-        acc_loss = np.sum((preds - targets)**2)
-        l2reg = l2_penalty * np.sum(weights**2)
-        return acc_loss + l2reg
-
-    return loss_fun, grad(loss_fun), prediction_fun, output_layer_fun, parser
+    return output_layer_fun, parser
 
 @memoize
 def arrayrep_from_smiles(smiles):
@@ -151,37 +148,7 @@ def arrayrep_from_smiles(smiles):
 
     return arrayrep
 
-
-def build_convnet_with_vanilla_ontop(bond_vec_dim=1, num_hidden_features=[20, 50, 50],
-                        permutations=False, l2_penalty=0.0, vanilla_hidden=100):
-    """A network with a convnet on the bottom, and vanilla fully-connected net on top."""
-
-    _, _, _, conv_hiddens_fun, conv_parser = \
-        build_convnet(bond_vec_dim, num_hidden_features, permutations)
-
-    v_loss_fun, _, v_pred_fun, v_hiddens_fun, v_parser = \
-        build_standard_net(num_inputs=num_hidden_features[-1], h1_size=vanilla_hidden)
-
-    parser = WeightsParser()
-    parser.add_weights('convnet weights', len(conv_parser))
-    parser.add_weights('vanilla weights', len(v_parser))
-
-    def hiddens_fun(weights, smiles):
-        convnet_weights = parser.get(weights, 'convnet weights')
-        vanilla_weights = parser.get(weights, 'vanilla weights')
-        conv_output = conv_hiddens_fun(convnet_weights, smiles)
-        return v_hiddens_fun(vanilla_weights, conv_output)
-
-    def pred_fun(weights, smiles):
-        convnet_weights = parser.get(weights, 'convnet weights')
-        vanilla_weights = parser.get(weights, 'vanilla weights')
-        conv_output = conv_hiddens_fun(convnet_weights, smiles)
-        return v_pred_fun(vanilla_weights, conv_output)
-
-    def loss_fun(weights, smiles, targets):
-        preds = pred_fun(weights, smiles)
-        acc_loss = np.sum((preds - targets)**2)
-        l2reg = l2_penalty * np.sum(np.sum(weights**2))
-        return acc_loss + l2reg
-
-    return loss_fun, grad(loss_fun), pred_fun, hiddens_fun, parser
+def build_conv_deep_net(layer_sizes, conv_params):
+    # Returns (loss_fun(weights, smiles, targets), pred_fun, net_parser, conv_parser)
+    conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
+    return build_fingerprint_deep_net(layer_sizes, conv_fp_func) + (conv_parser,)

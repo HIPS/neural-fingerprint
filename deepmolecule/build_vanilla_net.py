@@ -1,12 +1,12 @@
 import autograd.numpy as np
 from util import memoize, WeightsParser
-from deepmolecule import smiles_to_fps
-from autograd import grad
+from rdkit_utils import smiles_to_fps
 
 def relu(X):
     "Rectified linear activation function."
     return X * (X > 0)
 
+# TODO: Make this an arbitraily deep net.
 def build_standard_net(num_inputs, h1_size):
     """Just a plain old 2-layer net, nothing to do with molecules."""
     parser = WeightsParser()
@@ -28,32 +28,32 @@ def build_standard_net(num_inputs, h1_size):
     def loss_fun(w, X, targets):
         preds = pred_fun(w, X)
         return np.sum((preds - targets)**2)
-    return loss_fun, grad(loss_fun), pred_fun, hiddens, parser
+    return loss_fun, pred_fun, hiddens, parser
 
-def build_morgan_deep_net(fp_length=512, fp_radius=4, h1_size=500):
-    """A 2-layer net whose inputs are Morgan fingerprints."""
-    v_loss_fun, v_grad_fun, v_pred_fun, v_hiddens_fun, parser = \
-        build_standard_net(num_inputs=fp_length, h1_size=h1_size)
+def build_fingerprint_deep_net(layer_sizes, fingerprint_func):
+    """A 2-layer net whose inputs are fingerprints.
+    fingerprint_func has signature (smiles, weight, params)"""
+    net_loss_fun, net_pred_fun, net_hiddens_fun, net_parser = \
+        build_standard_net(num_inputs=layer_sizes[0], h1_size=layer_sizes[1])
 
-    def fingerprints_from_smiles(smiles):
+    def loss_fun(fingerprint_weights, net_weights, smiles, targets):
+        return net_loss_fun(net_weights, fingerprint_func(fingerprint_weights, smiles), targets)
+    def pred_fun(fingerprint_weights, net_weights, smiles):
+        return net_pred_fun(net_weights, fingerprint_func(fingerprint_weights, smiles))
+
+    return loss_fun, pred_fun, net_parser
+
+def build_morgan_fingerprint_fun(fp_length, fp_radius):
+
+    def fingerprints_from_smiles(weights, smiles):
         return fingerprints_from_smiles_tuple(tuple(smiles))
 
     @memoize # This wrapper function exists because tuples can be hashed, but arrays can't.
     def fingerprints_from_smiles_tuple(smiles_tuple):
         return smiles_to_fps(smiles_tuple, fp_length, fp_radius)
 
-    def grad_fun(w, s, t): return v_grad_fun(w, fingerprints_from_smiles(s), t)
-    def loss_fun(w, s, t): return v_loss_fun(w, fingerprints_from_smiles(s), t)
-    def pred_fun(w, s):    return v_pred_fun(w, fingerprints_from_smiles(s))
-    def hiddens_fun(w, s): return v_hiddens_fun(w, fingerprints_from_smiles(s))
+    return fingerprints_from_smiles
 
-    return loss_fun, grad_fun, pred_fun, hiddens_fun, parser
-
-def build_morgan_flat_net(fp_length=512, fp_radius=4):
-    """Wraps functions for computing Morgan fingerprints."""
-    def grad_fun(w, s, t): return 0.0
-    def loss_fun(w, s, t): return 0.0
-    def pred_fun(w, s):    return 0.0
-    def hiddens_fun(w, s): return smiles_to_fps(s, fp_length, fp_radius)
-
-    return loss_fun, grad_fun, pred_fun, hiddens_fun, WeightsParser()
+def build_morgan_deep_net(layer_sizes, fp_length=512, fp_radius=4):
+    morgan_fp_func = build_morgan_fingerprint_fun(fp_length, fp_radius)
+    return build_fingerprint_deep_net(layer_sizes, morgan_fp_func)
