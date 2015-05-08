@@ -11,7 +11,7 @@ def fast_array_from_list(xs):
     return np.concatenate([np.expand_dims(x, axis=0) for x in xs], axis=0)
 
 def apply_and_stack(idxs, features, op):
-    return fast_array_from_list([op(features[idx_list, :]) for idx_list in idxs])
+    return fast_array_from_list([op(features[idx_list]) for idx_list in idxs])
 
 def softened_max(X, axis=0):
     """Takes the row-wise max, but gently."""
@@ -77,6 +77,7 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
     else:
         composition_func=summing_combine
 
+    # Specify weight shapes.
     parser = WeightsParser()
     parser.add_weights('atom2vec', (num_atom_features(), num_hidden_features[0]))
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
@@ -93,8 +94,18 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
                 shape = base_shape
             parser.add_weights(weights_name(layer, degree), shape)
 
-    parser.add_weights('output bias', (1, ))
-    parser.add_weights('output weights', (num_hidden_features[-1] * 2, ))
+    def hash_to_index_then_or(features):
+        """The final layer of ECFP takes the integer representation at each atom and maps it
+        to a '1' in the final representation.
+        We can do the same thing by just mapping the least significant bits of a combination
+        of all the input features.
+        This function is not differentiable, which is fine."""
+        combined_features = np.sum(features, axis=0)   # Do we need more than one feature?
+        int_rep = np.mod(combined_features * 1000.0, num_hidden_features[-1]).astype(np.int)
+        binary_features = np.zeros(features.shape[1])
+        binary_features[int_rep] = 1
+        return binary_features
+
 
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
@@ -104,9 +115,9 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
         bond_features = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
 
         for layer in xrange(len(num_hidden_features) - 1):
-            #atom_features = combine_func(atom_features)
-            def get_weights_func(degree):#, neighbor=None):
-                return parser.get(weights, weights_name(layer, degree))#, neighbor))
+            #atom_features = combine_func(atom_features, bond_features, mol_nodes)
+            def get_weights_func(degree):
+                return parser.get(weights, weights_name(layer, degree))
             layer_bias = parser.get(weights, "layer " + str(layer) + " biases")
             layer_self_weights = parser.get(weights, "layer " + str(layer) + " self filter")
             self_activations = np.dot(atom_features, layer_self_weights)
@@ -115,20 +126,26 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
             atom_features = np.tanh(layer_bias + self_activations + neighbour_activations)
 
         # Pool all atom features together.
-        atom_neighbor_idxs = mol_nodes['mol_atom_neighbors']
+        atom_idxs = mol_nodes['atom_list']
         pooled_features = []
         if 'softened_max' in pool_funcs:
-            pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
+            pooled_features.append(apply_and_stack(atom_idxs, atom_features,
                                                    softened_max))
         if 'mean' in pool_funcs:
-            pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
+            pooled_features.append(apply_and_stack(atom_idxs, atom_features,
                                                    lambda x: np.mean(x, axis=0)))
         if 'sum' in pool_funcs:
-            pooled_features.append(apply_and_stack(atom_neighbor_idxs, atom_features,
+            pooled_features.append(apply_and_stack(atom_idxs, atom_features,
                                                    lambda x: np.sum(x, axis=0)))
+        if 'index' in pool_funcs:
+            # Same spirit as last layer of ECFP.
+            # Map each atom's features to an integer in [0, fp_length].
+            pooled_features.append(apply_and_stack(atom_idxs, atom_features,
+                                                   hash_to_index_then_or))
         return np.concatenate(pooled_features, axis=1)
 
     return output_layer_fun, parser
+
 
 @memoize
 def arrayrep_from_smiles(smiles):
@@ -136,7 +153,7 @@ def arrayrep_from_smiles(smiles):
     molgraph = graph_from_smiles_tuple(smiles)
     arrayrep = {'atom_features' : molgraph.feature_array('atom'),
                 'bond_features' : molgraph.feature_array('bond'),
-                'mol_atom_neighbors' : molgraph.neighbor_list('molecule', 'atom')}
+                'atom_list'     : molgraph.neighbor_list('molecule', 'atom')}
 
     for degree in [1, 2, 3, 4]:
         # Since we know the number of neighbors, we can cast to arrays here
@@ -149,6 +166,6 @@ def arrayrep_from_smiles(smiles):
     return arrayrep
 
 def build_conv_deep_net(layer_sizes, conv_params):
-    # Returns (loss_fun(weights, smiles, targets), pred_fun, net_parser, conv_parser)
+    # Returns (loss_fun(fp_weights, nn_weights, smiles, targets), pred_fun, net_parser, conv_parser)
     conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
     return build_fingerprint_deep_net(layer_sizes, conv_fp_func) + (conv_parser,)

@@ -46,6 +46,7 @@ def build_fingerprint_deep_net(layer_sizes, fingerprint_func):
 def build_morgan_fingerprint_fun(fp_length, fp_radius):
 
     def fingerprints_from_smiles(weights, smiles):
+        # Morgan fingerprints don't use weights.
         return fingerprints_from_smiles_tuple(tuple(smiles))
 
     @memoize # This wrapper function exists because tuples can be hashed, but arrays can't.
