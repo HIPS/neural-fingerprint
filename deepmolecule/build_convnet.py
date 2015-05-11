@@ -82,7 +82,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
     parser.add_weights('atom2vec', (num_atom_features(), atom_vec_dim))
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
 
-    in_and_out_sizes = zip(atom_vec_dim + num_hidden_features[:-1], num_hidden_features)
+    in_and_out_sizes = zip([atom_vec_dim] + num_hidden_features[:-1], num_hidden_features)
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
@@ -118,7 +118,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
         atom_features = np.dot(mol_nodes['atom_features'], parser.get(weights, 'atom2vec'))
         bond_features = np.dot(mol_nodes['bond_features'], parser.get(weights, 'bond2vec'))
 
-        for layer in xrange(len(num_hidden_features) - 1):
+        for layer in xrange(len(num_hidden_features)):
             #atom_features = combine_func(atom_features, bond_features, mol_nodes)
             def get_weights_func(degree):
                 return parser.get(weights, weights_name(layer, degree))
@@ -149,7 +149,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
                                                    lambda x: np.sum(x, axis=0)))
         if 'or' in pool_funcs:
             pooled_features.append(apply_and_stack(atom_idxs, atom_features,
-                                                   lambda x: np.any(x > 0.9995, axis=0)))
+                                                   lambda x: np.any(x > 0.99, axis=0)))
         if 'index' in pool_funcs:
             # Same spirit as last layer of ECFP.
             # Map each atom's features to an integer in [0, fp_length].
