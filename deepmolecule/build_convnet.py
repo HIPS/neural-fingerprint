@@ -67,8 +67,8 @@ def weights_name(layer, degree, neighbor=None):
         neighborstr = ""
     return "layer " + str(layer) + " degree " + str(degree) + neighborstr + " filter"
 
-def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 50],
-                  permutations=True, pool_funcs=['softened_max']):
+def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_features=[100, 100],
+                                  fp_length=512, permutations=True, pool_funcs=['softened_max']):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
 
@@ -79,10 +79,10 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
 
     # Specify weight shapes.
     parser = WeightsParser()
-    parser.add_weights('atom2vec', (num_atom_features(), num_hidden_features[0]))
+    parser.add_weights('atom2vec', (num_atom_features(), atom_vec_dim))
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
 
-    in_and_out_sizes = zip(num_hidden_features[:-1], num_hidden_features[1:])
+    in_and_out_sizes = zip(atom_vec_dim + num_hidden_features[:-1], num_hidden_features)
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
@@ -94,14 +94,18 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
                 shape = base_shape
             parser.add_weights(weights_name(layer, degree), shape)
 
+    parser.add_weights('final layer weights', (num_hidden_features[-1], fp_length))
+    parser.add_weights('final layer bias', (1,fp_length))
+
     def hash_to_index_then_or(features):
         """The final layer of ECFP takes the integer representation at each atom and maps it
         to a '1' in the final representation.
         We can do the same thing by just mapping the least significant bits of a combination
         of all the input features.
         This function is not differentiable, which is fine."""
-        combined_features = np.sum(features, axis=0)   # Do we need more than one feature?
-        int_rep = np.mod(combined_features * 1000.0, num_hidden_features[-1]).astype(np.int)
+        #combined_features = np.sum(features, axis=0)   # Only need one feature
+        #print "mean {0}, std {1}".format(np.mean(features), np.std(features))
+        int_rep = np.mod(features[:,0] * 10000000.0, num_hidden_features[-1]).astype(np.int)
         binary_features = np.zeros(features.shape[1])
         binary_features[int_rep] = 1
         return binary_features
@@ -125,6 +129,12 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
                 (atom_features, bond_features), get_weights_func, composition_func)
             atom_features = np.tanh(layer_bias + self_activations + neighbour_activations)
 
+        # One final layer to compute feature activations and expand to the final fingerprint dimension.
+        final_weights = parser.get(weights, 'final layer weights')
+        final_bias = parser.get(weights, 'final layer bias')
+        final_activations = np.dot(atom_features, final_weights)
+        atom_features = np.tanh(final_bias + final_activations)
+
         # Pool all atom features together.
         atom_idxs = mol_nodes['atom_list']
         pooled_features = []
@@ -137,6 +147,9 @@ def build_convnet_fingerprint_fun(bond_vec_dim=10, num_hidden_features=[20, 50, 
         if 'sum' in pool_funcs:
             pooled_features.append(apply_and_stack(atom_idxs, atom_features,
                                                    lambda x: np.sum(x, axis=0)))
+        if 'or' in pool_funcs:
+            pooled_features.append(apply_and_stack(atom_idxs, atom_features,
+                                                   lambda x: np.any(x > 0.9995, axis=0)))
         if 'index' in pool_funcs:
             # Same spirit as last layer of ECFP.
             # Map each atom's features to an integer in [0, fp_length].
