@@ -39,11 +39,14 @@ def matmult_neighbors(mol_nodes, other_ntypes, feature_sets, get_weights):
         if any([len(feat) > 0 for feat in neighbor_features]):
             # dims of stacked_neighbors are [atoms, neighbors, features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
-            activations = np.dot(stacked_neighbors, get_weights(degree))
+            activations = np.tensordot(stacked_neighbors, get_weights(degree), axes=[(1,2),(0,1)])
             activations_by_degree.append(activations)
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
     return np.concatenate(activations_by_degree, axis=0)
+
+def sigmoid(x):
+    return 0.5 + 0.5 * np.tanh(x)
 
 def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
@@ -90,21 +93,24 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
     sorting_weights = rs.rand(len(parser))
 
     def canonicalizer(array_rep):
-        # Sorts lists of atoms intoa canonical.
+        # Sorts lists of atoms into a canonical.
+        atom_features = last_layer_features(sorting_weights, array_rep)
+
         def sort_atoms(atom_idxs, bond_idxs):
             sort_perm = np.argsort(atom_features[atom_idxs,0])
             return atom_idxs[sort_perm], bond_idxs[sort_perm]
-        atom_features = last_layer_features(sorting_weights, array_rep)
 
         sorted_array_rep = copy(array_rep)
         for degree in [2, 3, 4]:
-            sorted_array_rep[('atom_neighbors', degree)] = []
-            sorted_array_rep[('bond_neighbors', degree)] = []
-            for atom_idxs, bond_idxs in zip(array_rep[('atom_neighbors', degree)],
-                                            array_rep[('bond_neighbors', degree)]):
+            sorted_array_rep[('atom_neighbors', degree)] = \
+                np.zeros(array_rep[('atom_neighbors', degree)].shape, dtype=int)
+            sorted_array_rep[('bond_neighbors', degree)] = \
+                np.zeros(array_rep[('atom_neighbors', degree)].shape, dtype=int)
+            for i, (atom_idxs, bond_idxs) in enumerate(zip(array_rep[('atom_neighbors', degree)],
+                                                           array_rep[('bond_neighbors', degree)])):
                 sorted_atoms, sorted_bonds = sort_atoms(atom_idxs, bond_idxs)
-                sorted_array_rep[('atom_neighbors', degree)].append(sorted_atoms)
-                sorted_array_rep[('bond_neighbors', degree)].append(sorted_bonds)
+                sorted_array_rep[('atom_neighbors', degree)][i, :] = sorted_atoms
+                sorted_array_rep[('bond_neighbors', degree)][i, :] = sorted_bonds
         return sorted_array_rep
 
     def output_layer_fun(weights, smiles):
@@ -116,12 +122,11 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         final_weights = parser.get(weights, 'final layer weights')
         final_bias = parser.get(weights, 'final layer bias')
         final_activations = batch_normalize(np.dot(atom_features, final_weights))
-        atom_features = np.tanh(final_bias + final_activations)
+        atom_features = sigmoid(final_bias + final_activations)
 
         # Pool all atom features together.
         atom_idxs = array_rep['atom_list']
-        pooled_features = apply_and_stack(atom_idxs, atom_features, softened_max)
-        return np.concatenate(pooled_features, axis=1)
+        return apply_and_stack(atom_idxs, atom_features, softened_max)
 
     @memoize
     def array_rep_from_smiles(smiles):
@@ -138,15 +143,12 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
                     np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
             arrayrep[('bond_neighbors', degree)] = \
                     np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
-
         return canonicalizer(arrayrep)
 
     return output_layer_fun, parser
 
 def batch_normalize(activations):
     return activations / (0.5 * np.std(activations))
-
-
 
 def build_conv_deep_net(layer_sizes, conv_params):
     # Returns (loss_fun(fp_weights, nn_weights, smiles, targets), pred_fun, net_parser, conv_parser)
