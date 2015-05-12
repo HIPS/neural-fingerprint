@@ -57,6 +57,11 @@ class WeightsParser(object):
         idxs, shape = self.idxs_and_shapes[name]
         return np.reshape(vect[idxs], shape)
 
+    def set(self, vect, name, value):
+        """Takes in a vector and returns the subset indexed by name."""
+        idxs, _ = self.idxs_and_shapes[name]
+        vect[idxs] = np.ravel(value)
+
     def __len__(self):
         return self.N
 

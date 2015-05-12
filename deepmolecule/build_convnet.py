@@ -127,14 +127,14 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
             self_activations = np.dot(atom_features, layer_self_weights)
             neighbour_activations = matmult_neighbors(mol_nodes, ('atom', 'bond'),
                 (atom_features, bond_features), get_weights_func, composition_func)
-            atom_features = np.tanh(layer_bias + self_activations + neighbour_activations)
+            total_activations = batch_normalize(neighbour_activations + self_activations)
+            atom_features = np.tanh(total_activations + layer_bias)
 
         # One final layer to compute feature activations and expand to the final fingerprint dimension.
         final_weights = parser.get(weights, 'final layer weights')
         final_bias = parser.get(weights, 'final layer bias')
-        final_activations = np.dot(atom_features, final_weights)
+        final_activations = batch_normalize(np.dot(atom_features, final_weights))
         atom_features = np.tanh(final_bias + final_activations)
-
         # Pool all atom features together.
         atom_idxs = mol_nodes['atom_list']
         pooled_features = []
@@ -149,7 +149,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
                                                    lambda x: np.sum(x, axis=0)))
         if 'or' in pool_funcs:
             pooled_features.append(apply_and_stack(atom_idxs, atom_features,
-                                                   lambda x: np.any(x > 0.99, axis=0)))
+                                                   lambda x: np.any(x > 0.0, axis=0)))
         if 'index' in pool_funcs:
             # Same spirit as last layer of ECFP.
             # Map each atom's features to an integer in [0, fp_length].
@@ -159,6 +159,8 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10, num_hidden_f
 
     return output_layer_fun, parser
 
+def batch_normalize(activations):
+    return activations / (0.5 * np.std(activations))
 
 @memoize
 def arrayrep_from_smiles(smiles):
