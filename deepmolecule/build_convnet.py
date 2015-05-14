@@ -7,10 +7,6 @@ from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple
 from build_vanilla_net import build_fingerprint_deep_net
 
-from autograd.scipy.misc import logsumexp
-
-seed = 3
-
 def fast_array_from_list(xs):
     return np.concatenate([np.expand_dims(x, axis=0) for x in xs], axis=0)
 
@@ -46,8 +42,7 @@ def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
 def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
-                                  num_hidden_features=[100, 100], fp_length=512,
-                                  FLIP=False):
+                                  num_hidden_features=[100, 100], fp_length=512):
     """Sets up functions to compute convnets over all molecules in a minibatch together.
        The number of hidden layers is the length of num_hidden_features - 1."""
 
@@ -92,8 +87,9 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         return atom_features
 
     # Generate random weights for sorting.
-    rs = npr.RandomState(seed)
+    rs = npr.RandomState(0)
     sorting_weights = 0.01 * rs.randn(len(parser))
+
     def canonicalizer(array_rep):
         # Sorts lists of atoms into a canonical ordering.
         atom_features = np.dot(array_rep['atom_features'], parser.get(sorting_weights, 'atom2vec'))
@@ -140,7 +136,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         atom_idxs = array_rep['atom_list']
         return apply_and_stack(atom_idxs, atom_features, softened_max)
 
-    # @memoize
+    @memoize
     def array_rep_from_smiles(smiles):
         """Precompute everything we need from MolGraph so that we can free the memory asap."""
         molgraph = graph_from_smiles_tuple(smiles)
@@ -151,17 +147,10 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         for degree in [1, 2, 3, 4]:
             # Since we know the number of neighbors, we can cast to arrays here
             # instead of using lists of lists.
-            if FLIP:
-                arrayrep[('atom_neighbors', degree)] = \
-                        np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)[:, ::-1]
-                arrayrep[('bond_neighbors', degree)] = \
-                        np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)[:, ::-1]
-            else:
-                print "Original order"
-                arrayrep[('atom_neighbors', degree)] = \
-                        np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
-                arrayrep[('bond_neighbors', degree)] = \
-                        np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
+            arrayrep[('atom_neighbors', degree)] = \
+                    np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
+            arrayrep[('bond_neighbors', degree)] = \
+                    np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
 
         return canonicalizer(arrayrep)
 
