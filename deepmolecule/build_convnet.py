@@ -18,6 +18,10 @@ def softened_max(X, axis=0):
     exp_X = np.exp(X)
     return np.sum(exp_X * X, axis) / np.sum(exp_X, axis)
 
+def softmax(X, axis=0):
+    exp_X = np.exp(X)
+    return exp_X / np.sum(exp_X, axis=axis, keepdims=True)
+
 def matmult_neighbors(array_rep, other_ntypes, feature_sets, get_weights):
     def neighbor_list(degree, other_ntype):
         return array_rep[(other_ntype + '_neighbors', degree)]
@@ -128,13 +132,14 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
 
         # Expand hidden layer to the final fingerprint size.
         final_weights = parser.get(weights, 'final layer weights')
-        final_bias = parser.get(weights, 'final layer bias')
-        final_activations = batch_normalize(np.dot(atom_features, final_weights))
-        atom_features = sigmoid(final_bias + final_activations)
+        final_bias    = parser.get(weights, 'final layer bias')
 
-        # Pool all atom features together.
+        # One-hot coding
+        final_activations = softmax(final_bias + np.dot(atom_features, final_weights), axis=1)
         atom_idxs = array_rep['atom_list']
-        return apply_and_stack(atom_idxs, atom_features, softened_max)
+        molecule_activations = apply_and_stack(atom_idxs, final_activations,
+                                               lambda x : np.sum(x, axis=0))
+        return np.tanh(molecule_activations)
 
     @memoize
     def array_rep_from_smiles(smiles):
