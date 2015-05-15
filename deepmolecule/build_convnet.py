@@ -22,7 +22,10 @@ def softmax(X, axis=0):
     exp_X = np.exp(X)
     return exp_X / np.sum(exp_X, axis=axis, keepdims=True)
 
-def matmult_neighbors(array_rep, other_ntypes, feature_sets, get_weights):
+def hardmax(X, axis=0):
+    return X == np.max(X, axis=axis, keepdims=True)
+
+def matmult_neighbors(array_rep, other_ntypes, feature_sets, get_weights, symmetric=False):
     def neighbor_list(degree, other_ntype):
         return array_rep[(other_ntype + '_neighbors', degree)]
     activations_by_degree = []
@@ -33,7 +36,13 @@ def matmult_neighbors(array_rep, other_ntypes, feature_sets, get_weights):
         if any([len(feat) > 0 for feat in neighbor_features]):
             # dims of stacked_neighbors are [atoms, neighbors, features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
-            activations = np.tensordot(stacked_neighbors, get_weights(degree), axes=[(1,2),(0,1)])
+            if symmetric:
+                summed_neighbors = np.sum(stacked_neighbors, axis=1)
+                activations = np.dot(summed_neighbors, get_weights(degree)[0])
+            else:
+                activations = np.tensordot(stacked_neighbors,
+                                           get_weights(degree), axes=[(1,2),(0,1)])
+
             activations_by_degree.append(activations)
     # This is brittle! Relies on atoms being sorted by degree in the first place,
     # in Node.graph_from_smiles_tuple()
@@ -46,9 +55,9 @@ def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
 def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
-                                  num_hidden_features=[100, 100], fp_length=512):
-    """Sets up functions to compute convnets over all molecules in a minibatch together.
-       The number of hidden layers is the length of num_hidden_features - 1."""
+                                  num_hidden_features=[100, 100], fp_length=512,
+                                  symmetric=False, binary_outputs=False, normalize=True):
+    """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
     parser = WeightsParser()
@@ -66,33 +75,22 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
     parser.add_weights('final layer weights', (all_layer_sizes[-1], fp_length))
     parser.add_weights('final layer bias', (1,fp_length))
 
-    def update_layer(weights, layer, atom_features, bond_features, array_rep, normalize=False):
+    def update_layer(weights, layer, atom_features, bond_features, array_rep,
+                     normalize=False, symmetric=False):
         def get_weights_func(degree):
             return parser.get(weights, weights_name(layer, degree))
         layer_bias = parser.get(weights, "layer " + str(layer) + " biases")
         layer_self_weights = parser.get(weights, "layer " + str(layer) + " self filter")
         self_activations = np.dot(atom_features, layer_self_weights)
-        neighbour_activations = matmult_neighbors(array_rep, ('atom', 'bond'),
-            (atom_features, bond_features), get_weights_func)
+        neighbour_activations = matmult_neighbors(
+            array_rep, ('atom', 'bond'), (atom_features, bond_features), get_weights_func,
+            symmetric=symmetric)
 
         total_activations = neighbour_activations + self_activations
         if normalize:
             total_activations = batch_normalize(total_activations)
 
         return np.tanh(total_activations + layer_bias)
-
-    def last_layer_features(weights, array_rep):
-        atom_features = np.dot(array_rep['atom_features'], parser.get(weights, 'atom2vec'))
-        bond_features = np.dot(array_rep['bond_features'], parser.get(weights, 'bond2vec'))
-
-        for layer in xrange(len(num_hidden_features)):
-            atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
-                                         normalize=True)
-        return atom_features
-
-    # Generate random weights for sorting.
-    rs = npr.RandomState(0)
-    sorting_weights = 0.01 * rs.randn(len(parser))
 
     def canonicalizer(array_rep):
         # Sorts lists of atoms into a canonical ordering.
@@ -101,8 +99,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         for layer in xrange(len(num_hidden_features)):
             array_rep = sort_array_rep(array_rep, atom_features, bond_features)
             atom_features = update_layer(sorting_weights, layer,
-                                         atom_features, bond_features, array_rep,
-                                         normalize=False)
+                                         atom_features, bond_features, array_rep)
         array_rep = sort_array_rep(array_rep, atom_features, bond_features)
         return array_rep
 
@@ -125,21 +122,31 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
 
         return sorted_array_rep
 
+    # Generate random weights for sorting.
+    rs = npr.RandomState(0)
+    sorting_weights = 0.01 * rs.randn(len(parser))
+
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
         array_rep = array_rep_from_smiles(tuple(smiles))
-        atom_features = last_layer_features(weights, array_rep)
+        atom_features = np.dot(array_rep['atom_features'], parser.get(weights, 'atom2vec'))
+        bond_features = np.dot(array_rep['bond_features'], parser.get(weights, 'bond2vec'))
+        for layer in xrange(len(num_hidden_features)):
+            atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
+                                         normalize=normalize, symmetric=symmetric)
 
-        # Expand hidden layer to the final fingerprint size.
-        final_weights = parser.get(weights, 'final layer weights')
-        final_bias    = parser.get(weights, 'final layer bias')
-
-        # One-hot coding
-        final_activations = softmax(final_bias + np.dot(atom_features, final_weights), axis=1)
-        atom_idxs = array_rep['atom_list']
-        molecule_activations = apply_and_stack(atom_idxs, final_activations,
-                                               lambda x : np.sum(x, axis=0))
-        return np.tanh(molecule_activations)
+        if binary_outputs:
+            final_activations = hardmax(parser.get(weights, 'final layer bias') +
+                                        np.dot(atom_features, parser.get(weights, 'final layer weights')), axis=1)
+            molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
+                                                   lambda x : np.any(x, axis=0))
+            return molecule_activations
+        else:
+            final_activations = softmax(parser.get(weights, 'final layer bias') +
+                                        np.dot(atom_features, parser.get(weights, 'final layer weights')), axis=1)
+            molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
+                                                   lambda x : np.sum(x, axis=0))
+            return np.tanh(molecule_activations)
 
     @memoize
     def array_rep_from_smiles(smiles):
@@ -148,10 +155,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         arrayrep = {'atom_features' : molgraph.feature_array('atom'),
                     'bond_features' : molgraph.feature_array('bond'),
                     'atom_list'     : molgraph.neighbor_list('molecule', 'atom')}  # List of lists.
-
         for degree in [1, 2, 3, 4]:
-            # Since we know the number of neighbors, we can cast to arrays here
-            # instead of using lists of lists.
             arrayrep[('atom_neighbors', degree)] = \
                     np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
             arrayrep[('bond_neighbors', degree)] = \
