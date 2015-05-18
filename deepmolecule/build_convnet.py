@@ -13,11 +13,6 @@ def fast_array_from_list(xs):
 def apply_and_stack(idxs, features, op):
     return fast_array_from_list([op(features[idx_list]) for idx_list in idxs])
 
-def softened_max(X, axis=0):
-    """Takes the row-wise max, but gently."""
-    exp_X = np.exp(X)
-    return np.sum(exp_X * X, axis) / np.sum(exp_X, axis)
-
 def softmax(X, axis=0):
     exp_X = np.exp(X)
     return exp_X / np.sum(exp_X, axis=axis, keepdims=True)
@@ -135,15 +130,15 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize, symmetric=symmetric)
 
+        final_weights = parser.get(weights, 'final layer weights')
+        final_bias = parser.get(weights, 'final layer bias')
         if binary_outputs:
-            final_activations = hardmax(parser.get(weights, 'final layer bias') +
-                                        np.dot(atom_features, parser.get(weights, 'final layer weights')), axis=1)
+            final_activations = hardmax(final_bias + np.dot(atom_features, final_weights), axis=1)
             molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
                                                    lambda x : np.any(x, axis=0))
             return molecule_activations
         else:
-            final_activations = softmax(parser.get(weights, 'final layer bias') +
-                                        np.dot(atom_features, parser.get(weights, 'final layer weights')), axis=1)
+            final_activations = softmax(final_bias + np.dot(atom_features, final_weights), axis=1)
             molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
                                                    lambda x : np.sum(x, axis=0))
             return np.tanh(molecule_activations)

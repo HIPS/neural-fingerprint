@@ -69,6 +69,8 @@ def graph_from_smiles_tuple(smiles_tuple):
 def graph_from_smiles(smiles):
     graph = MolGraph()
     mol = MolFromSmiles(smiles)
+    if not mol:
+        raise ValueError("Could not parse SMILES string:", smiles)
     atoms_by_rd_idx = {}
     for atom in mol.GetAtoms():
         new_atom_node = graph.new_node('atom', features=atom_features(atom))
