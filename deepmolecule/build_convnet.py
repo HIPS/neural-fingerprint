@@ -51,8 +51,7 @@ def weights_name(layer, degree):
 
 def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
                                   num_hidden_features=[100, 100], fp_length=512,
-                                  symmetric=False, binary_outputs=False, normalize=True,
-                                  use_all_layers=False):
+                                  symmetric=False, normalize=True, use_all_layers=False):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
@@ -61,19 +60,20 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
     parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
     all_layer_sizes = [atom_vec_dim] + num_hidden_features
     in_and_out_sizes = zip(all_layer_sizes[:-1], all_layer_sizes[1:])
+
+    def add_output_weights(layer):
+        parser.add_weights(('layer output weights', layer), (all_layer_sizes[layer], fp_length))
+        parser.add_weights(('layer output bias', layer),    (1, fp_length))
+
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
         base_shape = (N_prev + bond_vec_dim, N_cur)
         for degree in [1, 2, 3, 4]:
             parser.add_weights(weights_name(layer, degree), (degree,) + base_shape)
-
-    if use_all_layers:
-        penultimate_layer_size = sum(all_layer_sizes)
-    else:
-        penultimate_layer_size = all_layer_sizes[-1]
-    parser.add_weights('final layer weights', (penultimate_layer_size, fp_length))
-    parser.add_weights('final layer bias', (1,fp_length))
+        if use_all_layers:
+            add_output_weights(layer)
+        add_output_weights(len(num_hidden_features))
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep,
                      normalize=False, symmetric=False):
@@ -89,7 +89,6 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         total_activations = neighbour_activations + self_activations
         if normalize:
             total_activations = batch_normalize(total_activations)
-
         return np.tanh(total_activations + layer_bias)
 
     def canonicalizer(array_rep):
@@ -128,30 +127,27 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
 
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
+
+        all_layer_fps = []
+        def write_to_fingerprint(atom_features, layer):
+            cur_out_weights = parser.get(weights, ('layer output weights', layer))
+            cur_out_bias    = parser.get(weights, ('layer output bias', layer))
+            atom_outputs = softmax(cur_out_bias + np.dot(atom_features, cur_out_weights), axis=1)
+            layer_output = apply_and_stack(array_rep['atom_list'], atom_outputs, lambda x : np.sum(x, axis=0))
+            all_layer_fps.append(layer_output)
+
         array_rep = array_rep_from_smiles(tuple(smiles))
         atom_features = np.dot(array_rep['atom_features'], parser.get(weights, 'atom2vec'))
         bond_features = np.dot(array_rep['bond_features'], parser.get(weights, 'bond2vec'))
-        all_layer_atom_features = [atom_features]
-        for layer in xrange(len(num_hidden_features)):
+
+        num_layers = len(num_hidden_features)
+        for layer in xrange(num_layers):
+            if use_all_layers:
+                write_to_fingerprint(atom_features, layer)
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize, symmetric=symmetric)
-            all_layer_atom_features.append(atom_features)
-        
-        if use_all_layers:
-            atom_features = np.concatenate(all_layer_atom_features, axis=1)
-
-        final_weights = parser.get(weights, 'final layer weights')
-        final_bias = parser.get(weights, 'final layer bias')
-        if binary_outputs:
-            final_activations = hardmax(final_bias + np.dot(atom_features, final_weights), axis=1)
-            molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
-                                                   lambda x : np.any(x, axis=0))
-            return molecule_activations
-        else:
-            final_activations = softmax(final_bias + np.dot(atom_features, final_weights), axis=1)
-            molecule_activations = apply_and_stack(array_rep['atom_list'], final_activations,
-                                                   lambda x : np.sum(x, axis=0))
-            return np.tanh(molecule_activations)
+        write_to_fingerprint(atom_features, num_layers)
+        return sum(all_layer_fps)
 
     @memoize
     def array_rep_from_smiles(smiles):
