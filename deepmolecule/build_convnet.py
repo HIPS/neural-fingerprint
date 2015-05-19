@@ -176,5 +176,4 @@ def batch_normalize(activations):
 def build_conv_deep_net(layer_sizes, conv_params):
     """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
     conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
-    fp_loss, fp_pred, fp_parser = build_fingerprint_deep_net(layer_sizes, conv_fp_func, conv_parser)
-    return fp_loss, fp_pred, fp_parser
+    return build_fingerprint_deep_net(layer_sizes, conv_fp_func, conv_parser)

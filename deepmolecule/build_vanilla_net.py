@@ -27,14 +27,14 @@ def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu):
     def loss(w, X, targets):
         log_prior = -L2_reg * np.dot(w, w)
         preds = predictions(w, X)
-        return np.sum((preds - targets)**2) - log_prior
+        return np.sum((preds[:, 0] - targets)**2, axis=0) - log_prior
 
     return loss, predictions, parser
 
 
 def build_fingerprint_deep_net(layer_sizes, fingerprint_func, fp_parser):
     """A 2-layer net whose inputs are fingerprints.
-    fingerprint_func has signature (smiles, weight, params)"""
+    fingerprint_func has signature (smiles, weights, params)"""
     net_loss_fun, net_pred_fun, net_parser = build_standard_net(layer_sizes)
 
     combined_parser = WeightsParser()
@@ -48,10 +48,12 @@ def build_fingerprint_deep_net(layer_sizes, fingerprint_func, fp_parser):
 
     def loss_fun(weights, smiles, targets):
         fingerprint_weights, net_weights = unpack_weights(weights)
-        return net_loss_fun(net_weights, fingerprint_func(fingerprint_weights, smiles), targets)
+        fingerprints = fingerprint_func(fingerprint_weights, smiles)
+        return net_loss_fun(net_weights, fingerprints, targets)
     def pred_fun(weights, smiles):
         fingerprint_weights, net_weights = unpack_weights(weights)
-        return net_pred_fun(net_weights, fingerprint_func(fingerprint_weights, smiles))
+        fingerprints = fingerprint_func(fingerprint_weights, smiles)
+        return net_pred_fun(net_weights, fingerprints)
 
     return loss_fun, pred_fun, combined_parser
 
