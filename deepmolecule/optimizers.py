@@ -63,7 +63,6 @@ def rms_prop(grad, N_x, N_w, callback=None,
     batches = batch_idx_generator(batch_size, N_x)
     for epoch in xrange(num_epochs):
         for batch in batches:
-            print ".",
             cur_grad = grad(batch, w)
             avg_sq_grad = avg_sq_grad * gamma + cur_grad**2 * (1 - gamma)
             w -= learn_rate * cur_grad/np.sqrt(avg_sq_grad)

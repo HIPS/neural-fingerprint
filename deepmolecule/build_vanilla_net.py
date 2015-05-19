@@ -6,7 +6,7 @@ def relu(X):
     "Rectified linear activation function."
     return X * (X > 0)
 
-def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu):
+def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=np.tanh):
     """Just a plain old neural net, nothing to do with molecules.
     layer sizes includes the input size."""
     layer_sizes = layer_sizes + [1]
@@ -18,16 +18,18 @@ def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu):
 
     def predictions(W_vect, X):
         cur_units = X
-        for i in range(len(layer_sizes) - 1):
-            cur_W = parser.get(W_vect, ('weights', i))
-            cur_B = parser.get(W_vect, ('biases', i))
-            cur_units = activation_function(np.dot(cur_units, cur_W) + cur_B)
-        return cur_units
+        for layer in range(len(layer_sizes) - 1):
+            cur_W = parser.get(W_vect, ('weights', layer))
+            cur_B = parser.get(W_vect, ('biases', layer))
+            cur_units = np.dot(cur_units, cur_W) + cur_B
+            if layer < len(layer_sizes) - 2:
+                cur_units = activation_function(cur_units)
+        return cur_units[:, 0]
 
     def loss(w, X, targets):
         log_prior = -L2_reg * np.dot(w, w)
         preds = predictions(w, X)
-        return np.sum((preds[:, 0] - targets)**2, axis=0) - log_prior
+        return np.sum((preds - targets)**2, axis=0) - log_prior
 
     return loss, predictions, parser
 
