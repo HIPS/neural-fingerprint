@@ -51,7 +51,8 @@ def weights_name(layer, degree):
 
 def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
                                   num_hidden_features=[100, 100], fp_length=512,
-                                  symmetric=False, binary_outputs=False, normalize=True):
+                                  symmetric=False, binary_outputs=False, normalize=True,
+                                  use_all_layers=False):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
@@ -67,7 +68,11 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         for degree in [1, 2, 3, 4]:
             parser.add_weights(weights_name(layer, degree), (degree,) + base_shape)
 
-    parser.add_weights('final layer weights', (all_layer_sizes[-1], fp_length))
+    if use_all_layers:
+        penultimate_layer_size = sum(all_layer_sizes)
+    else:
+        penultimate_layer_size = all_layer_sizes[-1]
+    parser.add_weights('final layer weights', (penultimate_layer_size, fp_length))
     parser.add_weights('final layer bias', (1,fp_length))
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep,
@@ -126,9 +131,14 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         array_rep = array_rep_from_smiles(tuple(smiles))
         atom_features = np.dot(array_rep['atom_features'], parser.get(weights, 'atom2vec'))
         bond_features = np.dot(array_rep['bond_features'], parser.get(weights, 'bond2vec'))
+        all_layer_atom_features = [atom_features]
         for layer in xrange(len(num_hidden_features)):
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize, symmetric=symmetric)
+            all_layer_atom_features.append(atom_features)
+        
+        if use_all_layers:
+            atom_features = np.concatenate(all_layer_atom_features, axis=1)
 
         final_weights = parser.get(weights, 'final layer weights')
         final_bias = parser.get(weights, 'final layer bias')
