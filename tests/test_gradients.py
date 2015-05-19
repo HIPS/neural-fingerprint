@@ -1,5 +1,4 @@
 """Checks gradients for deep networks with fingerprints on the lower layers."""
-
 import numpy.random as npr
 from deepmolecule import build_conv_deep_net, build_morgan_deep_net
 from autograd.util import check_grads
@@ -14,7 +13,6 @@ vanila_layer_sizes = [fp_length]
 def morg_fp_func():
     loss, _, parser = build_morgan_deep_net(vanila_layer_sizes, fp_length=fp_length,
                                             fp_radius=len(vanila_layer_sizes))
-
     return lambda weights: loss(weights, smiles, targets), parser
 
 def test_morg_net_gradient():
@@ -26,6 +24,20 @@ def conv_fp_func(conv_params):
     loss, _, parser = build_conv_deep_net(vanila_layer_sizes, conv_params)
     return lambda weights: loss(weights, smiles, targets), parser
 
+def check_conv_grads(conv_params):
+    loss, parser = conv_fp_func(conv_params)
+    weights = npr.randn(len(parser)) * 0.1
+    check_grads(loss, weights)
+
+def test_conv_net_gradient_no_layers():
+    conv_params = {'num_hidden_features' : [],
+               'fp_length':fp_length,
+               'symmetric':False,
+               'binary_outputs':False,
+               'normalize':True,
+               'use_all_layers':True}
+    check_conv_grads(conv_params)
+
 def test_conv_net_gradient_one_layer():
     conv_params = {'num_hidden_features' : [3],
                'fp_length':fp_length,
@@ -33,9 +45,7 @@ def test_conv_net_gradient_one_layer():
                'binary_outputs':False,
                'normalize':True,
                'use_all_layers':True}
-    loss, parser = conv_fp_func(conv_params)
-    weights = npr.randn(len(parser))
-    check_grads(loss, weights)
+    check_conv_grads(conv_params)
 
 def test_conv_net_gradient_hardmax():
     conv_params = {'num_hidden_features' : [3, 2],
@@ -44,9 +54,7 @@ def test_conv_net_gradient_hardmax():
                'binary_outputs':True,
                'normalize':True,
                'use_all_layers':True}
-    loss, parser = conv_fp_func(conv_params)
-    weights = npr.randn(len(parser))
-    check_grads(loss, weights)
+    check_conv_grads(conv_params)
 
 def test_conv_net_gradient():
     conv_params = {'num_hidden_features' : [3, 4],
@@ -55,19 +63,15 @@ def test_conv_net_gradient():
                'binary_outputs':False,
                'normalize':True,
                'use_all_layers':True}
-    loss, parser = conv_fp_func(conv_params)
-    weights = npr.randn(len(parser))
-    check_grads(loss, weights)
+    check_conv_grads(conv_params)
 
 def test_conv_net_gradient_nosymm():
-    conv_params = {'num_hidden_features' : [3, 4],
+    conv_params = {'num_hidden_features' : [2, 3],
                'fp_length':fp_length,
                'symmetric':False,
                'binary_outputs':False,
                'normalize':True,
                'use_all_layers':True}
-    loss, parser = conv_fp_func(conv_params)
-    weights = npr.randn(len(parser))
-    check_grads(loss, weights)
+    check_conv_grads(conv_params)
 
 
