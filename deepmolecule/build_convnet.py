@@ -49,16 +49,16 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
 
     in_and_out_sizes = zip(all_layer_sizes[:-1], all_layer_sizes[1:])
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
-        parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
-        parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
+        parser.add_weights(("layer", layer, "biases"), (1, N_cur))
+        parser.add_weights(("layer", layer, "self filter"), (N_prev, N_cur))
         for degree in [1, 2, 3, 4]:
             parser.add_weights(weights_name(layer, degree), (N_prev + num_bond_features(), N_cur))
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep, normalize=False):
         def get_weights_func(degree):
             return parser.get(weights, weights_name(layer, degree))
-        layer_bias = parser.get(weights, "layer " + str(layer) + " biases")
-        layer_self_weights = parser.get(weights, "layer " + str(layer) + " self filter")
+        layer_bias         = parser.get(weights, ("layer", layer, "biases"))
+        layer_self_weights = parser.get(weights, ("layer", layer, "self filter"))
         self_activations = np.dot(atom_features, layer_self_weights)
         neighbour_activations = matmult_neighbors(
             array_rep, ('atom', 'bond'), (atom_features, bond_features), get_weights_func)
