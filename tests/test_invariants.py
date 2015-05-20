@@ -13,8 +13,7 @@ from deepmolecule import build_convnet_fingerprint_fun, build_morgan_fingerprint
 
 def invariant_conv_fp_func():
     fp_func, parser = build_convnet_fingerprint_fun(
-        num_hidden_features=[100, 100, 100], fp_length=64,
-        symmetric=True, normalize=False)
+        num_hidden_features=[100, 100, 100], fp_length=64, normalize=False)
     weights = npr.randn(len(parser))
     return lambda smiles: fp_func(weights, (smiles,))
 

@@ -32,29 +32,20 @@ def check_conv_grads(conv_params):
 def test_conv_net_gradient_no_layers():
     conv_params = {'num_hidden_features' : [],
                'fp_length':fp_length,
-               'symmetric':False,
                'normalize':True}
     check_conv_grads(conv_params)
 
 def test_conv_net_gradient_one_layer():
     conv_params = {'num_hidden_features' : [3],
                'fp_length':fp_length,
-               'symmetric':False,
                'normalize':True}
     check_conv_grads(conv_params)
 
 def test_conv_net_gradient():
     conv_params = {'num_hidden_features' : [3, 4],
                'fp_length':fp_length,
-               'symmetric':True,
                'normalize':True}
     check_conv_grads(conv_params)
 
-def test_conv_net_gradient_nosymm():
-    conv_params = {'num_hidden_features' : [2, 3],
-               'fp_length':fp_length,
-               'symmetric':False,
-               'normalize':True}
-    check_conv_grads(conv_params)
 
 
