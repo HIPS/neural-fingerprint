@@ -49,16 +49,13 @@ def sigmoid(x):
 def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
-def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
-                                  num_hidden_features=[100, 100], fp_length=512,
-                                  symmetric=False, normalize=True, use_all_layers=False):
+def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
+                                  symmetric=False, normalize=True):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
     parser = WeightsParser()
-    parser.add_weights('atom2vec', (num_atom_features(), atom_vec_dim))
-    parser.add_weights('bond2vec', (num_bond_features(), bond_vec_dim))
-    all_layer_sizes = [atom_vec_dim] + num_hidden_features
+    all_layer_sizes = [num_atom_features()] + num_hidden_features
     in_and_out_sizes = zip(all_layer_sizes[:-1], all_layer_sizes[1:])
 
     def add_output_weights(layer):
@@ -69,12 +66,10 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
-        base_shape = (N_prev + bond_vec_dim, N_cur)
+        base_shape = (N_prev + num_bond_features(), N_cur)
         for degree in [1, 2, 3, 4]:
             parser.add_weights(weights_name(layer, degree), (degree,) + base_shape)
-        if use_all_layers:
-            add_output_weights(layer + 1)
-
+        add_output_weights(layer + 1)
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep,
                      normalize=False, symmetric=False):
@@ -94,8 +89,8 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
 
     def canonicalizer(array_rep):
         # Sorts lists of atoms into a canonical ordering.
-        atom_features = np.dot(array_rep['atom_features'], parser.get(sorting_weights, 'atom2vec'))
-        bond_features = np.dot(array_rep['bond_features'], parser.get(sorting_weights, 'bond2vec'))
+        atom_features = array_rep['atom_features']
+        bond_features = array_rep['bond_features']
         for layer in xrange(len(num_hidden_features)):
             array_rep = sort_array_rep(array_rep, atom_features, bond_features)
             atom_features = update_layer(sorting_weights, layer,
@@ -129,6 +124,10 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
 
+        array_rep = array_rep_from_smiles(tuple(smiles))
+        atom_features = array_rep['atom_features']
+        bond_features = array_rep['bond_features']
+
         all_layer_fps = []
         def write_to_fingerprint(atom_features, layer):
             cur_out_weights = parser.get(weights, ('layer output weights', layer))
@@ -138,14 +137,9 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
             layer_output = apply_and_stack(array_rep['atom_list'], atom_outputs, lambda x : np.sum(x, axis=0))
             all_layer_fps.append(layer_output)
 
-        array_rep = array_rep_from_smiles(tuple(smiles))
-        atom_features = np.dot(array_rep['atom_features'], parser.get(weights, 'atom2vec'))
-        bond_features = np.dot(array_rep['bond_features'], parser.get(weights, 'bond2vec'))
-
         num_layers = len(num_hidden_features)
         for layer in xrange(num_layers):
-            if use_all_layers:
-                write_to_fingerprint(atom_features, layer)
+            write_to_fingerprint(atom_features, layer)
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize, symmetric=symmetric)
         write_to_fingerprint(atom_features, num_layers)

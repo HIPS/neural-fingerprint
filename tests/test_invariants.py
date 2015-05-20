@@ -13,13 +13,13 @@ from deepmolecule import build_convnet_fingerprint_fun, build_morgan_fingerprint
 
 def invariant_conv_fp_func():
     fp_func, parser = build_convnet_fingerprint_fun(
-        num_hidden_features=[100, 100, 100], fp_length=512,
-        symmetric=False, binary_outputs=False, normalize=False)
+        num_hidden_features=[100, 100, 100], fp_length=64,
+        symmetric=True, normalize=False)
     weights = npr.randn(len(parser))
     return lambda smiles: fp_func(weights, (smiles,))
 
 def invariant_morg_fp_func():
-    fp_func = build_morgan_fingerprint_fun(fp_length=512, fp_radius=3)
+    fp_func = build_morgan_fingerprint_fun(fp_length=64, fp_radius=3)
     return lambda smiles: fp_func([], (smiles,))
 
 def check_conv_fps_same(smiles1, smiles2):
@@ -94,3 +94,10 @@ def test_azulene():
 def test_tautomers():
     check_conv_fps_diff('O=c1[nH]cccc1', 'Oc1ncccc1')
     check_morg_fps_diff('O=c1[nH]cccc1', 'Oc1ncccc1')
+
+def test_order_sensitivity():
+    check_conv_fps_diff('OCNF', 'ONCF')
+    check_morg_fps_diff('OCNF', 'ONCF')
+
+    check_conv_fps_diff('OCNC', 'ONCC')
+    check_morg_fps_diff('OCNC', 'ONCC')
