@@ -65,6 +65,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         parser.add_weights(('layer output weights', layer), (all_layer_sizes[layer], fp_length))
         parser.add_weights(('layer output bias', layer),    (1, fp_length))
 
+    add_output_weights(0)
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights("layer " + str(layer) + " biases", (1, N_cur))
         parser.add_weights("layer " + str(layer) + " self filter", (N_prev, N_cur))
@@ -72,8 +73,8 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
         for degree in [1, 2, 3, 4]:
             parser.add_weights(weights_name(layer, degree), (degree,) + base_shape)
         if use_all_layers:
-            add_output_weights(layer)
-        add_output_weights(len(num_hidden_features))
+            add_output_weights(layer + 1)
+
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep,
                      normalize=False, symmetric=False):
@@ -133,6 +134,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
             cur_out_weights = parser.get(weights, ('layer output weights', layer))
             cur_out_bias    = parser.get(weights, ('layer output bias', layer))
             atom_outputs = softmax(cur_out_bias + np.dot(atom_features, cur_out_weights), axis=1)
+            # Sum over all atoms within a moleclue:
             layer_output = apply_and_stack(array_rep['atom_list'], atom_outputs, lambda x : np.sum(x, axis=0))
             all_layer_fps.append(layer_output)
 
@@ -147,7 +149,7 @@ def build_convnet_fingerprint_fun(atom_vec_dim=20, bond_vec_dim=10,
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize, symmetric=symmetric)
         write_to_fingerprint(atom_features, num_layers)
-        return sum(all_layer_fps)
+        return np.tanh(sum(all_layer_fps))
 
     @memoize
     def array_rep_from_smiles(smiles):
