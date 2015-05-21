@@ -16,16 +16,16 @@ def apply_and_stack(idxs, features, op):
 def softmax(X, axis=0):
     return np.exp(X - logsumexp(X, axis=axis, keepdims=True))
 
-def matmult_neighbors(array_rep, other_ntypes, feature_sets, get_weights):
+def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
     def neighbor_list(degree, other_ntype):
         return array_rep[(other_ntype + '_neighbors', degree)]
     activations_by_degree = []
     for degree in [1, 2, 3, 4]:
         # TODO: make this (plus the stacking) into an autograd primitive
-        neighbor_features = [features[neighbor_list(degree, other_ntype)]
-                             for other_ntype, features in zip(other_ntypes, feature_sets)]
+        neighbor_features = [atom_features[neighbor_list(degree, 'atom')],
+                             bond_features[neighbor_list(degree, 'bond')]]
         if any([len(feat) > 0 for feat in neighbor_features]):
-            # dims of stacked_neighbors are [atoms, neighbors, features]
+            # dims of stacked_neighbors are [atoms, neighbors, atom and bond features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
             summed_neighbors = np.sum(stacked_neighbors, axis=1)
             activations = np.dot(summed_neighbors, get_weights(degree))
@@ -61,7 +61,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
         layer_self_weights = parser.get(weights, ("layer", layer, "self filter"))
         self_activations = np.dot(atom_features, layer_self_weights)
         neighbour_activations = matmult_neighbors(
-            array_rep, ('atom', 'bond'), (atom_features, bond_features), get_weights_func)
+            array_rep, atom_features, bond_features, get_weights_func)
 
         total_activations = neighbour_activations + self_activations
         if normalize:
