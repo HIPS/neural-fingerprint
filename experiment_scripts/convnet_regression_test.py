@@ -17,7 +17,7 @@ def main():
     conv_arch_params = {'num_hidden_features' : [50, 50, 120],
                         'fp_length':512}
 
-    task_params = {'N_train'     : 2,
+    task_params = {'N_train'     : 200,
                    'target_name' : 'Log Rate',
                    'data_file'   : get_data_file('2014-11-03-all-tddft/processed.csv')}
 

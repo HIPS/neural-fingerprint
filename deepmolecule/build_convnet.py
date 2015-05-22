@@ -10,8 +10,8 @@ from build_vanilla_net import build_fingerprint_deep_net
 def fast_array_from_list(xs):
     return np.concatenate([np.expand_dims(x, axis=0) for x in xs], axis=0)
 
-def apply_and_stack(idxs, features, op):
-    return fast_array_from_list([op(features[idx_list]) for idx_list in idxs])
+def sum_and_stack(features, idxs_list_of_lists):
+    return fast_array_from_list([np.sum(features[idx_list], axis=0) for idx_list in idxs_list_of_lists])
 
 def softmax(X, axis=0):
     return np.exp(X - logsumexp(X, axis=axis, keepdims=True))
@@ -81,7 +81,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
             cur_out_bias    = parser.get(weights, ('layer output bias', layer))
             atom_outputs = softmax(cur_out_bias + np.dot(atom_features, cur_out_weights), axis=1)
             # Sum over all atoms within a moleclue:
-            layer_output = apply_and_stack(array_rep['atom_list'], atom_outputs, lambda x : np.sum(x, axis=0))
+            layer_output = sum_and_stack(atom_outputs, array_rep['atom_list'])
             all_layer_fps.append(layer_output)
 
         num_layers = len(num_hidden_features)
