@@ -3,7 +3,7 @@ from autograd.scipy.misc import logsumexp
 
 from features import num_atom_features, num_bond_features
 from util import memoize, WeightsParser
-from mol_graph import graph_from_smiles_tuple
+from mol_graph import graph_from_smiles_tuple, degrees
 from build_vanilla_net import build_fingerprint_deep_net
 
 
@@ -20,7 +20,7 @@ def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
     def neighbor_list(degree, other_ntype):
         return array_rep[(other_ntype + '_neighbors', degree)]
     activations_by_degree = []
-    for degree in [1, 2, 3, 4]:
+    for degree in degrees:
         # TODO: make this (plus the stacking) into an autograd primitive
         neighbor_features = [atom_features[neighbor_list(degree, 'atom')],
                              bond_features[neighbor_list(degree, 'bond')]]
@@ -51,7 +51,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
     for layer, (N_prev, N_cur) in enumerate(in_and_out_sizes):
         parser.add_weights(("layer", layer, "biases"), (1, N_cur))
         parser.add_weights(("layer", layer, "self filter"), (N_prev, N_cur))
-        for degree in [1, 2, 3, 4]:
+        for degree in degrees:
             parser.add_weights(weights_name(layer, degree), (N_prev + num_bond_features(), N_cur))
 
     def update_layer(weights, layer, atom_features, bond_features, array_rep, normalize=False):
@@ -99,7 +99,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
         arrayrep = {'atom_features' : molgraph.feature_array('atom'),
                     'bond_features' : molgraph.feature_array('bond'),
                     'atom_list'     : molgraph.neighbor_list('molecule', 'atom')}  # List of lists.
-        for degree in [1, 2, 3, 4]:
+        for degree in degrees:
             arrayrep[('atom_neighbors', degree)] = \
                     np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
             arrayrep[('bond_neighbors', degree)] = \

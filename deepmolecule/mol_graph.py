@@ -2,6 +2,8 @@ import numpy as np
 from rdkit.Chem import MolFromSmiles
 from features import atom_features, bond_features
 
+degrees = [0, 1, 2, 3, 4, 5]
+
 class MolGraph(object):
     def __init__(self):
         self.nodes = {} # dict of lists of nodes, keyed by node type
@@ -18,12 +20,12 @@ class MolGraph(object):
             old_nodes.setdefault(ntype, []).extend(new_nodes.get(ntype, []))
 
     def sort_nodes_by_degree(self, ntype):
-        nodes_by_degree = {i : [] for i in [1, 2, 3, 4]}
+        nodes_by_degree = {i : [] for i in degrees}
         for node in self.nodes[ntype]:
             nodes_by_degree[len(node.get_neighbors(ntype))].append(node)
 
         new_nodes = []
-        for degree in [1, 2, 3, 4]:
+        for degree in degrees:
             cur_nodes = nodes_by_degree[degree]
             self.nodes[(ntype, degree)] = cur_nodes
             new_nodes.extend(cur_nodes)
