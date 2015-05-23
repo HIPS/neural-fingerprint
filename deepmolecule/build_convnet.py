@@ -17,14 +17,14 @@ def softmax(X, axis=0):
     return np.exp(X - logsumexp(X, axis=axis, keepdims=True))
 
 def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
-    def neighbor_list(degree, other_ntype):
-        return array_rep[(other_ntype + '_neighbors', degree)]
+
     activations_by_degree = []
     for degree in degrees:
-        # TODO: make this (plus the stacking) into an autograd primitive
-        neighbor_features = [atom_features[neighbor_list(degree, 'atom')],
-                             bond_features[neighbor_list(degree, 'bond')]]
-        if any([len(feat) > 0 for feat in neighbor_features]):
+        atom_neighbors_list = array_rep[('atom_neighbors', degree)]
+        bond_neighbors_list = array_rep[('bond_neighbors', degree)]
+        if len(atom_neighbors_list) > 0:
+            neighbor_features = [atom_features[atom_neighbors_list],
+                                 bond_features[bond_neighbors_list]]
             # dims of stacked_neighbors are [atoms, neighbors, atom and bond features]
             stacked_neighbors = np.concatenate(neighbor_features, axis=2)
             summed_neighbors = np.sum(stacked_neighbors, axis=1)
