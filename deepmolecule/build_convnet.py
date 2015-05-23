@@ -111,7 +111,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
 def batch_normalize(activations):
     return activations / (0.5 * np.std(activations, axis=0, keepdims=True))
 
-def build_conv_deep_net(layer_sizes, conv_params):
+def build_conv_deep_net(conv_params, net_params):
     """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
     conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
-    return build_fingerprint_deep_net(layer_sizes, conv_fp_func, conv_parser)
+    return build_fingerprint_deep_net(net_params, conv_fp_func, conv_parser)
