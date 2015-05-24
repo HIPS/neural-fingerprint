@@ -184,23 +184,21 @@ Every non-differentiable operation has been replaced with a differentiable analo
 
 \section{Related work}
 
-\paragraph{Fingerprints}
+\paragraph{Neural fingerprints}
+The most closely related work is \citet{lusci2013deep}, who also replace circular fingerprints with a neural network having graph-valued inputs.
+Their approach is to remove all cycles and build the graph into a tree structure, choosing one atom to be the root.
+A recursive neural network~\citep{socher2011dynamic, socher2011semi} is then run from the leaves to the root to produce a fixed-size representation.
+The final descriptor is a sum of the representations of all distinct graphs.
+There are as many distinct graphs as there are atoms in the network.
+The computational cost of this method thus grows as $\mathcal{O}(F^2N^2)$, where $F$ is the size of the feature vector and $N$ is the number of atoms.
 
-[Cite Morgan] and \cite{ECFP2010} developed extended circular fingerprints.
-These fingerprints map identical molecules to the same set of fingerprints.
-These same fingerprints have been pressed into service as a measure of similarity.
-
-However, for a meaningful measure of similarity, 
 
 \paragraph{Convolutional Neural Networks}
 
-Convolutional neural networks have been used to model images, speech, and time series\cite{lecun1995convolutional}.
+Convolutional neural networks have been used to model images, speech, and time series~\cite{lecun1995convolutional}.
 However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
-More recently, \cite{KalchbrennerACL2014} developed a convolutional neural network architecture for modeling sentences of varying length and structure.
+More recently, \cite{KalchbrennerACL2014} and others have developed a convolutional neural network architecture for modeling sentences of varying length.
 
-\paragraph{Recursive Neural Networks}
-
-\cite{socher2011semi} and \cite{socher2011dynamic} use a pyramidal architecture for performing inference on variable-length sentences.
 
 \paragraph{Neural nets for QSAR}
 
