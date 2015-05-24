@@ -1,4 +1,4 @@
-\documentclass{article} % For LaTeX2e
+\documentclass{article}
 \usepackage{include/nips15submit_e,times}
 \usepackage{hyperref}
 \usepackage{url}
@@ -10,19 +10,12 @@
 \usepackage{graphicx}
 
 \definecolor{mydarkblue}{rgb}{0,0.08,0.45}
-\hypersetup{ %
-    pdftitle={},
-    pdfauthor={},
-    pdfsubject={},
-    pdfkeywords={},
-    pdfborder=0 0 0,
-    pdfpagemode=UseNone,
+\hypersetup{
     colorlinks=true,
     linkcolor=mydarkblue,
     citecolor=mydarkblue,
     filecolor=mydarkblue,
-    urlcolor=mydarkblue,
-    pdfview=FitH}
+    urlcolor=mydarkblue}
 
 \newcommand{\vw}{\mathbf{w}}
 \newcommand{\vv}{\mathbf{v}}
@@ -41,7 +34,6 @@
 
 \title{Neural Molecular Fingerprints}
 
-
 \author{
 David Duvenaud\\
 Harvard University\\
@@ -57,20 +49,35 @@ Harvard University\\
 }
 
 %\nipsfinalcopy % Uncomment for camera-ready version
-
 \begin{document}
-
-
 \maketitle
 
-
 \begin{abstract}
-Performing regression or classification on molecules requires finding functions which can take graph-valued inputs.
-Such functions are usually built using fixed, hash-based functions to compute fingerprint vectors, which are then fed into standard machine learning methods.
+Predicting properties of molecules requires functions that take graphs as inputs.
+Molecular graphs are usually processed using off-the-shelf hash-based functions which compute fixed-size fingerprint vectors, which are then fed into standard machine learning methods.
 We introduce a generalization of commonly-used molecular fingerprints based on convolutional neural networks which allow learning of the entire feature pipeline.
 \end{abstract}
 
 \section{Introduction}
+
+Much progress has recently been made by the application of deep learning to virtual screening, where the task is to predict the properties of novel molecules by generalizing from examples.
+One difficulty with this task is that the input to the predictor, a molecule, can be of arbitrary size and shape.
+Most machine learning pipelines can only handle inputs of a fixed size.
+The formula followed by \cite{unterthinerdeep}, \cite{unterthiner2015toxicity}, and \cite{ramsundar2015massively} was to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those as inputs to standard fully-connected deep neural networks.
+The networks are optimized using gradient descent, but the molecular fingerprints and treated as fixed.
+
+In this paper, we replace the fixed molecular fingerprints with fully differentiable neural networks, whose inputs are graphs representing the original molecule.
+In these graphs, vertices represent individual atoms, and edges represent bonds.
+Th
+
+Neural fingerprints offer several advantages over fixed fingerprints:
+\begin{itemize}
+\item Better predictive performace ???
+\item Because fixed fingerprints are not adapted to the task at hand, their output vector must be extremely large to encode all possible substructures without overlap.
+For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000 for each molecule, after having removed rarely-occurring features in order to make the problem computationally feasible.
+We [hopefully] show that better performance can be achieved using feature vectors a fraction of the size, reducing memory requirements and computational burden.
+\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks [cite].
+\end{itemize}
 
 \subsection{Desirable Properties of Molecular Representations}
 
@@ -82,6 +89,9 @@ We introduce a generalization of commonly-used molecular fingerprints based on c
     example:  fragment1 - C - O - fragment2 is not the same as fragment1 - O - C - fragment2 
    \item speed
 \end{itemize}
+
+\cite{erhan2006collaborative}
+\cite{ma_qsar_2015}
 
 \section{Dealing with local ordering}
 
@@ -108,8 +118,8 @@ Morgan fingerprints deal with local ordering by having a canonical order.
 
 
 
-\begin{figure*}
- \begin{minipage}[t]{0.5\columnwidth}
+\begin{figure*}[t]
+ \begin{minipage}[t]{0.49\columnwidth}
  \begin{algorithm}[H]
 \caption{Circular fingerprints} 
 \label{alg:ecfp} 
@@ -122,7 +132,7 @@ Morgan fingerprints deal with local ordering by having a canonical order.
 \For {$L = 1$ to $R$} \Comment {for each layer}
 	\For {each atom $a$ in molecule}
 		\State $\vr_{n1} \dots \vr_{nN} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a, \vr_{n1} \dots \vr_{nN}]$ \Comment {concatenate}
+		\State $\vv \leftarrow [\vr_a \vr_{n1} \dots, \vr_{nN}]$ \Comment {concatenate}
 		\State $\vr_a \leftarrow \textnormal{hash}(\vv)$ \Comment {hash function}
 		\State $i \leftarrow \textnormal{mod}(r_a, S)$ \Comment {convert to index}		
 		\State $\vf_{i} \leftarrow 1$ \Comment {Write 1 at index}
@@ -133,7 +143,7 @@ Morgan fingerprints deal with local ordering by having a canonical order.
 \end{algorithm}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.5\columnwidth}
+\begin{minipage}[t]{0.49\columnwidth}
 \begin{algorithm}[H]
 \caption{Neural fingerprints} 
 \label{alg:neural} 
@@ -146,7 +156,7 @@ Morgan fingerprints deal with local ordering by having a canonical order.
 \For {$L = 1$ to $R$} \Comment {for each layer}
     \For {each atom $a$ in molecule}
 		\State $\vr_{n1} \dots \vr_{nN} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a, \vr_{n1} \dots \vr_{nN}]$ \Comment {concatenate}
+		\State $\vv \leftarrow [\vr_a \vr_{n1}, \dots \vr_{nN}]$ \Comment {concatenate}
 		\State $\vr_a \leftarrow {\color{blue} \vf_{\theta_L}}(v)$ \Comment {{\color{blue} smooth function}}
 		\State $\vi \leftarrow \textnormal{{\color{blue}softmax}}(\vr_a)$ \Comment {{\color{blue} sparsify}}
 		\State $\vf \leftarrow {\color{blue} \vf + \vi}$ \Comment {{\color{blue}add to fingerprint}}
@@ -161,6 +171,7 @@ Morgan fingerprints deal with local ordering by having a canonical order.
 Differences are highlighted in blue.
 Every non-differentiable operation has been replaced with a differentiable analogue.}
 \end{figure*}
+
 
 
 
@@ -186,6 +197,8 @@ More recently, \cite{KalchbrennerACL2014} developed a convolutional neural netwo
 
 \paragraph{Neural nets for QSAR}
 
+\cite{ramsundar2015massively} Massively multitask networks for drug discovery
+
 \cite{dahl2014multi} used standard deep neural networks, and didn't do any feature engineering.
 
 \paragraph{Machine learning for identifying promising molecules}
@@ -210,32 +223,23 @@ More recently, \cite{KalchbrennerACL2014} developed a convolutional neural netwo
 We can answer this question by evaluating the performance of neural fingerprints generated by randomly initialized weights.
 
 
-Predicting molecular weight:
-
-Mean predictor
-Performance (RMSE):
-Train: 241.630442201
-Test:  243.609627269
-
-Fingerprints with linear weights
-Performance (RMSE):
-Train: 142.774743361
-Test:  151.932246613
-
-Random net with linear weights
-Performance (RMSE):
-Train: 144.492288513
-Test:  150.182390847
-
-
-
 \subsection{Datasets}
 
-\subsection{Interpretability}
-[Idea: Use nested dropout to allow a variable-sized descriptor.]
-Explain that it's analogous to PCA for neural nets
+Tripod dataset: \url{https://tripod.nih.gov/tox21/challenge/}
+\cite{unterthiner2015toxicity}
 
-[Wishlist: Include figures showing which fragments maximally activate different features - hopefully showing that they correspond to interpretable, familiar concepts]
+
+\subsection{Software}
+
+\subsection{Implementation Details}
+Automatic differentiation (AD) software packages such as
+Theano~\citep{Bastien-Theano-2012, bergstra2010scipy} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
+Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we implemented our own automatic differentiation package for Python, available at \url{<redacted>}.
+This package differentiates standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing
+while loops, branches, indexing, and even its own gradient evaluations.
+
+Code for all experiments in this paper will be made available upon publication.
+
 
 
 \section{Extensions}
@@ -251,6 +255,11 @@ This could be done at multiple layers, which would limit the exponential blowup.
 \paragraph{Preserve asymmetries explicitly or implicitly}
 If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
 
+\subsection{Interpretability}
+[Idea: Use nested dropout to allow a variable-sized descriptor.]
+Explain that it's analogous to PCA for neural nets
+
+[Wishlist: Include figures showing which fragments maximally activate different features - hopefully showing that they correspond to interpretable, familiar concepts]
 
 \section{Conclusions}
 
