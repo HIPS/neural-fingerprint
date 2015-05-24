@@ -4,7 +4,7 @@ from autograd.scipy.misc import logsumexp
 from features import num_atom_features, num_bond_features
 from util import memoize, WeightsParser
 from mol_graph import graph_from_smiles_tuple, degrees
-from build_vanilla_net import build_fingerprint_deep_net
+from build_vanilla_net import build_fingerprint_deep_net, relu
 
 
 def fast_array_from_list(xs):
@@ -37,7 +37,8 @@ def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
 def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
-def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512, normalize=True):
+def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
+                                  normalize=True, activation_function=np.tanh):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
@@ -66,7 +67,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
         total_activations = neighbour_activations + self_activations
         if normalize:
             total_activations = batch_normalize(total_activations)
-        return np.tanh(total_activations + layer_bias)
+        return activation_function(total_activations + layer_bias)
 
     def output_layer_fun(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
@@ -90,7 +91,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize)
         write_to_fingerprint(atom_features, num_layers)
-        return np.tanh(sum(all_layer_fps))
+        return sum(all_layer_fps)
 
     @memoize
     def array_rep_from_smiles(smiles):

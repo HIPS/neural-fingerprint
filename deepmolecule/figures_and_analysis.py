@@ -9,7 +9,6 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 
 
-
 def plot_learning_curve(results_filename, outdir):
     curve = np.load(results_filename)['learning_curve']
     if not os.path.exists(outdir):
@@ -83,50 +82,6 @@ def plot_maximizing_inputs(net_building_func, weights_file, outdir):
         mol = Chem.MolFromSmiles(smiles_list[ix])
         outfilename = os.path.join(outdir, 'hidden-unit-' + str(n) + '-minimizing.png')
         Draw.MolToFile(mol, outfilename, fitImage=True)
-
-
-def plot_weight_meanings(net_building_func, weights_file, outdir, outfilename):
-    saved_net = np.load(weights_file)
-    trained_weights_vec = saved_net['weights']
-    arch_params = saved_net['arch_params'][()]
-    _, _, _, _, weights_container = net_building_func(**arch_params)
-    assert(len(trained_weights_vec) == weights_container.N)
-    weights_container.value = trained_weights_vec  # Put back in a nice structure.
-
-    atoms = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl']
-    masses = [12, 14,  16,   32,  19,  28,   31, 35.5]
-
-    atom_weights = weights_container.lookup_by_name('atom2vec').value[:,0]
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot( masses, atom_weights, 'o')
-
-    for ix, atom in enumerate(atoms):
-        print "Atom: ", atom, " has weight", atom_weights[ix]
-        ax.text( masses[ix], atom_weights[ix], atom)
-    ax.set_xlabel("True mass")
-    ax.set_ylabel("Weights")
-    plt.savefig(os.path.join(outdir, outfilename + '-atoms.png'))
-    plt.savefig(os.path.join(outdir, outfilename + '-atoms.eps'))
-    plt.close()
-
-    if arch_params['bond_vec_dim'] > 0:
-        bond_names = ['single', 'double', 'triple', 'aromatic', 'conjugated', 'in ring']
-        bond_masses = [1.0, 2.0, 3.0, 1.5, 4.0, 1.5]
-        bond_weights = weights_container.lookup_by_name('bond2vec').value[:,0]
-
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        ax.plot( bond_masses, bond_weights, 'o')
-        for ix, bond in enumerate(bond_names):
-            print "Bond: ", bond, " has weight", bond_weights[ix]
-            ax.text( bond_masses[ix], bond_weights[ix], bond)
-        ax.set_xlabel("True mass")
-        ax.set_ylabel("Weights")
-        plt.savefig(os.path.join(outdir, outfilename + '-bonds.png'))
-        plt.savefig(os.path.join(outdir, outfilename + '-bonds.eps'))
-        plt.close()
 
 def plot_weights_container(wc, fig):
     N_groups = len(wc._weights_list)

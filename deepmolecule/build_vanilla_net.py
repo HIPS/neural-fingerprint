@@ -9,21 +9,21 @@ def relu(X):
 def sigmoid(x):
     return 0.5*(np.tanh(x) + 1)
 
-def squared_error(predictions, targets):
-    return np.sum((predictions - targets)**2, axis=0)
+def mean_squared_error(predictions, targets):
+    return np.mean((predictions - targets)**2, axis=0)
 
 def categorical_nll(predictions, targets):
-    return -np.sum(predictions * targets)
+    return -np.mean(predictions * targets)
 
 def binary_classification_nll(predictions, targets):
     """Predictions is a real number, whose sigmoid is the probability that
      the target is 1."""
     pred_probs = sigmoid(predictions)
     label_probabilities = pred_probs * targets + (1 - pred_probs) * (1 - targets)
-    return -np.sum(np.log(label_probabilities))
+    return -np.mean(np.log(label_probabilities))
 
-def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=np.tanh,
-                       nll_func=squared_error):
+def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu,
+                       nll_func=mean_squared_error):
     """Just a plain old neural net, nothing to do with molecules.
     layer sizes includes the input size."""
     layer_sizes = layer_sizes + [1]
