@@ -66,57 +66,64 @@ Most machine learning pipelines can only handle inputs of a fixed size.
 The formula followed by \cite{unterthinerdeep}, \cite{unterthiner2015toxicity}, and \cite{ramsundar2015massively} was to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those as inputs to standard fully-connected deep neural networks.
 The networks are optimized using gradient descent, but the molecular fingerprints and treated as fixed.
 
-In this paper, we replace the fixed molecular fingerprints with fully differentiable neural networks, whose inputs are graphs representing the original molecule.
+We replace the bottom layer of this stack, the fixed molecular fingerprints, with a differentiable neural network whose inputs are graphs representing the original molecule.
 In these graphs, vertices represent individual atoms, and edges represent bonds.
-Th
+The lower layers of these neural networks are convolutional in the sense that the same local filter is applied to each neighborhood of an atoms and its neighbors.
+After several such layers, a global pooling step combines features from all the atoms in the network.
+Figure \ref{fig:architecture sketch} shows a sketch of the net architecture.
 
-Neural fingerprints offer several advantages over fixed fingerprints:
+\begin{figure}
+\centerline{\includegraphics[width=0.4\textwidth]{figures/3d-nets/net1}}
+\caption{A visual representation of the neural fingerprint architecture.}
+\label{fig:architecture sketch}
+\end{figure}
+
+Neural fingerprints offer several advantages over fixed, classical fingerprints:
 \begin{itemize}
-\item Better predictive performace ???
+\item Molecular features can be automatically tuned to the task at hand.
+Currently, many hand-engineered variants of circular fingerprints exist for various settings. [cite, and give examples]
+\item Better predictive performace[?]
 \item Because fixed fingerprints are not adapted to the task at hand, their output vector must be extremely large to encode all possible substructures without overlap.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000 for each molecule, after having removed rarely-occurring features in order to make the problem computationally feasible.
 We [hopefully] show that better performance can be achieved using feature vectors a fraction of the size, reducing memory requirements and computational burden.
 \item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks [cite].
 \end{itemize}
 
-\subsection{Desirable Properties of Molecular Representations}
 
-\begin{itemize}
-\item invariant to global orientation
-\item invariant to atom re-labeling
-\item invariant to the SMILES representation (at the very least)
-\item NOT invariant to reordering locally (maintain information about the orientation)
-    example:  fragment1 - C - O - fragment2 is not the same as fragment1 - O - C - fragment2 
-   \item speed
-\end{itemize}
+\section{Connection to circular fingerprints}
 
-\cite{erhan2006collaborative}
-\cite{ma_qsar_2015}
+%Circular fingerprints are designed to capture information about which substructures are present in a molecule in a way that is invariant to atom-relabeling.
 
-\section{Dealing with local ordering}
+Standard circular fingerprints already implement a similar architecture, but the analogy to convolutional neural networks is not obvious.
+Circular fingerprints generate each layer's features by applying a fixed hash function to the concatenated features in each neighborhood.
+The result of these hashes are then treated as integer indices, where a 1 is written to the feature vector at the index given by the feature vector at each node in the graph.
+If there are no collisions in the hash function, then each index represents a particular molecular substructure.
+Because the size of the substructures represented by each index depend on the depth of the network, the number of layers is referred to as the `radius' of the fingerprints.
 
-Morgan fingerprints deal with local ordering by having a canonical order.
+The space of possible network architectures is large, but in the spirit of starting from a known-good configuration, we chose an architecture closely analogous to existing fingerprints.
+Our neural fingerprints could reasonably be said to generalize existing fingerprints.
+In Section \ref{sec:random is equivalent}, we show that randomly-initialized neural fingerprints have similar performance to existing fingerprints.
 
+\section{Creating a differentiable fingerprint}
+This section describes our replacement of each discrete operation in circular fingerprints with a differentiable analogue.
 
+\paragraph{Hashing}
+The most straightforward choice in our design is that of replacing the hashing function applied at each neighborhood with a single layer of a neural network.
+This raises several design decisions, such as the choice of activation function, and the dimension of the feature vectors.
+We make these choices in the standard way, using Bayesian optimization [cite] to optimize cross-validation accuracy.
 
-\section{Extended-connectivity fingerprints}
+\paragraph{Indexing}
+One striking design aspect of circular fingerprints is the transformation of a feature vector into an index.
+In convolutional neural networks, pooling is usually performed on each feature separately.
+[more connecting text]
+We use the softmax operation as a differentiable analogue of indexing.
 
-\begin{figure}
-\centerline{\includegraphics[width=0.4\textwidth]{figures/3d-nets/net1}}
-\caption{A visualization of one of the convolutional nets constructed on a molecule.}
-\label{placeholder}
-\end{figure}
+\paragraph{Canonicalization}
+Circular fingerprints produce the same fingerprints regardless of the ordering of atoms in each neighborhood, by sorting the neighboring atoms according to their features (and bond features).
+We experimented with this sorting scheme, and also with applying the local feature transform on all possible permutation of the local neighborhood.
+In the interests of simplicity and scalability, we decided to simply sum the local atom and bond features.
 
-\begin{figure}
-\centerline{
-\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-0}
-\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-1}}
-\caption{The molecular fragments which most activate two of the features of the convolutional net.}
-\label{placeholder}
-\end{figure}
-
-
-
+Algorithms \ref{alg:ecfp} and \ref{alg:neural} summarize these two algorithms and highlight their differences.
 
 \begin{figure*}[t]
  \begin{minipage}[t]{0.49\columnwidth}
@@ -199,7 +206,7 @@ More recently, \cite{KalchbrennerACL2014} developed a convolutional neural netwo
 
 \cite{ramsundar2015massively} Massively multitask networks for drug discovery
 
-\cite{dahl2014multi} used standard deep neural networks, and didn't do any feature engineering.
+\cite{dahl2014multi, ma_qsar_2015} used standard deep neural networks, and didn't do any feature engineering.
 
 \paragraph{Machine learning for identifying promising molecules}
 
@@ -216,9 +223,15 @@ More recently, \cite{KalchbrennerACL2014} developed a convolutional neural netwo
 
 \section{Experiments}
 
-[How much is conceptual purity worth?  We can try using only topology, or include lots of hand-engineered features that we think will be useful.]
+We generated molecular graphs from SMILES [cite] using RDkit [cite].
+We used the ECFP implementation provided by RDkit.
 
-\subsection{Are Morgan fingerprints basically a hash function for molecules?}
+In our convolutional networks, the initial atom and bond features were chosen to be similar to those used by ECFP.
+The atom features were a concatenation of a one-hot encoding of the element, the degree, the number of attached hydrogen atoms, and the implicit valence, and one feature indicating if the atom is in an aromatic ring. 
+The bond features were a concatenation of whether the bond type was single, double, triple, or aromatic, whether the bond was conjugated, and whether the bond is part of a ring.
+
+\subsection{Randomly initialized neural fingerprints are equivalent to circular fingerprints}
+\label{sec:random is equivalent}
 
 We can answer this question by evaluating the performance of neural fingerprints generated by randomly initialized weights.
 
@@ -229,7 +242,17 @@ Tripod dataset: \url{https://tripod.nih.gov/tox21/challenge/}
 \cite{unterthiner2015toxicity}
 
 
-\subsection{Software}
+
+\subsection{Examining learned features}
+
+Figure \ref{fig:learned features} shows which fragments maximally activated various features.
+
+\begin{figure}[h]
+\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-0}
+\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-1}
+\caption{The molecular fragments which most activate two of the features of the convolutional net.}
+\label{fig:learned features}
+\end{figure}
 
 \subsection{Implementation Details}
 Automatic differentiation (AD) software packages such as
@@ -255,6 +278,9 @@ This could be done at multiple layers, which would limit the exponential blowup.
 \paragraph{Preserve asymmetries explicitly or implicitly}
 If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
 
+\paragraph{3D features}
+How to extend this to using 3d features?
+
 \subsection{Interpretability}
 [Idea: Use nested dropout to allow a variable-sized descriptor.]
 Explain that it's analogous to PCA for neural nets
@@ -264,12 +290,9 @@ Explain that it's analogous to PCA for neural nets
 \section{Conclusions}
 
 
-\section*{acknowledgments}
-This work was partially supported by a grant from the Spanish Ministry of Science and Technology.
+\section*{Acknowledgments}
 
 
-
-\subsubsection*{References}
 
 \bibliography{references.bib}
 \bibliographystyle{include/icml2015}
