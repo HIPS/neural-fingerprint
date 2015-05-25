@@ -3,6 +3,13 @@ import numpy.random as npr
 from scipy.optimize import fmin_cg
 
 
+def dropout(weights, fraction):
+    """Randomly sets fraction of weights to zero, and increases the rest
+        such that the expected activation is the same."""
+    zeros = npr.rand(len(weights)) > fraction
+    return weights * zeros / (1 - fraction)
+
+
 def conj_grad(objfun, gradfun, num_weights, callback=None, num_epochs=100, param_scale=0.1):
     """Conjugate gradients."""
     init_x = npr.randn(num_weights) * param_scale   # Initialize with random weights.
@@ -56,14 +63,15 @@ def sgd_with_momentum(grad, num_training_examples, num_weights, callback=None,
 
 def rms_prop(grad, N_x, N_w, callback=None,
              batch_size=100, num_epochs=100, learn_rate=0.1,
-             param_scale=0.1, gamma=0.9, **kwargs):
+             param_scale=0.1, gamma=0.9, dropout_fraction=0.0, **kwargs):
     """Root mean squared prop: See Adagrad paper for details."""
     w = npr.randn(N_w) * param_scale
     avg_sq_grad = np.ones(N_w)
     batches = batch_idx_generator(batch_size, N_x)
     for epoch in xrange(num_epochs):
         for batch in batches:
-            cur_grad = grad(batch, w)
+            dropout_weights = dropout(w, dropout_fraction)
+            cur_grad = grad(batch, dropout_weights)
             avg_sq_grad = avg_sq_grad * gamma + cur_grad**2 * (1 - gamma)
             w -= learn_rate * cur_grad/np.sqrt(avg_sq_grad)
         if callback: callback(epoch, w)

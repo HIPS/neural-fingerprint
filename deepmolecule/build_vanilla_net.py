@@ -1,13 +1,7 @@
 import autograd.numpy as np
-import autograd.numpy.random as npr
 from util import memoize, WeightsParser
 from rdkit_utils import smiles_to_fps
 
-def dropout(weights, fraction):
-    """Randomly sets fraction of weights to zero, and increases the rest
-        such that the expected activation is the same."""
-    zeros = npr.rand(len(weights)) > fraction
-    return weights * zeros / (1 - fraction)
 
 def relu(X):
     "Rectified linear activation function."
@@ -58,7 +52,7 @@ def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu,
     return loss, predictions, parser
 
 
-def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser):
+def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_penalty=0.0):
     """Composes a fingerprint function with signature (smiles, weights, params)
      with a fully-connected neural network."""
     net_loss_fun, net_pred_fun, net_parser = build_standard_net(**net_params)
@@ -75,7 +69,8 @@ def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser):
     def loss_fun(weights, smiles, targets):
         fingerprint_weights, net_weights = unpack_weights(weights)
         fingerprints = fingerprint_func(fingerprint_weights, smiles)
-        return net_loss_fun(net_weights, fingerprints, targets)
+        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights)
+        return net_loss_fun(net_weights, fingerprints, targets) + l2_penalty
 
     def pred_fun(weights, smiles):
         fingerprint_weights, net_weights = unpack_weights(weights)
@@ -97,7 +92,7 @@ def build_morgan_fingerprint_fun(fp_length=512, fp_radius=4):
 
     return fingerprints_from_smiles
 
-def build_morgan_deep_net(fp_params, net_params):
+def build_morgan_deep_net(fp_params, net_params, fp_l2_penalty=0.0):
     empty_parser = WeightsParser()
     morgan_fp_func = build_morgan_fingerprint_fun(**fp_params)
-    return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser)
+    return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, fp_l2_penalty)

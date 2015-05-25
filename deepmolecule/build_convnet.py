@@ -17,7 +17,6 @@ def softmax(X, axis=0):
     return np.exp(X - logsumexp(X, axis=axis, keepdims=True))
 
 def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
-
     activations_by_degree = []
     for degree in degrees:
         atom_neighbors_list = array_rep[('atom_neighbors', degree)]
@@ -112,7 +111,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
 def batch_normalize(activations):
     return activations / (0.5 * np.std(activations, axis=0, keepdims=True))
 
-def build_conv_deep_net(conv_params, net_params):
+def build_conv_deep_net(conv_params, net_params, fp_l2_penalty=0.0):
     """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
     conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
-    return build_fingerprint_deep_net(net_params, conv_fp_func, conv_parser)
+    return build_fingerprint_deep_net(net_params, conv_fp_func, conv_parser, fp_l2_penalty)
