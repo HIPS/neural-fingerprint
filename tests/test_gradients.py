@@ -8,11 +8,15 @@ npr.seed(0)
 targets = npr.randn(len(smiles))
 
 fp_length = 3
-vanila_layer_sizes = [fp_length]
+vanilla_layer_sizes = [fp_length]
+
+fp_params = {'fp_length':fp_length,
+             'fp_radius':1}
+
+vanilla_net_params = {'layer_sizes':[fp_length, 5]}
 
 def morg_fp_func():
-    loss, _, parser = build_morgan_deep_net(vanila_layer_sizes, fp_length=fp_length,
-                                            fp_radius=len(vanila_layer_sizes))
+    loss, _, parser = build_morgan_deep_net(fp_params, vanilla_net_params)
     return lambda weights: loss(weights, smiles, targets), parser
 
 def test_morg_net_gradient():
@@ -21,7 +25,7 @@ def test_morg_net_gradient():
     check_grads(loss, weights)
 
 def conv_fp_func(conv_params):
-    loss, _, parser = build_conv_deep_net(vanila_layer_sizes, conv_params)
+    loss, _, parser = build_conv_deep_net(conv_params, vanilla_net_params)
     return lambda weights: loss(weights, smiles, targets), parser
 
 def check_conv_grads(conv_params):
