@@ -1,6 +1,13 @@
 import autograd.numpy as np
+import autograd.numpy.random as npr
 from util import memoize, WeightsParser
 from rdkit_utils import smiles_to_fps
+
+def dropout(weights, fraction):
+    """Randomly sets fraction of weights to zero, and increases the rest
+        such that the expected activation is the same."""
+    zeros = npr.rand(len(weights)) > fraction
+    return weights * zeros / (1 - fraction)
 
 def relu(X):
     "Rectified linear activation function."
