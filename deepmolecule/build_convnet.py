@@ -37,7 +37,7 @@ def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
 def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
-                                  normalize=True, activation_function=np.tanh):
+                                  normalize=True, activation_function=relu):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
@@ -109,7 +109,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
     return output_layer_fun, parser
 
 def batch_normalize(activations):
-    return activations / (0.5 * np.std(activations, axis=0, keepdims=True))
+    return activations / (0.5 * np.std(activations, axis=0, keepdims=True) + 0.0001)
 
 def build_conv_deep_net(conv_params, net_params, fp_l2_penalty=0.0):
     """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
