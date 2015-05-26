@@ -1,19 +1,46 @@
 import numpy as np
-import numpy.random as npr
-from scipy.optimize import fmin_cg
+from scipy.optimize import minimize
 
+def sgd(grad, x, callback=None, num_iters=200, step_size=0.1, mass=0.9):
+    """Stochastic gradient descent with momentum.
+    grad() has signature grad(x, i), where i is the iteration."""
+    velocity = np.zeros(len(x))
+    for i in xrange(num_iters):
+        g = grad(x, i)
+        if callback: callback(x, i)
+        velocity = mass * velocity - (1.0 - mass) * g
+        x += step_size * velocity
+    return x
 
-def dropout(weights, fraction):
-    """Randomly sets fraction of weights to zero, and increases the rest
-        such that the expected activation is the same."""
-    zeros = npr.rand(len(weights)) > fraction
-    return weights * zeros / (1 - fraction)
+def rms_prop(grad, x, callback=None, num_iters=100, step_size=0.1, gamma=0.9,
+             eps = 10**-8):
+    """Root mean squared prop: See Adagrad paper for details."""
+    avg_sq_grad = np.ones(len(x)) # Is this really a sensible initialization?
+    for i in xrange(num_iters):
+        g = grad(x, i)
+        if callback: callback(x, i)
+        avg_sq_grad = avg_sq_grad * gamma + g**2 * (1 - gamma)
+        x -= step_size * g/(np.sqrt(avg_sq_grad) + eps)
+    return x
 
+def adam(grad, x, callback=None, num_iters=100,
+         step_size=0.1, b1 = 0.1, b2 = 0.01, eps = 10**-4, lam=10**-4):
+    """Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
+    It's basically RMSprop with momentum and some correction terms."""
+    m = np.zeros(len(x))
+    v = np.zeros(len(x))
+    for i in xrange(num_iters):
+        b1t = 1 - (1-b1)*(lam**i)
+        g = grad(x, i)
+        if callback: callback(x, i)
+        m = b1t*g     + (1-b1t)*m   # First  moment estimate
+        v = b2*(g**2) + (1-b2)*v    # Second moment estimate
+        mhat = m/(1-(1-b1)**(i+1))  # Bias correction
+        vhat = v/(1-(1-b2)**(i+1))
+        x -= step_size*mhat/(np.sqrt(vhat) + eps)
+    return x
 
-def conj_grad(objfun, gradfun, num_weights, callback=None, num_epochs=100, param_scale=0.1):
-    """Conjugate gradients."""
-    init_x = npr.randn(num_weights) * param_scale   # Initialize with random weights.
-
+def bfgs(obj_and_grad, x, callback=None, num_iters=100):
     def epoch_counter():
         epoch = 0
         while True:
@@ -21,83 +48,11 @@ def conj_grad(objfun, gradfun, num_weights, callback=None, num_epochs=100, param
             epoch += 1
     ec = epoch_counter()
 
-    def wrapped_callback(x):
-        callback(next(ec), x)
+    wrapped_callback=None
+    if callback:
+        def wrapped_callback(x):
+            callback(x, next(ec))
 
-    return fmin_cg(objfun, init_x, fprime=gradfun, maxiter=num_epochs, callback=wrapped_callback)
-
-def minibatch_conj_grad(objective, grad, num_training_examples, num_weights,
-                        callback=None, num_epochs=100, param_scale=0.1, batch_size=100):
-    """Conjugate gradients."""
-    init_x = npr.randn(num_weights) * param_scale   # Initialize with random weights.
-    batches = batch_idx_generator(batch_size, num_training_examples)
-
-    def epoch_generator():
-        epoch = 0
-        while True:
-            yield epoch
-            epoch += 1
-    eg = epoch_generator()
-    def wrapped_callback(x):
-        # Gets called each iteration.
-        training_idxs = next(batches)
-        callback(next(eg), x)
-
-    return fmin_cg(objective, init_x, fprime=grad, maxiter=num_epochs, callback=wrapped_callback)
-
-
-def sgd_with_momentum(grad, num_training_examples, num_weights, callback=None,
-                      batch_size=100, num_epochs=100, learn_rate=0.1,
-                      mass=0.9, param_scale=0.1, **kwargs):
-    """Stochastic gradient descent with momentum."""
-    weights = npr.randn(num_weights) * param_scale   # Initialize with random weights.
-    velocity = np.zeros(num_weights)
-    batches = batch_idx_generator(batch_size, num_training_examples)
-    for epoch in xrange(num_epochs):
-        for batch in batches:
-            cur_grad = grad(batch, weights)
-            velocity = mass * velocity - (1.0 - mass) * cur_grad
-            weights += learn_rate * velocity
-        if callback: callback(epoch, weights)
-    return weights
-
-def rms_prop(grad, N_x, N_w, callback=None,
-             batch_size=100, num_epochs=100, learn_rate=0.1,
-             param_scale=0.1, gamma=0.9, dropout_fraction=0.0, **kwargs):
-    """Root mean squared prop: See Adagrad paper for details."""
-    w = npr.randn(N_w) * param_scale
-    avg_sq_grad = np.ones(N_w)
-    batches = batch_idx_generator(batch_size, N_x)
-    for epoch in xrange(num_epochs):
-        for batch in batches:
-            dropout_weights = dropout(w, dropout_fraction)
-            cur_grad = grad(batch, dropout_weights)
-            avg_sq_grad = avg_sq_grad * gamma + cur_grad**2 * (1 - gamma)
-            w -= learn_rate * cur_grad/np.sqrt(avg_sq_grad)
-        if callback: callback(epoch, w)
-    return w
-
-def make_batcher(input_data, batch_size):
-    batch_idxs = batch_idx_generator(batch_size, len(input_data.values()[0]))
-    data_batches = [{k : v[idxs] for k, v in input_data.iteritems()}
-                    for idxs in batch_idxs]
-    def batcher():
-        for data_batch in data_batches:
-            for node, value in data_batch.iteritems():
-                node.value = value
-            yield
-
-    return batcher
-
-def batch_idx_generator(batch_size, total_size):
-    start = 0
-    end = batch_size
-    batches = []
-    while True:
-        if start >= total_size:
-            break
-        batches.append(slice(start, end))
-        start += batch_size
-        end += batch_size
-
-    return batches
+    res =  minimize(fun=obj_and_grad, x0=x, jac =True, callback=wrapped_callback,
+                    options = {'maxiter':num_iters, 'disp':True})
+    return res.x

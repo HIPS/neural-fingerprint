@@ -45,7 +45,7 @@ def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu,
         return cur_units[:, 0]
 
     def loss(w, X, targets):
-        log_prior = -L2_reg * np.dot(w, w)
+        log_prior = -L2_reg * np.dot(w, w) / len(w)
         preds = predictions(w, X)
         return nll_func(preds, targets) - log_prior
 
@@ -69,7 +69,7 @@ def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_pe
     def loss_fun(weights, smiles, targets):
         fingerprint_weights, net_weights = unpack_weights(weights)
         fingerprints = fingerprint_func(fingerprint_weights, smiles)
-        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights)
+        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights) / len(fingerprint_weights)
         return net_loss_fun(net_weights, fingerprints, targets) + l2_penalty
 
     def pred_fun(weights, smiles):

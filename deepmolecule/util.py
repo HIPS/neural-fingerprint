@@ -1,4 +1,6 @@
 import autograd.numpy as np
+import autograd.numpy.random as npr
+
 from contextlib import contextmanager
 from time import time
 from functools import partial
@@ -69,3 +71,30 @@ def one_of_k_encoding(x, allowable_set):
     if x not in allowable_set:
         raise Exception("input {0} not in allowable set{1}:".format(x, allowable_set))
     return map(lambda s: x == s, allowable_set)
+
+def dropout(weights, fraction, random_state):
+    """Randomly sets fraction of weights to zero, and increases the rest
+        such that the expected activation is the same."""
+    mask = random_state.rand(len(weights)) > fraction
+    return weights * mask / (1 - fraction)
+
+def get_ith_minibatch_ixs(i, num_datapoints, batch_size):
+    num_minibatches = num_datapoints / batch_size + ((num_datapoints % batch_size) > 0)
+    i = i % num_minibatches
+    start = i * batch_size
+    stop = start + batch_size + 1
+    return slice(start, stop)
+
+def build_batched_grad(grad, batch_size, inputs, targets):
+    """Grad has signature(weights, inputs, targets)."""
+    def batched_grad(weights, i):
+        cur_idxs = get_ith_minibatch_ixs(i, len(targets), batch_size)
+        return grad(weights, inputs[cur_idxs], targets[cur_idxs])
+    return batched_grad
+
+def add_dropout(grad, dropout_fraction, seed=0):
+    def dropout_grad(weights, i):
+        mask = npr.RandomState(seed * 10**6 + i).rand(len(weights)) > dropout_fraction
+        masked_weights = weights * mask / (1 - dropout_fraction)
+        return grad(masked_weights, i)
+    return dropout_grad

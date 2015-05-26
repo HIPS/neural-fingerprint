@@ -1,7 +1,6 @@
 
-from util import tictoc, normalize_array, WeightsParser
-from optimizers import sgd_with_momentum, rms_prop, make_batcher,\
-    batch_idx_generator, conj_grad, minibatch_conj_grad
+from util import tictoc, normalize_array, WeightsParser, build_batched_grad, add_dropout
+from optimizers import sgd, rms_prop, adam, bfgs
 from io_utils import get_output_file, get_data_file, load_data, output_dir
 from rdkit_utils import smiles_to_fps
 from build_convnet import build_conv_deep_net, build_convnet_fingerprint_fun
