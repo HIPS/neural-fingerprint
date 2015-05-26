@@ -1,12 +1,23 @@
 import os
-import pandas as pd
+import csv
 import autograd.numpy as np
 from util import slicedict
+from collections import defaultdict
 
-def load_data(filename, sizes):
+def read_csv(filename, nrows, input_name, target_name):
+    data = defaultdict(list)
+    with open(filename) as file:
+        reader = csv.DictReader(file)
+        for i, row in enumerate(reader):
+            if i > nrows: break
+            data[input_name].append(row[input_name])
+            data[target_name].append(float(row[target_name]))
+    return data
+
+def load_data(filename, sizes, input_name, target_name):
     nrows_total = sum(sizes)
-    pd_data = pd.io.parsers.read_csv(filename, sep=',', nrows=nrows_total)
-    all_data = {colname : np.array(pd_data[colname]) for colname in pd_data}
+    data = read_csv(filename, nrows_total, input_name, target_name)
+    all_data = {colname : np.array(data[colname]) for colname in data}
 
     datasets = []
     start = 0

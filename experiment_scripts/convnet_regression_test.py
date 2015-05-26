@@ -25,7 +25,7 @@ def main():
     print "Task params", task_params
 
     print "\nLoading data..."
-    (traindata, ) = load_data(task_params['data_file'], (task_params['N_train'],))
+    (traindata, ) = load_data(task_params['data_file'], (task_params['N_train'],), 'smiles', task_params['target_name'])
     train_inputs, train_targets = traindata['smiles'], traindata[task_params['target_name']]
 
     fp_fun, parser = build_convnet_fingerprint_fun(**conv_arch_params)
