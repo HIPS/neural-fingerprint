@@ -82,7 +82,7 @@ def get_ith_minibatch_ixs(i, num_datapoints, batch_size):
     num_minibatches = num_datapoints / batch_size + ((num_datapoints % batch_size) > 0)
     i = i % num_minibatches
     start = i * batch_size
-    stop = start + batch_size + 1
+    stop = start + batch_size
     return slice(start, stop)
 
 def build_batched_grad(grad, batch_size, inputs, targets):
@@ -93,6 +93,7 @@ def build_batched_grad(grad, batch_size, inputs, targets):
     return batched_grad
 
 def add_dropout(grad, dropout_fraction, seed=0):
+    assert(dropout_fraction < 1.0)
     def dropout_grad(weights, i):
         mask = npr.RandomState(seed * 10**6 + i).rand(len(weights)) > dropout_fraction
         masked_weights = weights * mask / (1 - dropout_fraction)

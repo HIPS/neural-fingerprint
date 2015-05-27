@@ -3,6 +3,10 @@ from util import memoize, WeightsParser
 from rdkit_utils import smiles_to_fps
 
 
+def batch_normalize(activations):
+    mbmean = np.mean(activations, axis=0, keepdims=True)
+    return (activations - mbmean) / (np.std(activations, axis=0, keepdims=True) + 1)
+
 def relu(X):
     "Rectified linear activation function."
     return X * (X > 0)
@@ -23,7 +27,7 @@ def binary_classification_nll(predictions, targets):
     label_probabilities = pred_probs * targets + (1 - pred_probs) * (1 - targets)
     return -np.mean(np.log(label_probabilities))
 
-def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu,
+def build_standard_net(layer_sizes, normalize, L2_reg, activation_function=relu,
                        nll_func=mean_squared_error):
     """Just a plain old neural net, nothing to do with molecules.
     layer sizes includes the input size."""
@@ -39,12 +43,15 @@ def build_standard_net(layer_sizes, L2_reg=0.0, activation_function=relu,
         for layer in range(len(layer_sizes) - 1):
             cur_W = parser.get(W_vect, ('weights', layer))
             cur_B = parser.get(W_vect, ('biases', layer))
-            cur_units = np.dot(cur_units, cur_W) + cur_B
+            cur_units = np.dot(cur_units, cur_W + cur_B)
+            if normalize:
+                cur_units = batch_normalize(cur_units)
             if layer < len(layer_sizes) - 2:
                 cur_units = activation_function(cur_units)
         return cur_units[:, 0]
 
     def loss(w, X, targets):
+        assert len(w) > 0
         log_prior = -L2_reg * np.dot(w, w) / len(w)
         preds = predictions(w, X)
         return nll_func(preds, targets) - log_prior
@@ -69,7 +76,8 @@ def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_pe
     def loss_fun(weights, smiles, targets):
         fingerprint_weights, net_weights = unpack_weights(weights)
         fingerprints = fingerprint_func(fingerprint_weights, smiles)
-        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights) / len(fingerprint_weights)
+        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights)\
+                     / (len(fingerprint_weights) + 0.01)
         return net_loss_fun(net_weights, fingerprints, targets) + l2_penalty
 
     def pred_fun(weights, smiles):
