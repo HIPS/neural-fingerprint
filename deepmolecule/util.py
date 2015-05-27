@@ -93,6 +93,7 @@ def build_batched_grad(grad, batch_size, inputs, targets):
     return batched_grad
 
 def add_dropout(grad, dropout_fraction, seed=0):
+    """Actually, isn't this dropconnect?"""
     assert(dropout_fraction < 1.0)
     def dropout_grad(weights, i):
         mask = npr.RandomState(seed * 10**6 + i).rand(len(weights)) > dropout_fraction
