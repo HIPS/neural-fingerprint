@@ -8,8 +8,8 @@ class MolGraph(object):
     def __init__(self):
         self.nodes = {} # dict of lists of nodes, keyed by node type
 
-    def new_node(self, ntype, features=None):
-        new_node = Node(ntype, features)
+    def new_node(self, ntype, features=None, rdkit_ix=None):
+        new_node = Node(ntype, features, rdkit_ix)
         self.nodes.setdefault(ntype, []).append(new_node)
         return new_node
 
@@ -36,6 +36,9 @@ class MolGraph(object):
         assert ntype in self.nodes
         return np.array([node.features for node in self.nodes[ntype]])
 
+    def rdkit_ix_array(self):
+        return np.array([node.rdkit_ix for node in self.nodes['atom']])
+
     def neighbor_list(self, self_ntype, neighbor_ntype):
         assert self_ntype in self.nodes and neighbor_ntype in self.nodes
         neighbor_idxs = {n : i for i, n in enumerate(self.nodes[neighbor_ntype])}
@@ -44,11 +47,12 @@ class MolGraph(object):
                 for self_node in self.nodes[self_ntype]]
 
 class Node(object):
-    __slots__ = ['ntype', 'features', '_neighbors']
-    def __init__(self, ntype, features):
+    __slots__ = ['ntype', 'features', '_neighbors', 'rdkit_ix']
+    def __init__(self, ntype, features, rdkit_ix):
         self.ntype = ntype
         self.features = features
         self._neighbors = []
+        self.rdkit_ix = rdkit_ix
 
     def add_neighbors(self, neighbor_list):
         for neighbor in neighbor_list:
@@ -75,7 +79,7 @@ def graph_from_smiles(smiles):
         raise ValueError("Could not parse SMILES string:", smiles)
     atoms_by_rd_idx = {}
     for atom in mol.GetAtoms():
-        new_atom_node = graph.new_node('atom', features=atom_features(atom))
+        new_atom_node = graph.new_node('atom', features=atom_features(atom), rdkit_ix=atom.GetIdx())
         atoms_by_rd_idx[atom.GetIdx()] = new_atom_node
 
     for bond in mol.GetBonds():

@@ -37,7 +37,8 @@ def weights_name(layer, degree):
     return "layer " + str(layer) + " degree " + str(degree) + " filter"
 
 def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
-                                  normalize=True, activation_function=relu):
+                                  normalize=True, activation_function=relu,
+                                  return_atom_activations=False):
     """Sets up functions to compute convnets over all molecules in a minibatch together."""
 
     # Specify weight shapes.
@@ -68,7 +69,7 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
             total_activations = batch_normalize(total_activations)
         return activation_function(total_activations)
 
-    def output_layer_fun(weights, smiles):
+    def output_layer_fun_and_atom_activations(weights, smiles):
         """Computes layer-wise convolution, and returns a fixed-size output."""
 
         array_rep = array_rep_from_smiles(tuple(smiles))
@@ -76,10 +77,12 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
         bond_features = array_rep['bond_features']
 
         all_layer_fps = []
+        atom_activations = []
         def write_to_fingerprint(atom_features, layer):
             cur_out_weights = parser.get(weights, ('layer output weights', layer))
             cur_out_bias    = parser.get(weights, ('layer output bias', layer))
             atom_outputs = softmax(cur_out_bias + np.dot(atom_features, cur_out_weights), axis=1)
+            atom_activations.append(atom_outputs)
             # Sum over all atoms within a moleclue:
             layer_output = sum_and_stack(atom_outputs, array_rep['atom_list'])
             all_layer_fps.append(layer_output)
@@ -90,25 +93,38 @@ def build_convnet_fingerprint_fun(num_hidden_features=[100, 100], fp_length=512,
             atom_features = update_layer(weights, layer, atom_features, bond_features, array_rep,
                                          normalize=normalize)
         write_to_fingerprint(atom_features, num_layers)
-        return sum(all_layer_fps)
+        return sum(all_layer_fps), atom_activations, array_rep
 
-    @memoize
-    def array_rep_from_smiles(smiles):
-        """Precompute everything we need from MolGraph so that we can free the memory asap."""
-        molgraph = graph_from_smiles_tuple(smiles)
-        arrayrep = {'atom_features' : molgraph.feature_array('atom'),
-                    'bond_features' : molgraph.feature_array('bond'),
-                    'atom_list'     : molgraph.neighbor_list('molecule', 'atom')}  # List of lists.
-        for degree in degrees:
-            arrayrep[('atom_neighbors', degree)] = \
-                    np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
-            arrayrep[('bond_neighbors', degree)] = \
-                    np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
-        return arrayrep
+    def output_layer_fun(weights, smiles):
+        output, _, _ = output_layer_fun_and_atom_activations(weights, smiles)
+        return output
 
-    return output_layer_fun, parser
+    def compute_atom_activations(weights, smiles):
+        _, atom_activations, array_rep = output_layer_fun_and_atom_activations(weights, smiles)
+        return atom_activations, array_rep
+
+    if return_atom_activations:
+        return output_layer_fun, parser, compute_atom_activations
+    else:
+        return output_layer_fun, parser
+
+@memoize
+def array_rep_from_smiles(smiles):
+    """Precompute everything we need from MolGraph so that we can free the memory asap."""
+    molgraph = graph_from_smiles_tuple(smiles)
+    arrayrep = {'atom_features' : molgraph.feature_array('atom'),
+                'bond_features' : molgraph.feature_array('bond'),
+                'atom_list'     : molgraph.neighbor_list('molecule', 'atom'), # List of lists.
+                'rdkit_ix'      : molgraph.rdkit_ix_array()}  # For plotting only.
+    for degree in degrees:
+        arrayrep[('atom_neighbors', degree)] = \
+            np.array(molgraph.neighbor_list(('atom', degree), 'atom'), dtype=int)
+        arrayrep[('bond_neighbors', degree)] = \
+            np.array(molgraph.neighbor_list(('atom', degree), 'bond'), dtype=int)
+    return arrayrep
 
 def build_conv_deep_net(conv_params, net_params, fp_l2_penalty=0.0):
     """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
     conv_fp_func, conv_parser = build_convnet_fingerprint_fun(**conv_params)
     return build_fingerprint_deep_net(net_params, conv_fp_func, conv_parser, fp_l2_penalty)
+

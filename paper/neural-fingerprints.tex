@@ -117,6 +117,7 @@ One striking design aspect of circular fingerprints is the transformation of a f
 In convolutional neural networks, pooling is usually performed on each feature separately.
 [more connecting text]
 We use the softmax operation as a differentiable analogue of indexing.
+We do this for three reasons: 1. To match Morgan fingerprints 2. To ensure sparsity of the fingprint 3. So that each fingerprint has a specific meaning - arbitrary rotations of the weight matrices will not give rise to equivalent models.
 
 \paragraph{Canonicalization}
 Circular fingerprints produce the same fingerprints regardless of the ordering of atoms in each neighborhood, by sorting the neighboring atoms according to their features (and bond features).
@@ -227,10 +228,15 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 We generated molecular graphs from SMILES [cite] using RDkit [cite].
 We used the ECFP implementation provided by RDkit.
+We used Whetlab [cite].
 
 In our convolutional networks, the initial atom and bond features were chosen to be similar to those used by ECFP.
 The atom features were a concatenation of a one-hot encoding of the element, the degree, the number of attached hydrogen atoms, and the implicit valence, and one feature indicating if the atom is in an aromatic ring. 
 The bond features were a concatenation of whether the bond type was single, double, triple, or aromatic, whether the bond was conjugated, and whether the bond is part of a ring.
+
+We initially experimented with batch normalization [cite] vs not (on the validation set error!), and since it was almost always superior in practice, we left it on.
+We also experimented with tanh vs relu (on the validation set error!), but relu had a slight performance advantage.
+We also experimented with dropout, but since it was unhelpful in practice (on the validation set error!) we disabled it. 
 
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
