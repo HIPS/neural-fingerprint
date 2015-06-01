@@ -262,10 +262,16 @@ Delaney dataset:
 
 Figure \ref{fig:learned features} shows which fragments maximally activated various features.
 
+\newcommand{\molfeature}[2]{\includegraphics[width=4cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
+
 \begin{figure}[h]
-\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-0}
-\includegraphics[width=0.2\textwidth]{figures/convnet-features/hidden-unit-1}
-\caption{The molecular fragments which most activate two of the features of the convolutional net.}
+\begin{tabular}{cccc}
+Fingerprint 1 & \molfeature{0}{1} & \molfeature{0}{2} & \molfeature{0}{3} \\
+Fingerprint 2 & \molfeature{1}{1} & \molfeature{1}{2} & \molfeature{1}{3} \\
+Fingerprint 3 & \molfeature{2}{1} & \molfeature{2}{2} & \molfeature{2}{3} \\
+Fingerprint 4 & \molfeature{3}{1} & \molfeature{3}{2} & \molfeature{3}{3}
+\end{tabular}
+\caption{The molecular fragments which most activate the four features of the convolutional net.}
 \label{fig:learned features}
 \end{figure}
 
