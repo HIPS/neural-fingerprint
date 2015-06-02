@@ -238,7 +238,7 @@ The bond features were a concatenation of whether the bond type was single, doub
 
 We initially experimented with batch normalization [cite] vs not (on the validation set error!), and since it was almost always superior in practice, we left it on.
 We also experimented with tanh vs relu (on the validation set error!), but relu had a slight performance advantage.
-We also experimented with dropout, but since it was unhelpful in practice (on the validation set error!) we disabled it. 
+We also experimented with dropconnect [cite] (a variant of dropout in which weights are randomly set to zero instead of hidden units), but since it was unhelpful in practice (on the validation set error) we disabled it. 
 
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
@@ -258,6 +258,25 @@ Tripod dataset: \url{https://tripod.nih.gov/tox21/challenge/}
 
 Delaney dataset:
 \cite{delaney_data_2004}
+
+
+\subsection{Predictive accuracy}
+
+Results are summarized in Table~\ref{table:main results}.
+
+\begin{table}
+\begin{tabular}{c|cccc}
+Predicted property    & Solubility     &  Drug efficacy & Toxicity        & Photovoltaic efficiency \\
+Dataset               & Delaney [cite] &  ?             &  Tripod [cite]  &  Clean energy project [cite] \\
+Dataset size          &    1000        &    ?           &  ?              &    ?  \\
+Error measurement     & RMSE (log Mol/L) &              & AUC?            & ? \\
+\hline
+Circular fingerprints &  0.945  &   &   &  \\
+Neural fingerprints   &  \bf{0.687}  &   &   &?
+\end{tabular}
+\label{table:main results}
+\caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
+\end{table}
 
 
 \subsection{Examining learned features}
