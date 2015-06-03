@@ -63,10 +63,12 @@ We introduce a generalization of commonly-used molecular fingerprints based on c
 Much progress has recently been made by the application of deep learning to virtual screening, where the task is to predict the properties of novel molecules by generalizing from examples.
 One difficulty with this task is that the input to the predictor, a molecule, can be of arbitrary size and shape.
 Most machine learning pipelines can only handle inputs of a fixed size.
-The formula followed by \cite{unterthinerdeep}, \cite{unterthiner2015toxicity}, and \cite{ramsundar2015massively} was to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those as inputs to standard fully-connected deep neural networks.
+The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those as inputs to fully-connected deep neural networks or other standard machine learning methods.
+This formula was followed by \citet{unterthinerdeep}, \citet{dahl2014multi}, \citet{tingley2014towards}, \citet{unterthiner2015toxicity},  \citet{ramsundar2015massively}, and \citet{ma_qsar_2015}.
 The networks are optimized using gradient descent, but the molecular fingerprints and treated as fixed.
+The state of the art in molecular fingerprints are extended-connectivity circular fingerprints, (ECFP)~\citep{ECFP2010}.%, a refinement of Morgan fingerprints.
 
-We replace the bottom layer of this stack, the fixed molecular fingerprints, with a differentiable neural network whose inputs are graphs representing the original molecule.
+In this paper, we replace the bottom layer of this stack, the fixed circular molecular fingerprints, with a differentiable neural network whose inputs are graphs representing the original molecule.
 In these graphs, vertices represent individual atoms, and edges represent bonds.
 The lower layers of these neural networks are convolutional in the sense that the same local filter is applied to each neighborhood of an atoms and its neighbors.
 After several such layers, a global pooling step combines features from all the atoms in the network.
@@ -84,12 +86,15 @@ Neural fingerprints offer several advantages over fixed, classical fingerprints:
 \begin{itemize}
 \item Molecular features can be automatically tuned to the task at hand.
 Currently, many hand-engineered variants of circular fingerprints exist for various settings. [cite, and give examples]
-\item Better predictive performace[?]
-\item Because fixed fingerprints are not adapted to the task at hand, their output vector must be extremely large to encode all possible substructures without overlap.
+\item By adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performace.
+We compare the effectiveness of neural fingerprints against standard fingerprints at predicting toxicity prediction, solubility prediction, drug efficacy, and organic LED efficiency.
+\item Fixed fingerprints must be extremely large to encode all possible substructures without overlap.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000 for each molecule, after having removed rarely-occurring features in order to make the problem computationally feasible.
-We [hopefully] show that better performance can be achieved using feature vectors a fraction of the size, reducing memory requirements and computational burden.
-\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks [cite].
+We show that better performance can be achieved using feature vectors a fraction of the size, reducing memory requirements.
+\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks~\citep{socher2011semi, socher2011dynamic}.
 \end{itemize}
+
+By generalizing the state-of-the-art extended-connectivity circular fingerprints , we allow
 
 
 \section{Connection to circular fingerprints}
@@ -221,16 +226,17 @@ More recently, \cite{KalchbrennerACL2014} and others have developed a convolutio
 \cite{micheli2009neural} Neural network for graphs
 
 \paragraph{Unrolled inference algorithms}
-\citet{hershey2014deep} and [cite CD as unrolled inference] have noted that iterative inference procedures in many models resemble the feedforward computation of a recurrent neural network, or other deep neural networks.
+\citet{hershey2014deep} and others have noted that iterative inference procedures sometimes resemble the feedforward computation of a recurrent neural network.
 One natural combination of these ideas is to parameterize these inference steps, and train a neural network to approximately match the output of exact inference in a smaller number of iterations.
 The neural fingerprint, when viewed in this light, resembles an unrolled message-passing algorithm on the original graph.
 
 
 \section{Experiments}
 
-We generated molecular graphs from SMILES [cite] using RDkit [cite].
-We used the ECFP implementation provided by RDkit.
-We used Whetlab [cite].
+Our pipeline takes as input the SMILES~\citep{weininger1988smiles} string-based encoding of each molecule, which is then converted into a graph using RDkit~\citep{rdkit}.
+We also used RDkit to produce circular fingerprints for our baseline experiments.
+To optimize hyperparameters, we used Whetlab~(\url{www.whetlab.com}, a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
+We optimized the learning and architecture parameters of both the Circular fingerprint network and the neural fingerprint network using 400 trials.
 
 In our convolutional networks, the initial atom and bond features were chosen to be similar to those used by ECFP.
 The atom features were a concatenation of a one-hot encoding of the element, the degree, the number of attached hydrogen atoms, and the implicit valence, and one feature indicating if the atom is in an aromatic ring. 
@@ -276,8 +282,8 @@ Results are summarized in Table~\ref{table:main results}.
 \begin{table}
 \begin{tabular}{c|cccc}
 Predicted property    & Solubility     &  Drug efficacy & Toxicity        & Photovoltaic efficiency \\
-Dataset               & Delaney [cite] &  ?             &  Tripod [cite]  &  Clean energy project [cite] \\
-Dataset size          &    1000        &    ?           &  ?              &    ?  \\
+Dataset               & \cite{delaney_data_2004} &  ?             &  Tripod [cite]  &  Clean energy project [cite] \\
+Dataset size          &    1129        &    ?           &  ?              &    ?  \\
 Error measurement     & RMSE (log Mol/L) &              & AUC?            & ? \\
 \hline
 Circular fingerprints &  0.945  &   &   &  \\
