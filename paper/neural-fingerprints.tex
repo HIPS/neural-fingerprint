@@ -233,6 +233,8 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 \section{Experiments}
 
+\subsection{Experimental setup}
+
 Our pipeline takes as input the SMILES~\citep{weininger1988smiles} string-based encoding of each molecule, which is then converted into a graph using RDkit~\citep{rdkit}.
 We also used RDkit to produce circular fingerprints for our baseline experiments.
 To optimize hyperparameters, we used Whetlab~(\url{www.whetlab.com}, a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
@@ -242,11 +244,13 @@ In our convolutional networks, the initial atom and bond features were chosen to
 The atom features were a concatenation of a one-hot encoding of the element, the degree, the number of attached hydrogen atoms, and the implicit valence, and one feature indicating if the atom is in an aromatic ring. 
 The bond features were a concatenation of whether the bond type was single, double, triple, or aromatic, whether the bond was conjugated, and whether the bond is part of a ring.
 
-We initially experimented with batch normalization [cite] vs not (on the validation set error!), and since it was almost always superior in practice, we left it on.
-We also experimented with tanh vs relu (on the validation set error!), but relu had a slight performance advantage.
-We also experimented with dropconnect [cite] (a variant of dropout in which weights are randomly set to zero instead of hidden units), but since it was unhelpful in practice (on the validation set error) we disabled it. 
+Initial experiments included optional batch normalization~\citep{ioffe2015batch}.
+Because batch normalization consistently led to better validation errors on both models, we eventually made it mandatory.
+We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint net and the fully-connected nets.  \texttt{relu} had a slight but consistent performance advantage on the validation set.
+We also experimented with dropconnect~\citep{wan2013regularization}, a variant of dropout in which weights are randomly set to zero instead of hidden units, but it led to worse validation error in general.
 
-We optimized using minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
+We optimized for 100 epochs using minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
+Adam's $\beta_1$ and $\beta_2$ were included in the Bayesian optimization.
 
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
@@ -282,7 +286,7 @@ Results are summarized in Table~\ref{table:main results}.
 \begin{table}
 \begin{tabular}{c|cccc}
 Predicted property    & Solubility     &  Drug efficacy & Toxicity        & Photovoltaic efficiency \\
-Dataset               & \cite{delaney_data_2004} &  ?             &  Tripod [cite]  &  Clean energy project [cite] \\
+Dataset               & \citet{delaney_data_2004} &  ?             &  \citet{tox21}  &  \citet{hachmann2011harvard} \\
 Dataset size          &    1129        &    ?           &  ?              &    ?  \\
 Error measurement     & RMSE (log Mol/L) &              & AUC?            & ? \\
 \hline
@@ -322,15 +326,13 @@ Code for all experiments in this paper will be made available upon publication.
 
 
 
-\section{Extensions}
+\section{Future extensions}
 
-\paragraph{How much computation to perform at each layer?}
-i.e. how complicated should we make the function that goes from one layer of the graph to the next?
+\paragraph{Performing more computation at each layer}
+How complicated should we make the function that goes from one layer of the graph to the next?
 
-\paragraph{Building parse trees}
-For the pyramidal architecture, we need to decide on a parse tree of the molecule.
-One way to do this in a 'soft' way might be to max-pool over many different local parsings.
-This could be done at multiple layers, which would limit the exponential blowup.
+\paragraph{Learning to parse molecules}
+The local message-passing architecture developed in this paper
 
 %\paragraph{Preserve asymmetries explicitly or implicitly}
 %If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
