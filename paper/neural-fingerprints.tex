@@ -102,13 +102,14 @@ By generalizing the state-of-the-art extended-connectivity circular fingerprints
 
 \section{Connection to circular fingerprints}
 
-%Circular fingerprints are designed to capture information about which substructures are present in a molecule in a way that is invariant to atom-relabeling.
+Circular fingerprints were designed to capture information about which substructures are present in a molecule in a way that is invariant to atom-relabeling.
 
 Standard circular fingerprints already implement a similar architecture, but the analogy to convolutional neural networks is not obvious.
 Circular fingerprints generate each layer's features by applying a fixed hash function to the concatenated features in each neighborhood.
 The result of these hashes are then treated as integer indices, where a 1 is written to the feature vector at the index given by the feature vector at each node in the graph.
 If there are no collisions in the hash function, then each index represents a particular molecular substructure.
-Because the size of the substructures represented by each index depend on the depth of the network, the number of layers is referred to as the `radius' of the fingerprints.
+The size of the substructures represented by each index depends on the depth of the network.
+Thus the number of layers is referred to as the `radius' of the fingerprints.
 
 The space of possible network architectures is large, but in the spirit of starting from a known-good configuration, we chose an architecture closely analogous to existing fingerprints.
 Our neural fingerprints could reasonably be said to generalize existing fingerprints.
@@ -195,6 +196,8 @@ Every non-differentiable operation has been replaced with a differentiable analo
 
 \section{Related work}
 
+This work is similar in spirit to the Neural Turing Machine~\citep{graves2014neural}, in the sense that we take an existing discrete computational architecture, and make each part differentiable, in order to do gradient-based optimization.
+
 \paragraph{Neural fingerprints}
 The most closely related work is \citet{lusci2013deep}, who also replace circular fingerprints with a neural network having graph-valued inputs.
 Their approach is to remove all cycles and build the graph into a tree structure, choosing one atom to be the root.
@@ -203,32 +206,27 @@ The final descriptor is a sum of the representations of all distinct graphs.
 There are as many distinct graphs as there are atoms in the network.
 The computational cost of this method thus grows as $\mathcal{O}(F^2N^2)$, where $F$ is the size of the feature vector and $N$ is the number of atoms.
 
-
 \paragraph{Convolutional Neural Networks}
-
-Convolutional neural networks have been used to model images, speech, and time series~\cite{lecun1995convolutional}.
+Convolutional neural networks have been used to model images, speech, and time series~\citep{lecun1995convolutional}.
 However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
 More recently, \cite{KalchbrennerACL2014} and others have developed a convolutional neural network architecture for modeling sentences of varying length.
 
-
 \paragraph{Neural nets for QSAR}
-
 \cite{ramsundar2015massively} Massively multitask networks for drug discovery
-
 \cite{dahl2014multi, ma_qsar_2015} used standard deep neural networks, and didn't do any feature engineering.
 
 \paragraph{Machine learning for identifying promising molecules}
-
 \cite{Eckert2007225, bergeron2011modeling} provide reviews of the field.
 \cite{tingley2014towards} used a variety of standard machine learning algorithms to predict the photovoltaic efficiency of organic molecules.
 
 \paragraph{Neural Networks on Graphs}
-
-\cite{graphnn2009} The Graph Neural Network Model
-
-\cite{micheli2009neural} Neural network for graphs
-
-\cite{bruna2013spectral} Spectral networks on graphs
+\cite{graphnn2009} propose a neural network model for graphs, along with an unusual forward and backward pass.
+The forward pass consists of running a message-passing scheme to equilibrium, a fact which allows the gradient to be computed without unrolling the entire forward computation.
+They apply their network to predicting mutagenesis of molecular compounds, as well as web page rankings.
+\cite{micheli2009neural} also propose a neural network model for graphs with a learning scheme whose inner loop optimizes not the training loss, but rather the correlation between a newly-proposed vector and the training error residual.
+The apply their Graph Neural Network model to a small dataset of boiling points of molecular compounds.
+\cite{bruna2013spectral} introduce convolutional networks on graphs in the regime where the graph structure is fixed, and each training example differs only in having different features at the vertices of the same graph.
+In contrast, our networks address the situation where each training input is a different graph.
 
 \paragraph{Unrolled inference algorithms}
 \citet{hershey2014deep} and others have noted that iterative inference procedures sometimes resemble the feedforward computation of a recurrent neural network.
@@ -237,7 +235,6 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 
 \section{Experiments}
-
 
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
@@ -358,7 +355,6 @@ Neural fingerprints have one additional hyperparameter: The number of features s
 \end{table}
 
 
-
 \subsection{Datasets}
 
 We compared the performance of standard circular fingerprints against our neural fingerprints on a variety of domains:
@@ -390,6 +386,8 @@ Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\
 \caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{table}
 
+In general, the circular fingerprints chose a 
+
 
 \subsection{Implementation Details}
 Automatic differentiation (AD) software packages such as
@@ -401,13 +399,30 @@ Code for all experiments in this paper will be made available upon publication.
 
 \section{Limitations}
 
-\paragraph{Computational cost}
-Computing the neural fingerprint of depth $R$, width $W$ of a molecule with $N$ atoms, Neural fingerprints have the same asymptotic complexity
+In this section we detail some limitations of the neural fingerprint architecture used in this paper.
 
-\paragraph{Performing more computation at each layer}
-How complicated should we make the function that goes from one layer of the graph to the next?
-\paragraph{Learning to parse molecules}
-The local message-passing architecture developed in this paper
+\paragraph{Computational cost}
+Neural fingerprints have the same asymptotic complexity in the number of atoms and the depth of the network as circular fingerprints, but have additional terms due to the matrix multiplies necessary to transform the feature vector at each step.
+To be precise, computing the neural fingerprint of depth $R$, fingerprint length $L$ of a molecule with $N$ atoms using a molecular convolutional net having $F$ features at each layer costs $\mathcal{O}(RNFL + RNF^2)$.
+In practice, training neural networks on top of circular fingerprints usually took several minutes, while training both the fingerprints and the network on top took on the order of an hour.
+
+\paragraph{Limited computation at each layer}
+How complicated should we make the function that goes from one layer of the network to the next?
+In this paper we chose the simplest feasible architecture: a single layer of a neural network.
+However, it may be fruitful to apply multiple layers of nonlinearities between each message-passing step (as in \cite{graphnn2009}), or to make information preservation easier by adapting the Long Short-Term Memory~\citep{hochreiter1997long} architecture to pass information upwards.
+
+\paragraph{Limited information propagation across the graph}
+The local message-passing architecture developed in this paper scales well asymptotically in the size of the graph, but its ability to propagate information across the graph is limited by the depth of the network.
+This may be appropriate for small graphs such as those representing the small organic molecules used in this paper.
+However, in the worst case, it will take a depth $\frac{N}{2}$ network to distinguish between all possible graphs of size $N$.
+To avoid this problem, \citet{bruna2013spectral} proposed a hierarchical clustering of graph substructures.
+A tree-structure network could examine the structure of the entire graph using only $\log(N)$ layers, but would require learning to parse molecules.
+Techniques from natural language processing~\citep{tai2015improved} might be fruitfully adapted to this domain.
+
+%\paragraph{Inapplicability to novel domains without retraining}
+%Circular fingerprints have a useful property: their feature dimension is implicitly infinite.
+%Because each possible substructure always maps to 
+
 
 %\paragraph{Preserve asymmetries explicitly or implicitly}
 %If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
@@ -419,8 +434,8 @@ The local message-passing architecture developed in this paper
 %[Idea: Use nested dropout to allow a variable-sized descriptor.]
 %Explain that it's analogous to PCA for neural nets
 
-\paragraph{Using LSTMs instead of RNNs}
-
+%\paragraph{Using LSTMs instead of RNNs}
+%Since \cite{hochreiter1997long}
 
 \section{Conclusions}
 Machine-optimized features have replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
