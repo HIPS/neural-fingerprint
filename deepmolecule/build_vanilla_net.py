@@ -27,7 +27,7 @@ def binary_classification_nll(predictions, targets):
     label_probabilities = pred_probs * targets + (1 - pred_probs) * (1 - targets)
     return -np.mean(np.log(label_probabilities))
 
-def build_standard_net(layer_sizes, normalize, L2_reg, activation_function=relu,
+def build_standard_net(layer_sizes, normalize, L2_reg, L1_reg=0.0, activation_function=relu,
                        nll_func=mean_squared_error):
     """Just a plain old neural net, nothing to do with molecules.
     layer sizes includes the input size."""
@@ -43,16 +43,16 @@ def build_standard_net(layer_sizes, normalize, L2_reg, activation_function=relu,
         for layer in range(len(layer_sizes) - 1):
             cur_W = parser.get(W_vect, ('weights', layer))
             cur_B = parser.get(W_vect, ('biases', layer))
-            cur_units = np.dot(cur_units, cur_W + cur_B)
-            if normalize:
-                cur_units = batch_normalize(cur_units)
+            cur_units = np.dot(cur_units, cur_W) + cur_B
             if layer < len(layer_sizes) - 2:
+                if normalize:
+                    cur_units = batch_normalize(cur_units)
                 cur_units = activation_function(cur_units)
         return cur_units[:, 0]
 
     def loss(w, X, targets):
         assert len(w) > 0
-        log_prior = -L2_reg * np.dot(w, w) / len(w)
+        log_prior = -L2_reg * np.dot(w, w) / len(w) - L1_reg * np.mean(np.abs(w))
         preds = predictions(w, X)
         return nll_func(preds, targets) - log_prior
 
