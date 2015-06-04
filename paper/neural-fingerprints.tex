@@ -8,6 +8,7 @@
 \usepackage{algorithm}
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{array,booktabs}
 
 \definecolor{mydarkblue}{rgb}{0,0.08,0.45}
 \hypersetup{
@@ -76,7 +77,7 @@ Figure \ref{fig:architecture sketch} shows a sketch of the net architecture.
 
 \begin{figure}
 \centerline{\includegraphics[width=0.4\textwidth]{figures/3d-nets/net1}
-\includegraphics[width=0.4\textwidth]{../..//DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
+\includegraphics[width=0.4\textwidth]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
 }
 \caption{A visual representation of the neural fingerprint architecture.}
 \label{fig:architecture sketch}
@@ -123,8 +124,8 @@ We make these choices in the standard way, using Bayesian optimization [cite] to
 One striking design aspect of circular fingerprints is the transformation of a feature vector into an index.
 In convolutional neural networks, pooling is usually performed on each feature separately.
 [more connecting text]
-We use the softmax operation as a differentiable analogue of indexing.
-We do this for three reasons: 1. To match Morgan fingerprints 2. To ensure sparsity of the fingprint 3. So that each fingerprint has a specific meaning - arbitrary rotations of the weight matrices will not give rise to equivalent models.
+We use the \texttt{softmax} operation as a differentiable analogue of indexing.
+We do this for three reasons: To match the structure of Circular fingerprints 2. To ensure sparsity of the fingerprint 3. So that each fingerprint has a specific meaning - arbitrary rotations of the weight matrices will not give rise to equivalent models.
 
 \paragraph{Canonicalization}
 Circular fingerprints produce the same fingerprints regardless of the ordering of atoms in each neighborhood, by sorting the neighboring atoms according to their features (and bond features).
@@ -253,6 +254,61 @@ Both fingerprint lengths were set to 2048.
 The line of points on the far left shows that for some pairs of molecules, binary ECFP fingerprints have exactly zero overlap.
 
 
+
+\subsection{Examining learned features}
+
+In contrast to circular fingerprints, which can each only be activated by a single fragment of a single radius, neural fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.
+
+\paragraph{Solubility features}
+%
+\newcommand{\molfeature}[2]{\includegraphics[width=3.5cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
+\begin{figure}[h!]
+\begin{tabular}{>{\centering}m{1in} >{\centering}m{3.5cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
+Fingerprint 15 Solubility coefficient 0.22 & \molfeature{15}{0} & \molfeature{15}{3} & \molfeature{15}{2} \\
+\midrule
+Fingerprint 18 Solubility coefficient -0.83 & \molfeature{18}{4} & \molfeature{18}{1} & \molfeature{18}{2}
+\end{tabular}
+\caption{Visualizing fingerprints optimized for predicting solubility.
+Shown here are representative samples of molecular fragments (highlighted in blue) which most activate each fingerprint.
+Shown here are the two fingerprints with the strongest predictive weights.
+In contrast to circular fingerprints, which can each only be activated by a single fragment of a single radius, neural fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.}
+\label{fig:learned features solubility}
+\end{figure}
+%
+Figure {fig:learned features solubility} shows which fragments maximally activated various features.
+These fingerprints were trained as the input to a linear model predicting the solubility as measured in the Delaney dataset~\citep{delaney_data_2004}.
+Shown are the two fingerprints with the strongest predictive weights.
+The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing an OH group.
+The second fingrprint, which is strongly negatively predictive of solubility is activated by non-polar repeated ring structures.
+
+
+
+
+\paragraph{Toxicity features}
+%
+\newcommand{\molfeaturetox}[2]{\includegraphics[width=3.5cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/4-toxic/figures/fp_#1_highlight_#2.pdf}}%
+\begin{figure}[h!]
+\begin{tabular}{>{\centering}m{1in} >{\centering}m{3.5cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
+Fingerprint 15 Solubility coefficient 0.22 & \molfeaturetox{1}{6} & \molfeaturetox{1}{4} & \molfeaturetox{1}{5}
+\end{tabular}
+\caption{Visualizing fingerprints optimized for predicting solubility.
+Shown here are representative samples of molecular fragments (highlighted in blue) which most activate each fingerprint.
+Shown here are the two fingerprints with the strongest predictive weights.
+In contrast to circular fingerprints, which can each only be activated by a single fragment of a single radius, neural fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.}
+\label{fig:learned features toxicity}
+\end{figure}
+%
+Figure {fig:learned features toxicity} shows which fragments maximally activated various features.
+We also ran the same experiment on data from the Tox 21 Data Challenge \citet{tox21}.
+\citet{unterthiner2015toxicity} constructed similar visualizations by searching for molecules that most activated neurons in a deep neural network on top of fixed circular fingerprints.
+However, given fixed fingerprints, it's not clear how to automatically find what fragments are relevant to the output.
+\citet{unterthiner2015toxicity} did this in a semi-manual way: in order to determine which fragments of the molecules were predictive of toxicity, they searched over a list of substructures already known to be toxic (toxicphores) to find the toxic substructure that most correlated with the given neuron.
+
+In contrast, our vizualizations are generated automatically, without the need to restrict the range of possible answers beforehand.
+
+
+
+
 \subsection{Experimental setup}
 
 Our pipeline takes as input the SMILES~\citep{weininger1988smiles} string-based encoding of each molecule, which is then converted into a graph using RDkit~\citep{rdkit}.
@@ -269,7 +325,7 @@ Because batch normalization consistently led to better validation errors on both
 We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint net and the fully-connected nets.  \texttt{relu} had a slight but consistent performance advantage on the validation set.
 We also experimented with dropconnect~\citep{wan2013regularization}, a variant of dropout in which weights are randomly set to zero instead of hidden units, but it led to worse validation error in general.
 
-We optimized for 100 epochs using minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
+We optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
 Adam's $\beta_1$ and $\beta_2$ were included in the Bayesian optimization.
 
 \begin{table}
@@ -305,54 +361,34 @@ Delaney dataset:
 
 Results are summarized in Table~\ref{table:main results}.
 
+%conv mean: 1.70349097683 conv std err 0.173207307432
+%morg mean: 1.85368888753 morg std err 0.0980490688708
+
 \begin{table}
-\begin{tabular}{c|cccc}
-Predicted property    & Solubility     &  Drug efficacy & Toxicity        & Photovoltaic efficiency \\
-Dataset               & \citet{delaney_data_2004} &  ?             &  \citet{tox21}  &  \citet{hachmann2011harvard} \\
-Dataset size          &    1129        &    ?           &  ?              &    ?  \\
-Error measurement     & RMSE (log Mol/L) &              & AUC?            & ? \\
+\begin{tabular}{ccc|cc}
+Predicted property           & Dataset                     & Metric & Circular        & Neural   \\
 \hline
-Circular fingerprints &  0.945  &   &   &  \\
-Neural fingerprints   &  \bf{0.687}  &   &   &?
+Solubility (log Mol/L)       & \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.06 & \bf{0.72} $\pm$ 0.05 \\
+Drug efficacy                & ?                           &   AUC  & ?               &      ?               \\
+Toxicity                     & \citet{tox21}               &    ?   & ?               &      ?               \\
+Photovoltaic efficiency (\%) & \citet{hachmann2011harvard} &  RMSE  & 1.85 $\pm$ 0.10 & \bf{1.70} $\pm$ 0.09
 \end{tabular}
 \label{table:main results}
 \caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{table}
 
 
-\subsection{Examining learned features}
-
-Figure \ref{fig:learned features} shows which fragments maximally activated various features.
-
-\newcommand{\molfeature}[2]{\includegraphics[width=3.5cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
-
-\begin{figure}[h!]
-\begin{tabular}{cccc}
-Fingerprint 1 & \molfeature{0}{1} & \molfeature{0}{2} & \molfeature{0}{9} \\
-Fingerprint 2 & \molfeature{1}{1} & \molfeature{1}{2} & \molfeature{1}{9} \\
-Fingerprint 3 & \molfeature{2}{1} & \molfeature{2}{2} & \molfeature{2}{9} \\
-Fingerprint 4 & \molfeature{3}{1} & \molfeature{3}{2} & \molfeature{3}{9}
-\end{tabular}
-\caption{The molecular fragments which most activate the four features of the convolutional net.}
-\label{fig:learned features}
-\end{figure}
-
 \subsection{Implementation Details}
 Automatic differentiation (AD) software packages such as
 Theano~\citep{Bastien-Theano-2012, bergstra2010scipy} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
-Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we implemented our own automatic differentiation package for Python, available at \url{<redacted>}.
-This package differentiates standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing
-while loops, branches, indexing, and even its own gradient evaluations.
+Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used the relatively flexible automatic differentiation package for Python, available at \url{github.com/HIPS/autograd}.
+This package differentiates standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing while loops, branches, indexing, and even its own gradient evaluations.
 
 Code for all experiments in this paper will be made available upon publication.
 
-
-
 \section{Future extensions}
-
 \paragraph{Performing more computation at each layer}
 How complicated should we make the function that goes from one layer of the graph to the next?
-
 \paragraph{Learning to parse molecules}
 The local message-passing architecture developed in this paper
 
