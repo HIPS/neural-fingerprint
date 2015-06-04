@@ -1,10 +1,49 @@
 import autograd.numpy as np
 import autograd.numpy.random as npr
 
+import sys, signal, pickle
 from contextlib import contextmanager
 from time import time
 from functools import partial
 from collections import OrderedDict
+
+def collect_test_losses(num_folds):
+    # Run this after CV results are in. e.g:
+    # python -c "from deepmolecule.util import collect_test_losses; collect_test_losses(10)"
+    results = {}
+    for net_type in ['conv', 'morgan']:
+        results[net_type] = []
+        for expt_ix in range(num_folds):
+            fname = "Final_test_loss_{0}_{1}.pkl.save".format(expt_ix, net_type)
+            try:
+                with open(fname) as f:
+                    results[net_type].append(pickle.load(f))
+            except IOError:
+                print "Couldn't find file {0}".format(fname)
+
+    print "Results are:"
+    print results
+    print "Means:"
+    print {k : np.mean(v) for k, v in results.iteritems()}
+    print "Std errors:"
+    print {k : np.std(v) / np.sqrt(len(v) - 1) for k, v in results.iteritems()}
+
+def record_loss(loss, expt_ix, net_type):
+    fname = "Final_test_loss_{0}_{1}.pkl.save".format(expt_ix, net_type)
+    with open(fname, 'w') as f:
+        pickle.dump(float(loss), f)
+
+def N_fold_split(N_folds, fold_ix, N_data):
+    fold_ix = fold_ix % N_folds
+    fold_size = N_data / N_folds
+    test_fold_start = fold_size * fold_ix
+    test_fold_end   = fold_size * (fold_ix + 1)
+    test_ixs  = range(test_fold_start, test_fold_end)
+    train_ixs = range(0, test_fold_start) + range(test_fold_end, N_data)
+    return train_ixs, test_ixs
+
+def rmse(X, Y):
+    return np.sqrt(np.mean((X - Y)**2))
 
 def slicedict(d, ixs):
     return {k : v[ixs] for k, v in d.iteritems()}
@@ -100,3 +139,16 @@ def add_dropout(grad, dropout_fraction, seed=0):
         masked_weights = weights * mask / (1 - dropout_fraction)
         return grad(masked_weights, i)
     return dropout_grad
+
+def catch_errors(run_fun, catch_fun):
+    def signal_term_handler(signal, frame):
+        catch_fun()
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, signal_term_handler)
+    try:
+        result = run_fun()
+    except:
+        catch_fun()
+        raise
+
+    return result
