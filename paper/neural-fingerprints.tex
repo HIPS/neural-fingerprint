@@ -249,7 +249,7 @@ This suggests the possibility that even for untrained neural weights, their rela
 
 \subsection{Examining learned features}
 To demonstrate that neural fingerprints are interpretable, we show examples of classes of substructures which activate individual features in a fingerprint.
-Circular fingerprint features can each only be activated by a single fragment of a single radius, except for cases where different fragments randomly activate the same feature.
+Circular fingerprint features can each only be activated by a single fragment of a single radius, except for accidental collisions.
 In contrast, neural fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.
 
 \paragraph{Solubility features}
@@ -276,7 +276,7 @@ Figure \ref{fig:learned features solubility} shows fragments from the training s
 These fingerprints were trained to act as inputs to a linear model predicting the solubility as measured in the\citep{delaney_data_2004} dataset.
 Shown are the two fingerprints with the strongest predictive weights.
 The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing an OH group.
-The second fingerprint, which is strongly negatively predictive of solubility, is activated by non-polar repeated ring structures.
+The second fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
 We ran a similar experiment on datasets from the \citet{tox21}.
@@ -466,7 +466,7 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 \section{Conclusion}
 We generalized existing hand-crafted molecular features to allow their optimization for diverse tasks.
-By making each operation in the the feature pipeline differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
+By making each operation in the feature pipeline differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
 We examined the interpretability and predictive performance of these new fingerprints.
 
 Data-driven features have already replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
