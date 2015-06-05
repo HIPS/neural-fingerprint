@@ -232,8 +232,9 @@ The performance of the large random weights is similar to that of circular finge
 \end{figure}
 
 One use for molecular fingerprints is to compute distances between molecules.
-We examined how similar inter-molecular distances were between ECFPs and neural fingerprints.
-Figure~\ref{fig:fingerprint similarity} (left) shows a scatterplot of the similarity between fingerprints of circular and neural fingerprints of length 2048 on the \citet{delaney_data_2004} solubility dataset.
+We examined whether ECFP-based distances were similar to neural fingerprint-based distances.
+Figure~\ref{fig:fingerprint similarity} (left) shows a scatterplot of pairwise distances calculated using either  circular or neural fingerprints.
+Fingerprints had length 2048, and were calculated on molecules from the \citet{delaney_data_2004} solubility dataset.
 Similarity was measured using a continuous generalization of the Tanimoto (a.k.a.\ Jacard) similarity measure, given by
 \begin{equation}
 \textnormal{similarity}(\vx, \vy) =  \sum \min(x_i, y_i) \Big/ \sum \max(x_i, y_i)
@@ -358,17 +359,17 @@ Results are summarized in Table~\ref{table:main results}.
 \begin{tabular}{lll|cc}
 Predicted property              & Dataset                     & Metric & Circular        & Neural   \\
 \midrule
-Solubility (log Mol/L)          & \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.06 & \bf{0.72} $\pm$ 0.05 \\
-Drug efficacy (EC$_{50}$ in nM) & \citet{gamo2010thousands}   &   RMSE & \bf{1.17} $\pm$ 0.12 & \bf{1.15} $\pm$ 0.16 \\
-Toxicity (Binary)               & \citet{tox21}               &   NLL  & 0.65 $\pm$ 0.3  & \bf{0.32} $\pm$ 0.08 \\
-Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\pm$ 0.3  & \bf{1.68} $\pm$ 0.15
+Solubility (log Mol/L)          & \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.02 & \bf{0.72} $\pm$ 0.02 \\
+Drug efficacy (EC$_{50}$ in nM) & \citet{gamo2010thousands}   &   RMSE & \bf{1.17} $\pm$ 0.05 & \bf{1.15} $\pm$ 0.05 \\
+Toxicity (Binary)               & \citet{tox21}               &   NLL  & 0.44 $\pm$ 0.02  & \bf{0.37} $\pm$ 0.02 \\
+Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\pm$ 0.10  & \bf{1.68} $\pm$ 0.05
 \end{tabular}
 \label{table:main results}
-\caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.
+\caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.
 For the binary classification task, we measures negative log predictive likelihood (NLL).}
 \end{table}
 %
-In all experiments, the neural fingerprints match or substantially beat the accuracy of circular fingerprints.
+In all experiments, the neural fingerprints matches or beats the accuracy of circular fingerprints.
 
 \paragraph{Software}
 Automatic differentiation (AD) software packages such as
