@@ -329,7 +329,7 @@ We also experimented with dropconnect~\citep{wan2013regularization}, a variant o
 Each experiment optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
 
 \paragraph{Bayesian Optimization}
-To optimize hyperparameters, we used {\sc Whetlab}\footnote{\url{www.whetlab.com}}, a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
+To optimize hyperparameters, we used {\sc Whetlab} (\url{www.whetlab.com}), a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
 The hyperparameters of both methods were optimized using 200 trials for each experiment.
 The following hyperparameters were optimized: log learning rate, log of Adam's $\beta_1$ and $\beta_2$ parameters, log of the initial weight scale, the log $L_2$ penalty, fingerprint length, fingerprint depth (up to 6), and the size of the hidden layer in the fully-connected network.
 Additionally, the size of the hidden feature vector in the convolutional neural fingerprint networks was optimized.
@@ -361,7 +361,8 @@ Toxicity (Binary)               & \citet{tox21}               &   NLL  & 0.65 $\
 Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\pm$ 0.3  & \bf{1.68} $\pm$ 0.15
 \end{tabular}
 \label{table:main results}
-\caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
+\caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.
+For the binary classification task, we measures negative log predictive likelihood (NLL).}
 \end{table}
 %
 In all experiments, the neural fingerprints match or substantially beat the accuracy of circular fingerprints.
@@ -369,7 +370,7 @@ In all experiments, the neural fingerprints match or substantially beat the accu
 \paragraph{Software}
 Automatic differentiation (AD) software packages such as
 Theano~\citep{Bastien-Theano-2012} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
-Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python, {\sc Autograd}\footnote{\url{github.com/HIPS/autograd}}.
+Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python, {\sc Autograd} (\url{github.com/HIPS/autograd)}.
 This package differentiates standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing while loops, branches, and indexing.
 
 Code for all experiments will be made available upon publication.
@@ -413,9 +414,6 @@ Neural fingerprints could be extended to be sensitive to chirality, but this rem
 %\subsection{Interpretability}
 %[Idea: Use nested dropout to allow a variable-sized descriptor.]
 %Explain that it's analogous to PCA for neural nets
-
-%\paragraph{Using LSTMs instead of RNNs}
-%Since \cite{hochreiter1997long}
 
 
 \section{Related work}
