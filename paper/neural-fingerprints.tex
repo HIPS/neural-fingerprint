@@ -79,13 +79,15 @@ After several such layers, a global pooling step combines features from all the 
 Figure \ref{fig:architecture sketch} shows a sketch of the network architecture.
 
 \begin{figure}
-\centerline{\includegraphics[width=0.4\textwidth, clip, trim=4mm 12mm 4mm 4mm]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
+\centerline{\includegraphics[width=0.35\textwidth, clip, trim=4mm 12mm 4mm 4mm]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
 \hspace{2em}
 \includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 8mm]{figures/3d-nets/net1}
 }
 \caption{\emph{Left}: A visual representation of the computational graph of both circular fingerprints and neural fingerprints.
-To begin with a graph is constructed matching the topology
-\emph{Right}: A more detailed}
+First (at bottom), a graph is constructed matching the topology of the molecule being fingerprinted, in which edges represent bonds.
+At each layer, information flows between neighbors in the graph.
+Finally, each node in the graph turns on one bit in the fixed-length fingerprint vector.
+\emph{Right}: A more detailed graph also including bond information in each computation.}
 \label{fig:architecture sketch}
 \end{figure}
 
@@ -100,6 +102,7 @@ We compare the effectiveness of neural fingerprints against standard fingerprint
 Fixed fingerprints must be extremely large to encode all possible substructures without overlap, or suffer random collisions.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000, after having removed rarely-occurring features.
 Differentiable fingerprints can be optimized to encode only relevant features, reducing downstream computation and regularization requirements.
+Hyperparameter optimization usually chose fingerprint lengths of 20-50 for neural fingerprints, and near the maximum length (2048) for circular fingerprints.
 %\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks~\citep{socher2011semi, socher2011dynamic}.
 \item {\bf Interpretability.}
 Circular fingerprints encode each fragment differently (up to random collisions), with no notion of similarity between fragments.
@@ -113,17 +116,18 @@ Circular fingerprints~\citep{glem2006circular} are a refinement of the Morgan al
 
 Circular fingerprints generate each layer's features by applying a fixed hash function to the concatenated features of the neighborhood in the previous layer.
 The result of these hashes are then treated as integer indices, where a 1 is written to the feature vector at the index given by the feature vector at each node in the graph.
-Ignoring collisions, each index denotes the presence a particular molecular substructure.
+Ignoring collisions, each index of the fingerprint denotes the presence a particular molecular substructure.
 The size of the substructures represented by each index depends on the depth of the network.
 Thus the number of layers is referred to as the `radius' of the fingerprints.
 
-The space of possible network architectures is large, but in the spirit of starting from a known-good configuration, we chose an architecture closely analogous to existing fingerprints.
-Our neural fingerprints could reasonably be said to generalize existing fingerprints.
-In Section \ref{sec:random is equivalent}, we show that randomly-initialized neural fingerprints have similar performance to existing fingerprints.
+%Our neural fingerprints could reasonably be said to generalize existing fingerprints.
+%In Section \ref{sec:random is equivalent}, we show that randomly-initialized neural fingerprints have similar performance to existing fingerprints.
 
-Standard circular fingerprints already implement a similar architecture, but the analogy to convolutional neural networks is not obvious.
+Circular fingerprints are analogous to convolutional networks in that they apply the same operation locally everywhere, and combine information in a global pooling step.
+We believe the connection is not obvious and was not remarked upon before this paper.
 
 \section{Creating a differentiable fingerprint}
+The space of possible network architectures is large, but in the spirit of starting from a known-good configuration, we chose an architecture closely analogous to existing fingerprints.
 This section describes our replacement of each discrete operation in circular fingerprints with a differentiable analogue.
 
 \paragraph{Hashing}
@@ -210,6 +214,13 @@ Every non-differentiable operation has been replaced with a differentiable analo
 \section{Related work}
 This work is similar in spirit to the Neural Turing Machine~\citep{graves2014neural}, in the sense that we take an existing discrete computational architecture, and make each part differentiable in order to do gradient-based optimization.
 
+\paragraph{Convolutional Neural Networks}
+Convolutional neural networks have been used to model images, speech, and time series~\citep{lecun1995convolutional}.
+However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
+More recently, \cite{KalchbrennerACL2014} and others have developed a convolutional neural network architecture for modeling sentences of varying length.
+\cite{bruna2013spectral} introduce convolutional networks on graphs in the regime where the graph structure is fixed, and each training example differs only in having different features at the vertices of the same graph.
+In contrast, our networks address the situation where each training input is a different graph.
+
 \paragraph{Neural fingerprints}
 The most closely related work is \citet{lusci2013deep}, who build a neural network having graph-valued inputs.
 Their approach is to remove all cycles and build the graph into a tree structure, choosing one atom to be the root.
@@ -218,13 +229,6 @@ Because a graph having $N$ nodes has $N$ possible roots, all $N$ possible graphs
 The final descriptor is a sum of the representations computed by all distinct graphs.
 There are as many distinct graphs as there are atoms in the network.
 The computational cost of this method thus grows as $\mathcal{O}(F^2N^2)$, where $F$ is the size of the feature vector and $N$ is the number of atoms, making it less suitable for large molecules.
-
-\paragraph{Convolutional Neural Networks}
-Convolutional neural networks have been used to model images, speech, and time series~\citep{lecun1995convolutional}.
-However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
-More recently, \cite{KalchbrennerACL2014} and others have developed a convolutional neural network architecture for modeling sentences of varying length.
-\cite{bruna2013spectral} introduce convolutional networks on graphs in the regime where the graph structure is fixed, and each training example differs only in having different features at the vertices of the same graph.
-In contrast, our networks address the situation where each training input is a different graph.
 
 \paragraph{Neural nets for quantitative structure-activity relationship (QSAR)}
 The modern standard for predicting properties of novel molecules is to compose circular fingerprints with fully-connected neural networks or other regression methods.
@@ -251,7 +255,6 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 
 \section{Experiments}
-
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
 To demonstrate that neural fingerprints are a generalization of circular fingerprints, in this section we give evidence that circular fingerprints are similar to neural fingerprints having large, randomly-initialized parameters.
@@ -385,7 +388,7 @@ Results are summarized in Table~\ref{table:main results}.
 \begin{table}
 \begin{tabular}{lll|cc}
 Predicted property              & Dataset                     & Metric & Circular        & Neural   \\
-\hline
+\midrule
 Solubility (log Mol/L)          & \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.06 & \bf{0.72} $\pm$ 0.05 \\
 Drug efficacy (EC$_{50}$ in nM) & \citet{gamo2010thousands}   &   RMSE & \bf{1.17} $\pm$ 0.12 & \bf{1.15} $\pm$ 0.16  \\
 Toxicity (Binary)               & \citet{tox21}               &   NLL  & ?               &      ?               \\
@@ -444,9 +447,10 @@ Techniques from natural language processing~\citep{tai2015improved} might be fru
 
 
 \section{Conclusion}
-Machine-optimized features have replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
-We generalized existing hand-crafted molecular feature pipelines to allow the improvement of these pipelines, as well as their customization for diverse tasks.
-By taking care that each operation in the generalized feature pipeline be differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
+Machine-optimized features have replaced hand-crafted features in speech recognition, machine vision, and natural-language processing to great effect.
+Doing the same thing in molecular analysis is a natural step.
+We generalized existing hand-crafted molecular features to allow scalable, gradient-based optimization for diverse tasks.
+%By taking care that each operation in the generalized feature pipeline be differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
 
 %\section*{Acknowledgments}
 \bibliography{references.bib}
