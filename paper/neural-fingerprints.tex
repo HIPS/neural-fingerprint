@@ -36,7 +36,11 @@
 \newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\npderiv}[2]{\nicefrac{\partial #1}{\partial #2}}
 
-\title{Neural Molecular Fingerprints}%Learning Molecular Fingerprints:\\Convolutional Networks on Graphs}
+\title{
+Learning Molecular Fingerprints with\\ Convolutional Networks on Graphs
+\\ or \\
+Neural Molecular Fingerprints
+}
 
 \author{
 David Duvenaud\\
@@ -255,13 +259,14 @@ In contrast, neural fingerprints can be activated by variations of the same stru
 
 \paragraph{Solubility features}
 %
-\newcommand{\molfeature}[2]{\includegraphics[width=3.4cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
+\newcommand{\molfeature}[2]{\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 3mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
 \begin{figure}[h]%
-\begin{tabular}{>{\centering}m{1.1in} >{\centering}m{3.4cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
+\begin{tabular}{>{\centering}m{1.1in} >{\centering}m{3.1cm} >{\centering}m{3.1cm} >{\centering\arraybackslash}m{3.1cm}}
 Fragments most activated by pro-solubility feature & \molfeature{15}{0} & \molfeature{15}{3} & \molfeature{15}{2} \\
 \midrule
 Fragments most activated by anti-solubility feature & \molfeature{18}{4} & \molfeature{18}{1} & \molfeature{18}{2}
 \end{tabular}
+\vspace{-3mm}
 \caption{Examining fingerprints optimized for predicting solubility.
 Shown here are representative samples of molecular fragments (highlighted in blue) which most activate different features of the  fingerprint.
 \emph{Top row:} The feature having the strongest predictive weight for solubility.
@@ -278,25 +283,32 @@ The first fingerprint has a positive predictive relationship with solubility, an
 The second fingerprint, which is strongly negatively predictive of solubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
-We ran a similar experiment on data from the \citet{tox21}.
+We ran a similar experiment on datasets from the \citet{tox21}.
 Figure \ref{fig:learned features toxicity} shows which fragments maximally activate various features.
 %\newcommand{\molfeaturetox}[1]{\includegraphics[width=3.5cm]{figures/jorge-figures/#1.png}}%
+\newcommand{\molfeaturetox}[2]{\includegraphics[width=3.4cm, clip, trim = 1mm 3mm 1mm 3mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/5-toxic-diff-dataset/figures/fp_#1_highlight_#2.pdf}}%
 \begin{figure}[h]
-\begin{tabular}{>{\centering}m{1in} >{\centering}m{2.2cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
-Fragments most activated by strongest toxicity fingerprint element 
+\begin{tabular}{>{\centering}m{1in} >{\centering}m{3.1cm} >{\centering}m{3.3cm} >{\centering\arraybackslash}m{3.1cm}}
+Fragments most activated by toxicity feature on SR-MMP dataset
 & \includegraphics[width=2.2cm]{figures/jorge-figures/7.png} 
-& \includegraphics[width=3.5cm]{figures/jorge-figures/8.png}
-& \includegraphics[width=3.5cm]{figures/jorge-figures/9.png}
+& \includegraphics[width=3.3cm]{figures/jorge-figures/8.png}
+& \includegraphics[width=3.3cm]{figures/jorge-figures/9.png}\\
+\midrule
+Fragments most activated by toxicity feature on NR-AHR dataset
+& \molfeaturetox{7}{14} & \molfeaturetox{7}{6} & \molfeaturetox{7}{5}
 \end{tabular}
+\vspace{-3mm}
 \caption{Visualizing fingerprints optimized for predicting toxicity.
-Shown here are representative samples of molecular fragments (highlighted in red) which most activate each fingerprint.
-In this case, the fingerprint has identified groups which contain a sulphur atom attached to an aromatic ring.}
+Shown here are representative samples of molecular fragments (highlighted in red) which most activate each feature.
+\emph{Top row:} the most predictive feature identifies groups containing a sulphur atom attached to an aromatic ring.
+\emph{Bottom row:} the most predictive feature identifies fused aromatic rings, also known as polycyclic aromatic hydrocarbons, a known carcinogen.
+}
 \label{fig:learned features toxicity}
 \end{figure}
 
 \citet{unterthiner2015toxicity} constructed similar visualizations by searching for molecules that most activated neurons in a deep neural network on top of fixed circular fingerprints.
 However, given fixed fingerprints, it's not clear how to automatically determine which fragments are relevant to the output.
-\citet{unterthiner2015toxicity} did this in a semi-manual way: in order to determine which fragments of the molecules were predictive of toxicity, they searched over a list of substructures already known to be toxic (toxicphores) to find the toxic substructure that most correlated with the given neuron.
+\citet{unterthiner2015toxicity} did this in a semi-manual way: in order to determine which fragments of the molecules were predictive of toxicity, they searched over a list of substructures already known to be toxic (toxicophores) to find the toxic substructure that most correlated with the given neuron.
 In contrast, our vizualizations are generated automatically, without the need to restrict the range of possible answers beforehand.
 
 \subsection{Predictive Performance}
@@ -356,7 +368,7 @@ We compared the performance of standard circular fingerprints against our neural
 \item {\bf Solubility:} \cite{delaney_data_2004} measured the aqueous solubility of 1144 molecules.
 \item{\bf Drug efficacy:} \citet{gamo2010thousands} measured the half maximal effective concentration (EC$_{50}$) {\it in vitro} of 20,000 molecules against a sulfide-resistant strain of {\it P. falciparum}.
 \item {\bf Toxicity:} The \citet{tox21} released several assays measuring the toxicity of thousands of compounds.
-We measured performance on the MMP Stress response panel, whose predictive target was a binary response.
+We measured performance on the MMP stress response panel, whose predictive target was a binary response.
 \item {\bf Organic photovoltaic efficiency:} The Harvard Clean Energy Project~\citet{hachmann2011harvard} has run millions of molecules through a TD-DFT simulation to estimate the photovoltaic efficiency of organic molecules.
 Each simulation requires tens of CPU hours, meaning that accurately predicting outcome of the simulation can greatly speed up the virtual screening process.
 \end{itemize}
