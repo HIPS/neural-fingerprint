@@ -67,42 +67,48 @@ We introduce a generalization of commonly-used molecular fingerprints based on c
 Much progress has recently been made by the application of deep learning to virtual screening, where the task is to predict the properties of novel molecules by generalizing from examples.
 One difficulty with this task is that the input to the predictor, a molecule, can be of arbitrary size and shape.
 Most machine learning pipelines can only handle inputs of a fixed size.
-The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those as inputs to fully-connected deep neural networks or other standard machine learning methods.
-This formula was followed by \citet{unterthinerdeep}, \citet{dahl2014multi}, \citet{tingley2014towards}, \citet{unterthiner2015toxicity},  \citet{ramsundar2015massively}, and \citet{ma_qsar_2015}.
-The networks are optimized using gradient descent, but the molecular fingerprints and treated as fixed.
-The state of the art in molecular fingerprints are extended-connectivity circular fingerprints, (ECFP)~\citep{ECFP2010}.%, a refinement of Morgan fingerprints.
+The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, using those features as inputs to fully-connected deep neural networks or other standard machine learning methods.
+This formula was followed by \citet{unterthinerdeep}, \citet{dahl2014multi}, \citet{tingley2014towards}, and \citet{ramsundar2015massively}.
+%\citet{unterthiner2015toxicity}, \citet{ma_qsar_2015}
+During training, the molecular fingerprints and treated as fixed.
 
 In this paper, we replace the bottom layer of this stack, the fixed circular molecular fingerprints, with a differentiable neural network whose inputs are graphs representing the original molecule.
 In these graphs, vertices represent individual atoms, and edges represent bonds.
 The lower layers of these neural networks are convolutional in the sense that the same local filter is applied to each neighborhood of an atoms and its neighbors.
 After several such layers, a global pooling step combines features from all the atoms in the network.
-Figure \ref{fig:architecture sketch} shows a sketch of the net architecture.
+Figure \ref{fig:architecture sketch} shows a sketch of the network architecture.
 
 \begin{figure}
-\centerline{\includegraphics[width=0.4\textwidth]{figures/3d-nets/net1}
-\includegraphics[width=0.4\textwidth]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
+\centerline{\includegraphics[width=0.4\textwidth, clip, trim=4mm 12mm 4mm 4mm]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
+\hspace{2em}
+\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 8mm]{figures/3d-nets/net1}
 }
-\caption{A visual representation of the neural fingerprint architecture.}
+\caption{\emph{Left}: A visual representation of the computational graph of both circular fingerprints and neural fingerprints.
+To begin with a graph is constructed matching the topology
+\emph{Right}: A more detailed}
 \label{fig:architecture sketch}
 \end{figure}
 
-Neural fingerprints offer several advantages over fixed, classical fingerprints:
+Neural fingerprints offer several advantages over fixed circular fingerprints:
 \begin{itemize}
-\item Molecular features can be automatically tuned to the task at hand.
-Currently, many hand-engineered variants of circular fingerprints exist for various settings. [cite, and give examples].
-\item Because circular fingerprints use a hash function to distinguish features, these fingerprints cannot encode any notion of similarity between fragments.
-The tiniest difference between two fragments will result in their activation of completely different fingerprint indices.
-\item By adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performace.
+\item {\bf Predictive performance.}
+By adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performance than fixed fingerprints.
 We compare the effectiveness of neural fingerprints against standard fingerprints at predicting toxicity prediction, solubility prediction, drug efficacy, and organic LED efficiency.
-\item Fixed fingerprints must be extremely large to encode all possible substructures without overlap.
-For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000 for each molecule, after having removed rarely-occurring features in order to make the problem computationally feasible.
-We show that better performance can be achieved using feature vectors a fraction of the size, reducing memory requirements.
-\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks~\citep{socher2011semi, socher2011dynamic}.
+%\item Molecular features can be automatically tuned to the task at hand.
+%Currently, many hand-engineered variants of circular fingerprints exist for various settings. [cite, and give examples].
+\item {\bf Parsimony.}
+Fixed fingerprints must be extremely large to encode all possible substructures without overlap, or suffer random collisions.
+For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000, after having removed rarely-occurring features.
+Differentiable fingerprints can be optimized to encode only relevant features, reducing downstream computation and regularization requirements.
+%\item Finally, the architecture presented here opens the door for more sophisticated information-aggregation architectures, such as recursive neural networks~\citep{socher2011semi, socher2011dynamic}.
+\item {\bf Interpretability.}
+Circular fingerprints encode each fragment differently (up to random collisions), with no notion of similarity between fragments.
 \end{itemize}
 
 
 \section{Circular fingerprints}
 
+The state of the art in molecular fingerprints are extended-connectivity circular fingerprints (ECFP)~\citep{ECFP2010}.
 Circular fingerprints~\citep{glem2006circular} are a refinement of the Morgan algorithm~\citep{morgan1965generation}, designed to capture information about which substructures are present in a molecule in a way that is invariant to atom-relabeling.
 
 Circular fingerprints generate each layer's features by applying a fixed hash function to the concatenated features of the neighborhood in the previous layer.
@@ -217,10 +223,12 @@ The computational cost of this method thus grows as $\mathcal{O}(F^2N^2)$, where
 Convolutional neural networks have been used to model images, speech, and time series~\citep{lecun1995convolutional}.
 However, standard convolutional architectures use a fixed computational graph, making them difficult to apply to objects of varying size or structure, such as molecules.
 More recently, \cite{KalchbrennerACL2014} and others have developed a convolutional neural network architecture for modeling sentences of varying length.
+\cite{bruna2013spectral} introduce convolutional networks on graphs in the regime where the graph structure is fixed, and each training example differs only in having different features at the vertices of the same graph.
+In contrast, our networks address the situation where each training input is a different graph.
 
 \paragraph{Neural nets for quantitative structure-activity relationship (QSAR)}
 The modern standard for predicting properties of novel molecules is to compose circular fingerprints with fully-connected neural networks or other regression methods.
-\cite{dahl2014multi, ma_qsar_2015} used circular fingerprints as inputs to an ensemble of neural networks, Gaussian processes, and random forests.
+\cite{dahl2014multi} used circular fingerprints as inputs to an ensemble of neural networks, Gaussian processes, and random forests.
 \cite{ramsundar2015massively} used circular fingerprints (of depth 2) as inputs to a multitask neural network, showing that multiple tasks helped performance.
 
 %\paragraph{Machine learning for identifying promising molecules}
@@ -236,9 +244,6 @@ They apply their model to a dataset of boiling points of 150 molecular compounds
 Our paper builds on these ideas in the following ways:
 Our method replaces their complex training algorithms with simple gradient-based optimization, generalizes existing molecular fingerprint computations, and applies these networks in the context of modern QSAR pipelines which use neural networks on top of the fingerprints to increase model capacity.
 
-\cite{bruna2013spectral} introduce convolutional networks on graphs in the regime where the graph structure is fixed, and each training example differs only in having different features at the vertices of the same graph.
-In contrast, our networks address the situation where each training input is a different graph.
-
 \paragraph{Unrolled inference algorithms}
 \citet{hershey2014deep} and others have noted that iterative inference procedures sometimes resemble the feedforward computation of a recurrent neural network.
 One natural combination of these ideas is to parameterize these inference steps, and train a neural network to approximately match the output of exact inference in a smaller number of iterations.
@@ -249,8 +254,9 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 \subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
-We argue that existing Circular fingerprints are similar to neural fingerprints with large, randomly-initialized parameters.
-In the limit of large parameter values, \texttt{tanh} nonlinearities approach step functions, and the \texttt{softmax} operator approaches a one-hot encoded \texttt{argmax} operator.
+To demonstrate that neural fingerprints are a generalization of circular fingerprints, in this section we give evidence that circular fingerprints are similar to neural fingerprints having large, randomly-initialized parameters.
+This is reasonable to expect, since in the limit of large input weights, \texttt{tanh} nonlinearities approach step functions, which when concatenated resemble a hash function.
+Also in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
 
 \begin{figure}[h]
 \centerline{\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/91-try-again/morg_conv_corr.pdf}}
@@ -259,12 +265,13 @@ In the limit of large parameter values, \texttt{tanh} nonlinearities approach st
 \label{fig:fingerprint similarity}
 \end{figure}
 
-Figure \ref{fig:fingerprint similarity} shows a scatterplot of the similarity between fingerprints of different modecules, generated by ECFPs and neural fingerprints.
+First, we examined how similar inter-molecule distances were between ECFPs and neural fingerprints.
+Figure~\ref{fig:fingerprint similarity}(left) shows a scatterplot of the similarity between fingerprints of circular and neural fingerprints of length 2048.
 Similarity was measured using a continuous generalization of the Tanimoto or Jacard similarity measure, given by
 \begin{equation}
-\textnormal{similarity}(\vx, \vy) = \frac{\sum \min(x_i, y_i)}{\sum \max(x_i, y_i)}
+\textnormal{similarity}(\vx, \vy) =  \sum \min(x_i, y_i) \Big/ \sum \max(x_i, y_i)
 \end{equation}
-Both fingerprint lengths were set to 2048.
+There is a fairly high correlation between the distances.
 The line of points on the far left shows that for some pairs of molecules, binary ECFP fingerprints have exactly zero overlap.
 
 \subsection{Examining learned features}
@@ -272,9 +279,9 @@ In contrast to circular fingerprints, which can each only be activated by a sing
 
 \paragraph{Solubility features}
 %
-\newcommand{\molfeature}[2]{\includegraphics[width=3.5cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
-\begin{figure}[h]
-\begin{tabular}{>{\centering}m{1in} >{\centering}m{3.5cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
+\newcommand{\molfeature}[2]{\includegraphics[width=3.4cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
+\begin{figure}[h]%
+\begin{tabular}{>{\centering}m{1.1in} >{\centering}m{3.4cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
 Fragments most activated by strongest pro-solubility fingerprint element & \molfeature{15}{0} & \molfeature{15}{3} & \molfeature{15}{2} \\
 \midrule
 Fragments most activated by strongest anti-solubility fingerprint element & \molfeature{18}{4} & \molfeature{18}{1} & \molfeature{18}{2}
@@ -286,7 +293,7 @@ In contrast to circular fingerprints, which can each only be activated by a sing
 \label{fig:learned features solubility}
 \end{figure}
 %
-Figure \ref{fig:learned features solubility} shows which fragments maximally activated various features.
+Figure \ref{fig:learned features solubility} shows fragments which maximally activated different features indices.
 These fingerprints were trained as the input to a linear model predicting the solubility as measured in the Delaney dataset~\citep{delaney_data_2004}.
 Shown are the two fingerprints with the strongest predictive weights.
 The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing an OH group.
@@ -314,47 +321,51 @@ In contrast, our vizualizations are generated automatically, without the need to
 
 \subsection{Experimental setup}
 Our pipeline takes as input the SMILES~\citep{weininger1988smiles} string-based encoding of each molecule, which is then converted into a graph using RDkit~\citep{rdkit}.
-We also used RDkit to produce circular fingerprints for our baseline experiments.
-To optimize hyperparameters, we used Whetlab~(\url{www.whetlab.com}), a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
-We optimized the learning and architecture parameters of both the Circular fingerprint network and the neural fingerprint network using 400 trials.
+We also used RDkit to produce circular fingerprints for comparison.
 
 In our convolutional networks, the initial atom and bond features were chosen to be similar to those used by ECFP.
-The atom features were a concatenation of a one-hot encoding of the element, the degree, the number of attached hydrogen atoms, and the implicit valence, and one feature indicating if the atom is in an aromatic ring. 
+Initial atom features concatenated a one-hot encoding of the element index, the degree, the number of attached hydrogen atoms, and the implicit valence, and an aromaticity indicator.
 The bond features were a concatenation of whether the bond type was single, double, triple, or aromatic, whether the bond was conjugated, and whether the bond is part of a ring.
 
-Initial experiments included optional batch normalization~\citep{ioffe2015batch}.
-Because batch normalization consistently led to better validation errors on both models, we eventually made it mandatory.
-We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint net and the fully-connected nets.  \texttt{relu} had a slight but consistent performance advantage on the validation set.
+Experiments included batch normalization~\citep{ioffe2015batch}.
+%Because batch normalization consistently led to better validation errors on both models, we eventually made it mandatory.
+We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint net and the fully-connected nets.
+\texttt{relu} had a slight but consistent performance advantage on the validation set.
 We also experimented with dropconnect~\citep{wan2013regularization}, a variant of dropout in which weights are randomly set to zero instead of hidden units, but it led to worse validation error in general.
 
-We optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
-Adam's $\beta_1$ and $\beta_2$ parameters were included in the Bayesian optimization.
+Each experiment optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
 
-Table \ref{table:bayesopt params} gives a full listing of all parameters optimized using Bayesian optmization for both models.
+\paragraph{Bayesian Optimization}
+To optimize hyperparameters, we used Whetlab~(\url{www.whetlab.com}), a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
+The hyperparameters of both the Circular fingerprint network and the neural fingerprint network using 200 trials for each dataset.
+The following hyperparameters were optimized: log learning rate, log of Adam's $\beta_1$ and $\beta_2$ parameters, log of the initial weight scale, the log $L_2$ penalty, fingerprint length, fingerprint depth (up to 6), and the size of the hidden layer in the fully-connected network.
+Additionally, the size of the hidden feature vector in the convolutional neural fingerprint networks was optimized.
 
-\begin{table}
-\center
-\begin{tabular}{l|lcl}
-Hyperparameter & Min & Max & Type \\
-\hline
-Fingerprint length & 10  & 2048 & integer \\
-Fingerprint depth  & 0   & 6    & integer \\
-Log initial scale  & -6  & -2   & real \\
-Log learn rate     & -7  & -2   & real \\
-Log $\beta_1$      & -8  & 2    & real \\
-Log $\beta_2$      & -6  & 2    & real \\
-Log $L_2$ penalty  & -12 & -1   & real \\
-Hidden layer size  & 10  & 500  & integer \\
-\hline 
-Convolution width  & 2   & 50   & integer
-\end{tabular}
-\caption{Hyperparameter ranges used in Bayesian optimization.
-Both circular and neural fingerprints shared all hyperparameter ranges.
-Neural fingerprints have one additional hyperparameter: The number of features stored at each node in the graph.}
-\label{table:bayesopt params}
-\end{table}
+%Table \ref{table:bayesopt params} gives a full listing of all parameters optimized using Bayesian optmization for both models.
 
-\subsection{Datasets}
+%\begin{table}
+%\center
+%\begin{tabular}{l|lcl}
+%Hyperparameter & Min & Max & Type \\
+%\hline
+%Fingerprint length & 10  & 2048 & integer \\
+%Fingerprint depth  & 0   & 6    & integer \\
+%Log initial scale  & -6  & -2   & real \\
+%Log learn rate     & -7  & -2   & real \\
+%Log $\beta_1$      & -8  & 2    & real \\
+%Log $\beta_2$      & -6  & 2    & real \\
+%Log $L_2$ penalty  & -12 & -1   & real \\
+%Hidden layer size  & 10  & 500  & integer \\
+%\hline 
+%Convolution width  & 2   & 50   & integer
+%\end{tabular}
+%\caption{Hyperparameter ranges used in Bayesian optimization.
+%Both circular and neural fingerprints shared all hyperparameter ranges.
+%Neural fingerprints have one additional hyperparameter: The number of features stored at each node in the graph.}
+%\label{table:bayesopt params}
+%\end{table}
+
+\paragraph{Datasets}
 We compared the performance of standard circular fingerprints against our neural fingerprints on a variety of domains:
 %
 \begin{itemize}
@@ -368,9 +379,9 @@ Each simulation requires tens of CPU hours, meaning that predicting outcome of t
 %
 To examine the applicability of neural fingerprints to the relatively small size of datasets commonly encountered, we subsampled 1000 points from each dataset.
 
-\subsection{Predictive accuracy}
+\paragraph{Predictive accuracy}
 Results are summarized in Table~\ref{table:main results}.
-
+%
 \begin{table}
 \begin{tabular}{lll|cc}
 Predicted property              & Dataset                     & Metric & Circular        & Neural   \\
@@ -383,20 +394,18 @@ Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\
 \label{table:main results}
 \caption{Predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{table}
+%
+In all experiments, the neural fingerprints match or substantially beat the accuracy of circular fingerprints.
 
-In general, the circular fingerprints chose a 
-
-
-\subsection{Implementation Details}
+\paragraph{Implementation Details}
 Automatic differentiation (AD) software packages such as
-Theano~\citep{Bastien-Theano-2012, bergstra2010scipy} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
+Theano~\citep{Bastien-Theano-2012} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
 Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python, Autograd\footnote{\url{github.com/HIPS/autograd}}.
 This package differentiates standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing while loops, branches, and indexing.
-
-Code for all experiments in this paper will be made available upon publication.
+Code for all experiments will be made available upon publication.
 
 \section{Limitations}
-In this section we detail some limitations of the neural fingerprint architecture used in this paper.
+%In this section we detail some limitations of the neural fingerprint architecture used in this paper.
 
 \paragraph{Computational cost}
 Neural fingerprints have the same asymptotic complexity in the number of atoms and the depth of the network as circular fingerprints, but have additional terms due to the matrix multiplies necessary to transform the feature vector at each step.
@@ -420,7 +429,6 @@ Techniques from natural language processing~\citep{tai2015improved} might be fru
 %Circular fingerprints have a useful property: their feature dimension is implicitly infinite.
 %Because each possible substructure always maps to 
 
-
 %\paragraph{Preserve asymmetries explicitly or implicitly}
 %If we tie the weights of all neighboring vertices, then ordering information is lost locally, although it is still preserved implicitly in the relations between nodes in the next layer.
 
@@ -435,7 +443,7 @@ Techniques from natural language processing~\citep{tai2015improved} might be fru
 %Since \cite{hochreiter1997long}
 
 
-\section{Conclusions}
+\section{Conclusion}
 Machine-optimized features have replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
 We generalized existing hand-crafted molecular feature pipelines to allow the improvement of these pipelines, as well as their customization for diverse tasks.
 By taking care that each operation in the generalized feature pipeline be differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
