@@ -262,8 +262,12 @@ This is reasonable to expect, since in the limit of large input weights, \texttt
 Also in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/91-try-again/morg_conv_corr.pdf}}
-\caption{A visual representation of the neural fingerprint architecture.
+\centerline{\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/91-try-again/morg_conv_corr.pdf}
+\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-25-delaney/43-random-vs-depth/figures/all_rmsestest_rmse.pdf}
+}
+\caption{\emph{Left:} Similarity between fingerprints of circular and neural fingerprints.
+\emph{Right}: A comparison of regression performance of circular fingerprints (red), neural fingerprints with fixed large random weights (green) and neural fingerprints with fixed small random weights (blue).
+The performance of the large random weights is similar to that of circular fingerprints.
 }
 \label{fig:fingerprint similarity}
 \end{figure}
@@ -304,13 +308,17 @@ The second fingerprint, which is strongly negatively predictive of solubility is
 
 \paragraph{Toxicity features}
 %
-\newcommand{\molfeaturetox}[2]{\includegraphics[width=3.5cm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/4-toxic/figures/fp_#1_highlight_#2.pdf}}%
+%\newcommand{\molfeaturetox}[1]{\includegraphics[width=3.5cm]{figures/jorge-figures/#1.png}}%
 \begin{figure}[h]
-\begin{tabular}{>{\centering}m{1in} >{\centering}m{3.5cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
-Fragments most activated by strongest toxicity fingerprint element & \molfeaturetox{1}{6} & \molfeaturetox{1}{4} & \molfeaturetox{1}{5}
+\begin{tabular}{>{\centering}m{1in} >{\centering}m{2.2cm} >{\centering}m{3.5cm} >{\centering\arraybackslash}m{3.5cm}}
+Fragments most activated by strongest toxicity fingerprint element 
+& \includegraphics[width=2.2cm]{figures/jorge-figures/7.png} 
+& \includegraphics[width=3.5cm]{figures/jorge-figures/8.png}
+& \includegraphics[width=3.5cm]{figures/jorge-figures/9.png}
 \end{tabular}
 \caption{Visualizing fingerprints optimized for predicting toxicity.
-Shown here are representative samples of molecular fragments (highlighted in red) which most activate each fingerprint.}
+Shown here are representative samples of molecular fragments (highlighted in red) which most activate each fingerprint.
+In this case, the fingerprint has identified groups which contain a sulphur atom attached to an aromatic ring.}
 \label{fig:learned features toxicity}
 \end{figure}
 %
