@@ -39,20 +39,10 @@
 \title{Neural Molecular Fingerprints}
 
 \author{
-David Duvenaud\\
-Harvard University\\
-\texttt{dduvenaud@seas.harvard.edu}
-\And
-Dougal Maclaurin\\
-Harvard University\\
-\texttt{maclaurin@physics.harvard.edu}
-\And
-Ryan P. Adams\\
-Harvard University\\
-\texttt{rpa@seas.harvard.edu}
-}
+David Duvenaud, Dougal Maclaurin, Jorge Aguilera Iparraguirre \\ {\bf Rafael G\'omez Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
+Harvard University}
 
-%\nipsfinalcopy % Uncomment for camera-ready version
+\nipsfinalcopy
 \begin{document}
 \maketitle
 
@@ -150,7 +140,7 @@ Circular fingerprints are identical regardless of the ordering of atoms in each 
 This invariance is achieved by sorting the neighboring atoms according to their features, and bond features.
 We experimented with this sorting scheme, and also with applying the local feature transform on all possible permutation of the local neighborhood.
 An alternative to canonicalization is to apply a permutation-invariant function, such as summation.
-In the interests of simplicity and scalability, we chose the summation.
+In the interests of simplicity and scalability, we chose summation.
 %In some cases, this second approach requires more layers to distinguish
 
 Algorithms \ref{alg:ecfp} and \ref{alg:neural} summarize these two algorithms and highlight their differences.
@@ -235,7 +225,7 @@ One use for molecular fingerprints is to compute distances between molecules.
 We examined whether ECFP-based distances were similar to neural fingerprint-based distances.
 Figure~\ref{fig:fingerprint similarity} (left) shows a scatterplot of pairwise distances calculated using either  circular or neural fingerprints.
 Fingerprints had length 2048, and were calculated on molecules from the \citet{delaney_data_2004} solubility dataset.
-Similarity was measured using a continuous generalization of the Tanimoto (a.k.a.\ Jacard) similarity measure, given by
+Similarity was measured using a continuous generalization of the Tanimoto (a.k.a.\ Jaccard) similarity measure, given by
 \begin{equation}
 \textnormal{similarity}(\vx, \vy) =  \sum \min(x_i, y_i) \Big/ \sum \max(x_i, y_i)
 \end{equation}
@@ -276,7 +266,7 @@ Shown here are representative samples of molecular fragments (highlighted in blu
 Figure \ref{fig:learned features solubility} shows fragments from the training set which maximally activated different features indices.
 These fingerprints were trained to act as inputs to a linear model predicting the solubility as measured in the\citep{delaney_data_2004} dataset.
 Shown are the two fingerprints with the strongest predictive weights.
-The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing an OH group.
+The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group.
 The second fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
@@ -403,7 +393,7 @@ Techniques from natural language processing~\citep{tai2015improved} might be fru
 \paragraph{Inability to distinguish stereoisomers}
 Special bookkeeping is required to distinguish between stereoisomers, including enantomers (mirror images of molecules) or {\it cis/trans} isomers (rotation around double bonds).
 Most circular fingerprint implementations have the option to make these distinctions.
-Neural fingerprints could be extended to be sensitive to stereoisomers, but this remains for future work.
+Neural fingerprints could be extended to be sensitive to stereoisomers, but this remains a task for future work.
 
 %\paragraph{Inapplicability to novel domains without retraining}
 %Circular fingerprints have a useful property: their feature dimension is implicitly infinite.
@@ -473,7 +463,9 @@ We examined the interpretability and predictive performance of these new fingerp
 Data-driven features have already replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
 Carrying out the same task for virtual screening seems like a natural next step.
 
-%\section*{Acknowledgments}
+\subsection*{Acknowledgments}
+We thank  Samsung Advanced Institute of Technology for their support.
+
 \bibliography{references.bib}
 \bibliographystyle{include/icml2015}
 \end{document}
