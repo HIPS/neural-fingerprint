@@ -1,0 +1,41 @@
+\begin{thebibliography}{4}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Delaney(2004)]{delaney_data_2004}
+Delaney, John~S.
+\newblock {ESOL}: Estimating aqueous solubility directly from molecular
+  structure.
+\newblock \emph{Journal of Chemical Information and Computer Sciences},
+  44\penalty0 (3):\penalty0 1000--1005, 2004.
+
+\bibitem[Gamo et~al.(2010)Gamo, Sanz, Vidal, de~Cozar, Alvarez, Lavandera,
+  Vanderwall, Green, Kumar, Hasan, et~al.]{gamo2010thousands}
+Gamo, Francisco-Javier, Sanz, Laura~M, Vidal, Jaume, de~Cozar, Cristina,
+  Alvarez, Emilio, Lavandera, Jose-Luis, Vanderwall, Dana~E, Green, Darren~VS,
+  Kumar, Vinod, Hasan, Samiul, et~al.
+\newblock Thousands of chemical starting points for antimalarial lead
+  identification.
+\newblock \emph{Nature}, 465\penalty0 (7296):\penalty0 305--310, 2010.
+
+\bibitem[Hachmann et~al.(2011)Hachmann, Olivares-Amaya, Atahan-Evrenk,
+  Amador-Bedolla, S{\'a}nchez-Carrera, Gold-Parker, Vogt, Brockway, and
+  Aspuru-Guzik]{hachmann2011harvard}
+Hachmann, Johannes, Olivares-Amaya, Roberto, Atahan-Evrenk, Sule,
+  Amador-Bedolla, Carlos, S{\'a}nchez-Carrera, Roel~S, Gold-Parker, Aryeh,
+  Vogt, Leslie, Brockway, Anna~M, and Aspuru-Guzik, Al{\'a}n.
+\newblock The {H}arvard clean energy project: large-scale computational
+  screening and design of organic photovoltaics on the world community grid.
+\newblock \emph{The Journal of Physical Chemistry Letters}, 2\penalty0
+  (17):\penalty0 2241--2251, 2011.
+
+\bibitem[{Tox21 Challenge}(2014)]{tox21}
+{Tox21 Challenge}.
+\newblock National center for advancing translational sciences.
+\newblock \url{http://tripod.nih.gov/tox21/challenge}, 2014.
+\newblock [Online; accessed 2-June-2015].
+
+\end{thebibliography}

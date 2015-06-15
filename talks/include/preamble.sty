@@ -1,0 +1,179 @@
+\ProvidesPackage{preamble}
+
+\usepackage{url}
+\usepackage{array}
+\usepackage{amsmath,amssymb,amsfonts,textcomp}
+\usepackage{booktabs}
+\usepackage{relsize}
+\usepackage{nicefrac}
+\usepackage{graphicx}
+\usepackage{rotating}
+\usepackage{nth}
+\usepackage{acronym}
+\usepackage{bm}
+
+\newcommand{\binarysum}{\sum_{\bf{x} \in \{0,1\}^D}}
+\newcommand{\expect}{\mathbb{E}}
+\newcommand{\expectargs}[2]{\mathbb{E}_{#1} \left[ {#2} \right]}
+\newcommand{\var}{\mathbb{V}}
+\newcommand{\varianceargs}[2]{\mathbb{V}_{#1} \left[ {#2} \right]}
+\newcommand{\variance}{\mathbb{V}}
+\newcommand{\cov}{\operatorname{cov}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\covarianceargs}[2]{\Cov_{#1} \left[ {#2} \right]}
+\newcommand{\colvec}[2]{\left[ \begin{array}{c} {#1} \\ {#2} \end{array} \right]}
+\newcommand{\tbtmat}[4]{\left[ \begin{array}{cc} {#1} & {#2} \\ {#3} & {#4} \end{array} \right]}
+
+%\newcommand{\covskinny}[2]{\var\!\left(#1\middle\vert#2\right)} 
+
+\newcommand{\acro}[1]{\textsc{#1}}
+%\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\vect}[1]{{\bf{#1}}}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\npderiv}[2]{\nicefrac{\partial #1}{\partial #2}}
+
+\newcommand{\pha}{^{\phantom{:}}}
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+
+% The following designed for probabilities with long arguments
+
+\newcommand{\Prob}[2]{P\!\left(\,#1\;\middle\vert\;#2\,\right)}
+\newcommand{\ProbF}[3]{P\!\left(\,#1\!=\!#2\;\middle\vert\;#3\,\right)}
+\newcommand{\p}[2]{p\!\left(#1\middle\vert#2\right)}
+\newcommand{\po}[1]{p\!\left(#1\right)}
+\newcommand{\pF}[3]{p\!\left(\,#1\!=\!#2\;\middle\vert\;#3\,\right)} 
+\newcommand{\mean}[2]{{m}\!\left(#1\middle\vert#2\right)}
+%\newcommand{\novmean}[2]{{m}\!\left(#1\middle\vert#2\right)}
+%\newcommand{\novcov}[2]{\var\!\left(#1\middle\vert#2\right)}
+%\newcommand{\cov}[2]{\var\!\left(#1\middle\vert#2\right)} 
+%\newcommand{\pskinny}[2]{p\!\left(#1\;\middle\vert\;#2\right)}
+%\newcommand{\meanskinny}[2]{{m}\!\left(#1\middle\vert#2\right)}
+%\newcommand{\covskinny}[2]{\var\!\left(#1\middle\vert#2\right)} 
+
+\newcommand{\vI}{\mat{I}}
+\newcommand{\vX}{\mat{X}}
+\newcommand{\vY}{\mat{Y}}
+\newcommand{\vZ}{\mat{Z}}
+\newcommand{\vK}{\mat{K}}
+\newcommand{\vi}{\vect{i}}
+\newcommand{\vs}{\vect{s}}
+\newcommand{\va}{\vect{a}}
+\newcommand{\vA}{\vect{A}}
+\newcommand{\vb}{\vect{b}}
+\newcommand{\vB}{\mat{B}}
+\newcommand{\vr}{\mat{r}}
+\newcommand{\vR}{\mat{R}}
+\newcommand{\vS}{\mat{S}}
+\newcommand{\vu}{\vect{u}}
+\newcommand{\vv}{\vect{v}}
+\newcommand{\vk}{\vect{k}}
+\newcommand{\vc}{\vect{c}}
+\newcommand{\vC}{\mat{C}}
+\newcommand{\vw}{\vect{w}}
+\newcommand{\vx}{\vect{x}}
+\newcommand{\vy}{\vect{y}}
+\newcommand{\vz}{\vect{z}}
+\newcommand{\vmu}{\vect{\mu}}
+\newcommand{\vpi}{\vect{\pi}}
+\newcommand{\vphi}{\vect{\phi}}
+\newcommand{\vSigma}{\mat{\Sigma}}
+\newcommand{\vtheta}{\vect{\theta}}
+\newcommand{\vl}{\vect{l}}
+\newcommand{\vq}{\vect{q}}
+\newcommand{\vf}{\vect{f}}
+\newcommand{\vg}{\vect{g}}
+\newcommand{\vell}{\vect{\ell}}
+\newcommand{\ve}{\vect{\epsilon}}
+\newcommand{\vzero}{\vect{0}}
+\newcommand{\vone}{\vect{1}}
+
+\newcommand{\He}{\mathcal{H}}
+\newcommand{\normx}[2]{\left\|#1\right\|_{#2}}
+\newcommand{\Hnorm}[1]{\normx{#1}{\He}}
+\newcommand{\mmd}{{\rm MMD}}
+
+
+\newcommand{\mf}{\bar{\vf}}
+
+\newcommand{\st}{_\star}
+
+\newcommand{\inv}{^{{\mathsmaller{-1}}}}
+\newcommand{\tohalf}{^{{\mathsmaller{\nicefrac{1}{2}}}}}
+
+\newcommand{\N}[3]{\mathcal{N}\!\left(#1|#2,#3\right)}
+\newcommand{\bN}[3]{\mathcal{N}\big(#1|#2,#3\big)}
+\newcommand{\boldN}[3]{\text{\textbf{\mathcal{N}}}\big(#1;#2,#3\big)}
+\newcommand{\ones}[1]{\mat{1}_{#1}}
+\newcommand{\eye}[1]{\mat{E}_{#1}}
+\newcommand{\tra}{^\ensuremath{\mathsf{T}}}
+\newcommand{\trace}{\operatorname{tr}}
+\newcommand{\deq}{:=}
+\newcommand{\degree}{^\circ}
+
+\DeclareMathOperator{\chol}{chol}
+\DeclareMathOperator{\diag}{diag}
+
+\newcommand{\gp}{{\acro{gp}}}
+\newcommand{\bmc}{{\acro{bmc}}}
+\newcommand{\bq}{{\acro{bq}}}
+\newcommand{\sbq}{{\acro{sbq}}}
+
+\newenvironment{narrow}[2]{%
+  \begin{list}{}{%
+  \setlength{\topsep}{0pt}%
+  \setlength{\leftmargin}{#1}%
+  \setlength{\rightmargin}{#2}%
+  \setlength{\listparindent}{\parindent}%
+  \setlength{\itemindent}{\parindent}%
+  \setlength{\parsep}{\parskip}}%
+\item[]}{\end{list}}
+
+\newtheorem{prop}{Proposition}
+\newtheorem{cor}{Corollary}
+\newtheorem{lem}{Lemma}
+
+
+\def\ie{i.e.\ }
+\def\eg{e.g.\ }
+\def\iid{i.i.d.\ }
+\def\simiid{\sim_{\mbox{\tiny iid}}}
+\def\eqdist{\stackrel{\mbox{\tiny d}}{=}}
+
+\def\Reals{\mathbb{R}}
+
+\def\Uniform{\mbox{\rm Uniform}}
+\def\Bernoulli{\mbox{\rm Bernoulli}}
+\def\GP{\mathcal{GP}}
+
+\def\inputVar{x}
+\def\InputVar{X}
+\def\InputSpace{\mathcal{X}}
+\def\outputVar{y}
+\def\OutputSpace{\mathcal{Y}}
+\def\function{f}
+\def\kernel{k}
+\def\KernelMatrix{K}
+\def\SumKernel{\sum}
+\def\ProductKernel{\prod}
+\def\expression{e}
+
+\def\SE{\acro{SE}}
+\def\Per{\acro{Per}}
+\def\RQ{\acro{RQ}}
+\def\Lin{\acro{Lin}}
+
+\def\subexpr{{\cal S}}
+\def\baseker{{\cal B}}
+\def\numWinners{k}
+
+\newcommand{\kSE}{{\acro{SE}}}
+\newcommand{\kC}{{\acro{C}}}
+\newcommand{\kPer}{{\acro{Per}}}
+\newcommand{\kLin}{{\acro{Lin}}}
+\newcommand{\kWN}{{\acro{WN}}}
+\newcommand{\kCP}{{\acro{CP}}}
+\newcommand{\kCW}{{\acro{CW}}}
+\newcommand{\kRQ}{{\acro{RQ}}}

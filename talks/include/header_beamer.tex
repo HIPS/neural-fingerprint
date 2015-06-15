@@ -1,0 +1,65 @@
+\documentclass[pdftex,12pt,xcolor=svgnames]{beamer}
+
+\mode<presentation>
+{
+  \usetheme{boxes}
+  \usecolortheme[named=MidnightBlue]{structure}
+  %\setbeamercolor{normal text}{bg=NavajoWhite!20}
+  %% \usefonttheme{serif}
+  \setbeamertemplate{navigation symbols}{}
+  % Show frame number and author name in footline
+  \setbeamertemplate{frametitle}[default][center]
+  \setbeamertemplate{footline}[frame number]
+  \setbeamertemplate{items}[circle]
+  %\addtobeamertemplate{footline}{\quad\textcolor{gray}{James Robert Lloyd}}{}
+  % Set frame titles in small capitals
+  %% \setbeamerfont{frametitle}{shape=\scshape,family=\rmfamily,size={\fontsize{16}{20}}}
+  %% \setbeamercolor{frametitle}{bg=gray!60!white,fg=black}
+  %% \setbeamercolor{frametitle}{bg=blue,fg=black}
+  % Alerted text: blue (uncomment second line if theme sets alerted text to bold)
+  \setbeamercolor{alerted text}{fg=blue}
+  %\setbeamerfont*{alerted text}{}
+  \setbeamertemplate{bibliography item}[text] %{\hbox{\donotcoloroutermaths$\blacktriangleright$}}
+  \setbeamertemplate{bibliography entry title}{}
+  \setbeamertemplate{bibliography entry author}{}
+  \setbeamertemplate{bibliography entry note}{}
+  \setbeamertemplate{bibliography entry location}{}
+
+}
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{multimedia}
+\usepackage{eepic}
+\usepackage{graphicx}
+%\usepackage[nohug]{latexinclude/diagrams}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+
+%% \newcommand{\footlineextra}[1]{
+%%     \begin{tikzpicture}[remember picture,overlay]
+%%         \node[yshift=1.5ex,anchor=south east] at (current page.south east)
+%% {#1};
+%%     \end{tikzpicture}
+%% }
+
+\newcommand{\footlineextra}[1]{
+    \begin{tikzpicture}[remember picture,overlay]
+        \node[xshift=-5ex,yshift=-0.5ex,anchor=south east] at (current page.south east)
+             {\mbox{\tiny \textcolor{MidnightBlue}{#1}}};
+    \end{tikzpicture}
+}
+
+\def\sectionframe#1{
+  {
+    \setbeamertemplate{footline}{\empty}
+    \begin{frame}{}
+      \begin{center}
+        \huge\sc #1
+      \end{center}
+    \end{frame}
+  }
+}
+

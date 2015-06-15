@@ -1,0 +1,35 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% EDITING HELPER FUNCTIONS  %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% NA: needs attention (rough writing whose correctness needs to be verified)
+%% TBD: instructions for how to fix a gap ("Describe the propagation by ...")
+%% PROBLEM: bug or missing crucial bit 
+
+%% use \fXXX versions of these macros to put additional explanation into a footnote.  
+%% The idea is that we don't want to interrupt the flow of the paper or make it 
+%% impossible to read because there are a bunch of comments.
+
+%% NA's (and TBDs, those less crucially) should be written so 
+%% that they flow with the text.
+
+\definecolor{WowColor}{rgb}{.75,0,.75}
+\definecolor{SubtleColor}{rgb}{0,0,.50}
+
+% inline
+\newcommand{\NA}[1]{\textcolor{SubtleColor}{ {\tiny \bf ($\star$)} #1}}
+\newcommand{\LATER}[1]{\textcolor{SubtleColor}{ {\tiny \bf ($\dagger$)} #1}}
+\newcommand{\TBD}[1]{\textcolor{SubtleColor}{ {\tiny \bf (!)} #1}}
+\newcommand{\PROBLEM}[1]{\textcolor{WowColor}{ {\bf (!!)} {\bf #1}}}
+
+% as margin notes
+
+\newcounter{margincounter}
+\newcommand{\displaycounter}{{\arabic{margincounter}}}
+\newcommand{\incdisplaycounter}{{\stepcounter{margincounter}\arabic{margincounter}}}
+
+\newcommand{\fTBD}[1]{\textcolor{SubtleColor}{$\,^{(\incdisplaycounter)}$}\marginpar{\tiny\textcolor{SubtleColor}{ {\tiny $(\displaycounter)$} #1}}}
+
+\newcommand{\fPROBLEM}[1]{\textcolor{WowColor}{$\,^{((\incdisplaycounter))}$}\marginpar{\tiny\textcolor{WowColor}{ {\bf $\mathbf{((\displaycounter))}$} {\bf #1}}}}
+
+\newcommand{\fLATER}[1]{\textcolor{SubtleColor}{$\,^{(\incdisplaycounter\dagger)}$}\marginpar{\tiny\textcolor{SubtleColor}{ {\tiny $(\displaycounter\dagger)$} #1}}}
