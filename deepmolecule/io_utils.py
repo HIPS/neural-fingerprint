@@ -1,29 +1,28 @@
 import os
 import csv
-import autograd.numpy as np
+import numpy as np
 from util import slicedict
 from collections import defaultdict
+import itertools as it
 
 def read_csv(filename, nrows, input_name, target_name):
-    data = defaultdict(list)
+    data = ([], [])
     with open(filename) as file:
         reader = csv.DictReader(file)
-        for i, row in enumerate(reader):
-            if i > nrows: break
-            data[input_name].append(row[input_name])
-            data[target_name].append(float(row[target_name]))
-    return data
+        for row in it.islice(reader, nrows):
+            data[0].append(row[input_name])
+            data[1].append(float(row[target_name]))
+    return map(np.array, data)
 
 def load_data(filename, sizes, input_name, target_name):
     nrows_total = sum(sizes)
     data = read_csv(filename, nrows_total, input_name, target_name)
-    all_data = {colname : np.array(data[colname]) for colname in data}
-
     datasets = []
     start = 0
     for size in sizes:
         end = start + size
-        datasets.append(slicedict(all_data, slice(start, end)))
+        datasets.append((data[0][start:end],
+                         data[1][start:end]))
         start = end
     return datasets
 
