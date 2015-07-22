@@ -1,7 +1,7 @@
 
 from util import tictoc, normalize_array, WeightsParser, build_batched_grad, add_dropout
 from optimizers import sgd, rms_prop, adam, bfgs
-from io_utils import get_output_file, get_data_file, load_data, output_dir
+from io_utils import get_output_file, get_data_file, load_data, load_data_slices, output_dir
 from rdkit_utils import smiles_to_fps
 from build_convnet import build_conv_deep_net, build_convnet_fingerprint_fun
 from build_vanilla_net import build_morgan_deep_net, build_morgan_fingerprint_fun, \
