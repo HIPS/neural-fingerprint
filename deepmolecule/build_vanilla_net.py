@@ -59,7 +59,7 @@ def build_standard_net(layer_sizes, normalize, L2_reg, L1_reg=0.0, activation_fu
     return loss, predictions, parser
 
 
-def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_penalty=0.0):
+def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_penalty):
     """Composes a fingerprint function with signature (smiles, weights, params)
      with a fully-connected neural network."""
     net_loss_fun, net_pred_fun, net_parser = build_standard_net(**net_params)
@@ -76,9 +76,11 @@ def build_fingerprint_deep_net(net_params, fingerprint_func, fp_parser, fp_l2_pe
     def loss_fun(weights, smiles, targets):
         fingerprint_weights, net_weights = unpack_weights(weights)
         fingerprints = fingerprint_func(fingerprint_weights, smiles)
-        l2_penalty = fp_l2_penalty * np.dot(fingerprint_weights, fingerprint_weights)\
-                     / (len(fingerprint_weights) + 0.01)
-        return net_loss_fun(net_weights, fingerprints, targets) + l2_penalty
+        net_loss = net_loss_fun(net_weights, fingerprints, targets)
+        if len(fingerprint_weights) > 0 and fp_l2_penalty > 0:
+            return net_loss + fp_l2_penalty * np.mean(fingerprint_weights**2)
+        else:
+            return net_loss
 
     def pred_fun(weights, smiles):
         fingerprint_weights, net_weights = unpack_weights(weights)
@@ -100,7 +102,7 @@ def build_morgan_fingerprint_fun(fp_length=512, fp_radius=4):
 
     return fingerprints_from_smiles
 
-def build_morgan_deep_net(fp_params, net_params, fp_l2_penalty=0.0):
+def build_morgan_deep_net(fp_length, fp_depth, **net_params):
     empty_parser = WeightsParser()
-    morgan_fp_func = build_morgan_fingerprint_fun(**fp_params)
-    return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, fp_l2_penalty)
+    morgan_fp_func = build_morgan_fingerprint_fun(fp_length, fp_depth)
+    return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, 0)

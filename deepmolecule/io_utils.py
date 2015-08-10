@@ -1,31 +1,35 @@
 import os
 import csv
-import autograd.numpy as np
+import numpy as np
 from util import slicedict
 from collections import defaultdict
+import itertools as it
 
 def read_csv(filename, nrows, input_name, target_name):
-    data = defaultdict(list)
+    data = ([], [])
     with open(filename) as file:
         reader = csv.DictReader(file)
-        for i, row in enumerate(reader):
-            if i > nrows: break
-            data[input_name].append(row[input_name])
-            data[target_name].append(float(row[target_name]))
-    return data
+        for row in it.islice(reader, nrows):
+            data[0].append(row[input_name])
+            data[1].append(float(row[target_name]))
+    return map(np.array, data)
 
 def load_data(filename, sizes, input_name, target_name):
-    nrows_total = sum(sizes)
-    data = read_csv(filename, nrows_total, input_name, target_name)
-    all_data = {colname : np.array(data[colname]) for colname in data}
-
-    datasets = []
+    slices = []
     start = 0
     for size in sizes:
-        end = start + size
-        datasets.append(slicedict(all_data, slice(start, end)))
-        start = end
-    return datasets
+        stop = start + size
+        slices.append(slice(start, stop))
+        start = stop
+    return load_data_slices(filename, slices, input_name, target_name)
+
+def load_data_slices(filename, slices, input_name, target_name):
+    stops = [s.stop for s in slices]
+    if not all(stops):
+        raise Exception("Slices can't be open-ended")
+
+    data = read_csv(filename, max(stops), input_name, target_name)
+    return [(data[0][s], data[1][s]) for s in slices]
 
 def get_output_file(rel_path):
     return os.path.join(output_dir(), rel_path)
