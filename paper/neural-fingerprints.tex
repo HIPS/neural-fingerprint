@@ -6,7 +6,7 @@
 \renewcommand\algorithmicthen{}
 \renewcommand\algorithmicdo{}
 \usepackage{algorithm}
-\usepackage{natbib}
+%\usepackage{natbib}
 \usepackage{graphicx}
 \usepackage{array,booktabs}
 
@@ -18,6 +18,9 @@
     citecolor=mydarkblue,
     filecolor=mydarkblue,
     urlcolor=mydarkblue}
+
+\newcommand{\citep}{\cite}
+\newcommand{\citet}{\cite}
 
 \newcommand{\vw}{\mathbf{w}}
 \newcommand{\vx}{\mathbf{x}}
@@ -36,10 +39,16 @@
 \newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\npderiv}[2]{\nicefrac{\partial #1}{\partial #2}}
 
+\makeatletter
+\renewcommand*{\@fnsymbol}[1]{\ensuremath{\ifcase#1\or \dagger\or \ddagger\or
+   \mathsection\or \mathparagraph\or \|\or **\or \dagger\dagger
+   \or \ddagger\ddagger \else\@ctrerr\fi}}
+\makeatother
+
 \title{Neural Molecular Fingerprints}
 
 \author{
-David Duvenaud, Dougal Maclaurin, Jorge Aguilera-Iparraguirre \\ {\bf Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
+David Duvenaud$^\dagger$, Dougal Maclaurin\thanks{Equal contribution.} , Jorge Aguilera-Iparraguirre \\ {\bf Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
 Harvard University}
 
 \nipsfinalcopy
@@ -113,7 +122,7 @@ Circular fingerprints are analogous to convolutional networks in that they apply
 
 \section{Creating a differentiable fingerprint}
 The space of possible network architectures is large.
-In the spirit of starting from a known-good configuration, we choose an architecture closely analogous to existing fingerprints.
+In the spirit of starting from a known-good configuration, we chose an architecture analogous to existing fingerprints.
 This section describes our replacement of each discrete operation in circular fingerprints with a differentiable analog.
 
 \paragraph{Hashing}
@@ -121,7 +130,7 @@ The purpose of the hashing function applied at each layer of circular fingerprin
 This ensures that any change in a fragment, no matter how small, will lead to a different fingerprint index being activated.
 We replace this hash operation with a single layer of a neural network.
 %, mapping from the concatenation of the features of an atom and its neighbors to a new feature vector for that atom.
-This function is differentiable, and allows the computed result to be similar if the local molecular structure varies in small ways.
+This function is differentiable, and allows the computed result to be similar even when the local molecular structure varies in small ways.
 
 \paragraph{Indexing}
 Circular fingerprints use an indexing operation to combine each atom's feature vector into a fingerprint.
@@ -213,21 +222,21 @@ This is reasonable to expect, since in the limit of large input weights, \texttt
 Also, in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
 
 \begin{figure}[h]
-\centerline{\includegraphics[width=0.48\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/91-try-again/morg_conv_corr.pdf}
+\centerline{\includegraphics[width=0.48\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/92-distance/morg_conv_corr.pdf}
 \includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-25-delaney/43-random-vs-depth/figures/all_rmsestest_rmse.pdf}}
-\caption{\emph{Left:} Similarity between circular fingerprints and neural fingerprints with large random weights.
+\caption{\emph{Left:} Comparison of pairwise distances between molecules, measured using circular fingerprints and neural fingerprints with large random weights.
 \emph{Right}: Predictive performance of circular fingerprints (red), neural fingerprints with fixed large random weights (green) and neural fingerprints with fixed small random weights (blue).
-The performance of the large random weights is similar to that of circular fingerprints.}
+The performance of neural fingerprints with large random weights closely matches the performance of circular fingerprints.}
 \label{fig:fingerprint similarity}
 \end{figure}
 
 One use for molecular fingerprints is to compute distances between molecules.
-We examined whether ECFP-based distances were similar to neural fingerprint-based distances.
-Figure~\ref{fig:fingerprint similarity} (left) shows a scatterplot of pairwise distances calculated using either  circular or neural fingerprints.
-Fingerprints had length 2048, and were calculated on molecules from the \citet{delaney_data_2004} solubility dataset.
-Similarity was measured using a continuous generalization of the Tanimoto (a.k.a.\ Jaccard) similarity measure, given by
+We examined whether ECFP-based distances were similar to random neural fingerprint-based distances.
+Figure~\ref{fig:fingerprint similarity}~(left) shows a scatterplot of pairwise distances calculated using either  circular or neural fingerprints.
+Fingerprints had length 2048, and were calculated on molecules from the solubility dataset~\citet{delaney_data_2004}.
+Distance was measured using a continuous generalization of the Tanimoto (a.k.a.\ Jaccard) similarity measure, given by
 \begin{equation}
-\textnormal{similarity}(\vx, \vy) =  \sum \min(x_i, y_i) \Big/ \sum \max(x_i, y_i)
+\textnormal{distance}(\vx, \vy) = 1 - \sum \min(x_i, y_i) \Big/ \sum \max(x_i, y_i)
 \end{equation}
 There is a correlation of $r = 0.823$ between the distances.
 The line of points on the far left shows that for some pairs of molecules, binary ECFP fingerprints have exactly zero overlap.
@@ -265,8 +274,8 @@ Shown here are representative samples of molecular fragments (highlighted in blu
 %
 Figure \ref{fig:learned features solubility} shows fragments from the training set which maximally activated different features indices.
 These fingerprints were trained to act as inputs to a linear model predicting the solubility as measured in the\citep{delaney_data_2004} dataset.
-Shown are the two fingerprints with the strongest predictive weights.
-The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group.
+Shown are the two fingerprint features with the strongest predictive weights.
+The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
 The second fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
@@ -467,5 +476,5 @@ Carrying out the same task for virtual screening seems like a natural next step.
 We thank  Samsung Advanced Institute of Technology for their support.
 
 \bibliography{references.bib}
-\bibliographystyle{include/icml2015}
+\bibliographystyle{plain}%include/icml2015}
 \end{document}
