@@ -46,7 +46,7 @@
 \makeatother
 
 %\title{Neural Molecular Fingerprints}
-\title{Learning Molecular Fingerprints through Convolutional Networks on Graphs}
+\title{Learning Molecular Fingerprints\\ with Convolutional Networks on Graphs}
 
 \author{
 David Duvenaud$^\dagger$, Dougal Maclaurin\thanks{Equal contribution.} , Jorge Aguilera-Iparraguirre \\ {\bf Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
@@ -68,8 +68,8 @@ We show that these data-driven features are more interpretable and have better p
 Recent work in materials design has applied neural networks to virtual screening, where the task is to predict the properties of novel molecules by generalizing from examples.
 One difficulty with this task is that the input to the predictor, a molecule, can be of arbitrary size and shape.
 Most machine learning pipelines can only handle inputs of a fixed size.
-The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, and use those features as inputs to fully-connected deep neural networks or other standard machine learning methods.
-This formula was followed by \citet{unterthinerdeep}, \citet{dahl2014multi}, and \citet{ramsundar2015massively}.
+The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, and use those features as inputs to a fully-connected deep neural network or other standard machine learning method.
+This formula was followed by \citet{unterthinerdeep, dahl2014multi, ramsundar2015massively}.
 During training, the molecular fingerprints were treated as fixed.
 
 In this paper, we replace the bottom layer of this stack -- the fixed molecular fingerprints -- with a differentiable neural network whose input is a graph representing the original molecule.
@@ -95,8 +95,9 @@ Each feature of a neural fingerprint can be activated by similar but distinct mo
 
 \begin{figure}
 \centerline{\includegraphics[width=0.35\textwidth, clip, trim=4mm 12mm 4mm 4mm]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
-\hspace{2em}
-\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 8mm]{figures/3d-nets/net1}}
+\hspace{5em}
+\raisebox{3mm}{\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 17mm]{figures/3d-nets/net1}}}
+\vspace{-1mm}
 \caption{\emph{Left}: A visual representation of the computational graph of both standard circular fingerprints and neural fingerprints.
 First, at bottom, a graph is constructed matching the topology of the molecule being fingerprinted, in which edges represent bonds.
 At each layer, information flows between neighbors in the graph.
@@ -107,6 +108,7 @@ This is a simplified sketch -- in reality, each layer writes to the fingerprint.
 \end{figure}
 
 \section{Circular fingerprints}
+\vspace{-3mm}
 The state of the art in molecular fingerprints are extended-connectivity circular fingerprints (ECFP)~\citep{ECFP2010}.
 Circular fingerprints~\citep{glem2006circular} are a refinement of the Morgan algorithm~\citep{morgan1965generation}, designed to identify which substructures are present in a molecule in a way that is invariant to atom-relabeling.
 
@@ -124,6 +126,7 @@ Circular fingerprints are analogous to convolutional networks in that they apply
 %We believe the connection is not obvious and was not remarked upon before this paper.
 
 \section{Creating a differentiable fingerprint}
+\vspace{-3mm}
 The space of possible network architectures is large.
 In the spirit of starting from a known-good configuration, we chose an architecture analogous to existing fingerprints.
 This section describes our replacement of each discrete operation in circular fingerprints with a differentiable analog.
@@ -156,7 +159,7 @@ In the interests of simplicity and scalability, we chose summation.
 %In some cases, this second approach requires more layers to distinguish
 
 Algorithms \ref{alg:ecfp} and \ref{alg:neural} summarize these two algorithms and highlight their differences.
-Given a fingerprint length $L$, and $F$ features at each layer, the parameters of neural fingerprints consist of a separate output weight matrix of size $F \times L$ for each layer, as well as a set of hidden-to-hidden weight matrices of size $F \times F$ at each layer, one for each possible degree (up to 5).
+Given a fingerprint length $L$, and $F$ features at each layer, the parameters of neural fingerprints consist of a separate output weight matrix of size $F \times L$ for each layer, as well as a set of hidden-to-hidden weight matrices of size $F \times F$ at each layer, one for each possible number of bonds an atom can have (up to 5 in organic molecules).
 
 \algrenewcommand\algorithmicindent{1.3em}%
 \begin{figure*}[t]
@@ -173,7 +176,7 @@ Given a fingerprint length $L$, and $F$ features at each layer, the parameters o
 \For {$L = 1$ to $R$} \Comment {for each layer}
 	\For {each atom $a$ in molecule}
 		\State $\vr_{1} \dots \vr_{N} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a \vr_{1} \dots, \vr_{N}]$ \Comment {concatenate}
+		\State $\vv \leftarrow [\vr_a, \vr_{1} \dots, \vr_{N}]$ \Comment {concatenate}
 		\State $\vr_a \leftarrow \textnormal{hash}(\vv)$ \Comment {hash function}
 		\State $i \leftarrow \textnormal{mod}(r_a, S)$ \Comment {convert to index}		
 		\State $\vf_{i} \leftarrow 1$ \Comment {Write 1 at index}
@@ -197,11 +200,11 @@ Given a fingerprint length $L$, and $F$ features at each layer, the parameters o
 \For {$L = 1$ to $R$} \Comment {for each layer}
     \For {each atom $a$ in molecule}
 		\State $\vr_{1} \dots \vr_{N} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a \vr_{1}, \dots \vr_{N}]$ \Comment {concatenate}
+		\State $\vv \leftarrow {\color{myfavblue} \vr_a + \sum_{i=1}^{_{N}} \vr_{i}}$ \Comment{{\color{myfavblue}sum}}
 		%\State $\vr_a \leftarrow {\color{myfavblue} \vf_{\theta_L}}(v)$ \Comment {{\color{myfavblue} smooth function}}
-		\State $\vr_a \leftarrow {\color{myfavblue} \sigma(H_L^N \times \vv)}$ \Comment {{\color{myfavblue} smooth function}}
-		\State $\vi \leftarrow {\color{myfavblue} \textnormal{softmax}(W_L \times \vr_a)}$ \Comment {{\color{myfavblue} sparsify}}
-		\State $\vf \leftarrow {\color{myfavblue} \vf + \vi}$ \Comment {{\color{myfavblue}add to fingerprint}}
+		\State $\vr_a \leftarrow {\color{myfavblue} \sigma(\vv H_L^N)}$ \Comment{{\color{myfavblue} smooth function}}
+		\State $\vi \leftarrow {\color{myfavblue} \textnormal{softmax}(\vr_a W_L)}$ \Comment{{\color{myfavblue} sparsify}}
+		\State $\vf \leftarrow {\color{myfavblue} \vf + \vi}$ \Comment{{\color{myfavblue}add to fingerprint}}
     \EndFor
 \EndFor
 \State \textbf{Return:} { {\color{myfavblue} real-valued} vector $\vf$}
