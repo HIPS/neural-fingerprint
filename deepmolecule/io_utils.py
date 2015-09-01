@@ -1,8 +1,6 @@
 import os
 import csv
 import numpy as np
-from util import slicedict
-from collections import defaultdict
 import itertools as it
 
 def read_csv(filename, nrows, input_name, target_name):
