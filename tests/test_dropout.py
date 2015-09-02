@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.random as npr
-from deepmolecule.util import dropout
+from neuralfingerprint.util import dropout
 
 def test_no_dropout_has_no_effect():
     weights = npr.randn(1000)

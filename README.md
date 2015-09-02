@@ -16,7 +16,7 @@ David Duvenaud, Dougal Maclaurin, Jorge Aguilera-Iparraguirre, Rafael Gómez-Bom
 
 ## How to install
 
-Just run `pip install deepmolecule`
+Just run `pip install neuralfingerprint`
 
 ## Authors
 

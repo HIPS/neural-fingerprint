@@ -9,7 +9,7 @@ import numpy as np
 import numpy.random as npr
 npr.seed(0)
 
-from deepmolecule import build_convnet_fingerprint_fun, build_morgan_fingerprint_fun
+from neuralfingerprint import build_convnet_fingerprint_fun, build_morgan_fingerprint_fun
 
 def invariant_conv_fp_func():
     fp_func, parser = build_convnet_fingerprint_fun(

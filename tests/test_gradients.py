@@ -1,6 +1,6 @@
 """Checks gradients for deep networks with fingerprints on the lower layers."""
 import numpy.random as npr
-from deepmolecule import build_conv_deep_net, build_morgan_deep_net
+from neuralfingerprint import build_conv_deep_net, build_morgan_deep_net
 from autograd.util import check_grads
 
 smiles = ('C=C', 'c12c(cccc1)cccc2', 'C1=CCCCC1', 'FC1=CC=CC=C1O')
@@ -13,10 +13,10 @@ vanilla_layer_sizes = [fp_length]
 fp_params = {'fp_length':fp_length,
              'fp_radius':1}
 
-vanilla_net_params = {'layer_sizes':[fp_length, 5]}
+vanilla_net_params = {'layer_sizes':[fp_length, 5], 'normalize': False, 'L2_reg': 0.0}
 
 def morg_fp_func():
-    loss, _, parser = build_morgan_deep_net(fp_params, vanilla_net_params)
+    loss, _, parser = build_morgan_deep_net(fp_length, 1, **vanilla_net_params)
     return lambda weights: loss(weights, smiles, targets), parser
 
 def test_morg_net_gradient():
@@ -25,7 +25,7 @@ def test_morg_net_gradient():
     check_grads(loss, weights)
 
 def conv_fp_func(conv_params):
-    loss, _, parser = build_conv_deep_net(conv_params, vanilla_net_params)
+    loss, _, parser = build_conv_deep_net(conv_params, vanilla_net_params, fp_l2_penalty=0.0)
     return lambda weights: loss(weights, smiles, targets), parser
 
 def check_conv_grads(conv_params):
