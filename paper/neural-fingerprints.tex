@@ -176,7 +176,7 @@ Given a fingerprint length $L$, and $F$ features at each layer, the parameters o
 \For {$L = 1$ to $R$} \Comment {for each layer}
 	\For {each atom $a$ in molecule}
 		\State $\vr_{1} \dots \vr_{N} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a, \vr_{1} \dots, \vr_{N}]$ \Comment {concatenate}
+		\State $\vv \leftarrow [\vr_a, \vr_{1}, \dots, \vr_{N}]$ \Comment {concatenate}
 		\State $\vr_a \leftarrow \textnormal{hash}(\vv)$ \Comment {hash function}
 		\State $i \leftarrow \textnormal{mod}(r_a, S)$ \Comment {convert to index}		
 		\State $\vf_{i} \leftarrow 1$ \Comment {Write 1 at index}
@@ -282,14 +282,14 @@ Shown here are representative samples of molecular fragments (highlighted in blu
 \label{fig:learned features solubility}
 \end{figure}
 %
-Figure \ref{fig:learned features solubility} shows fragments from the training set which maximally activated different features indices.
-These fingerprints were trained as inputs to a linear model predicting solubility as measured in \citep{delaney_data_2004}.
-Shown are the two fingerprint features with the strongest predictive weights.
-The first fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
-The second fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
+Figure \ref{fig:learned features solubility} shows the fragments that maximally activate the most predictive features of a fingerprint.
+The fingerprint network was trained as inputs to a linear model predicting solubility, as measured in \citep{delaney_data_2004}.
+%Shown are the two fingerprint features with the strongest predictive weights.
+The top fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
+The bottom fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
-We trained the same model architecture to predict toxicity as measured in \citet{tox21}.
+We trained the same model architecture to predict toxicity, as measured in two different datasets in \citet{tox21}.
 Figure \ref{fig:learned features toxicity} shows fragments which maximally activate the feature most predictive of toxicity.
 \newcommand{\molfeaturetox}[2]{\includegraphics[width=3.4cm, clip, trim = 1mm 3mm 1mm 3mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/5-toxic-diff-dataset/figures/fp_#1_highlight_#2.pdf}}%
 \begin{figure}[h]
@@ -386,7 +386,7 @@ Automatic differentiation (AD) software packages such as Theano~\citep{Bastien-T
 Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python called Autograd (\url{github.com/HIPS/autograd)}.
 This package handles standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing while loops, branches, and indexing.
 
-Code for computing neural fingerprints is available at \url{github.com/HIPS/deepmolecules}.
+Code for computing neural fingerprints and producing visualizations is available at \url{github.com/HIPS/neural-fingerprint}.
 
 \section{Limitations}
 %In this section we detail some limitations of the neural fingerprint architecture used in this paper.
