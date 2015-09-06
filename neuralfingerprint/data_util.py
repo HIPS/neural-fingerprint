@@ -1,9 +1,9 @@
-from deepmolecule.util import slicedict
-import numpy as np
 import csv
+import numpy as np
 import numpy.random as npr
 
-from deepmolecule.rdkit_utils import smile_to_fp
+from util import slicedict
+from rdkit_utils import smile_to_fp
 
 def randomize_order(data):
     data = {k : np.array(v) for k, v in data.iteritems()} # To array for fancy indexing
@@ -64,3 +64,13 @@ def valid_smiles(smile):
 def has_duplicates(A):
     return len(set(A)) != len(A)
 
+def remove_duplicates(values, key_lambda):
+    output = []
+    seen = set()
+    for value in values:
+        # If value has not been encountered yet, add it to both list and set.
+        cur_key = key_lambda(value)
+        if cur_key not in seen:
+            output.append(value)
+            seen.add(cur_key)
+    return output

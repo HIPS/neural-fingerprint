@@ -29,7 +29,7 @@ def matmult_neighbors(array_rep, atom_features, bond_features, get_weights):
             summed_neighbors = np.sum(stacked_neighbors, axis=1)
             activations = np.dot(summed_neighbors, get_weights(degree))
             activations_by_degree.append(activations)
-    # This is brittle! Relies on atoms being sorted by degree in the first place,
+    # This operation relies on atoms being sorted by degree,
     # in Node.graph_from_smiles_tuple()
     return np.concatenate(activations_by_degree, axis=0)
 

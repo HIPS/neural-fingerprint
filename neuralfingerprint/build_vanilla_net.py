@@ -1,4 +1,5 @@
 import autograd.numpy as np
+
 from util import memoize, WeightsParser
 from rdkit_utils import smiles_to_fps
 
@@ -102,7 +103,7 @@ def build_morgan_fingerprint_fun(fp_length=512, fp_radius=4):
 
     return fingerprints_from_smiles
 
-def build_morgan_deep_net(fp_length, fp_depth, **net_params):
+def build_morgan_deep_net(fp_length, fp_depth, net_params):
     empty_parser = WeightsParser()
     morgan_fp_func = build_morgan_fingerprint_fun(fp_length, fp_depth)
     return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, 0)
