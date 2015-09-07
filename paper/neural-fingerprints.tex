@@ -46,7 +46,7 @@
 \makeatother
 
 %\title{Neural Molecular Fingerprints}
-\title{Learning Molecular Fingerprints\\ with Convolutional Networks on Graphs}
+\title{Learning Molecular Fingerprints\\ through Convolutional Networks on Graphs}
 
 \author{
 David Duvenaud$^\dagger$, Dougal Maclaurin\thanks{Equal contribution.} , Jorge Aguilera-Iparraguirre \\ {\bf Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
@@ -58,10 +58,10 @@ Harvard University}
 
 \begin{abstract}
 Predicting properties of molecules requires functions that take graphs as inputs.
-%Predicting properties of molecules is usually done by first representing the molecular connectivity graph as a 
-Molecular graphs are usually processed using hash-based functions to produce fixed-size fingerprint vectors, which are then fed into standard machine learning methods.
-We introduce a generalization of commonly-used molecular fingerprints based on convolutional neural networks which allows learning the entire feature pipeline.
-We show that these data-driven features are more interpretable and have better predictive performance on a variety of tasks.
+Molecular graphs are usually preprocessed using hash-based functions to produce fixed-size fingerprint vectors, which are used as features for making predictions.
+We introduce a convolutional neural network that operates directly on graphs, allowing end-to-end learning of the feature pipeline.
+This architecture generalizes standard molecular fingerprints.
+We show that these data-driven features are more interpretable, and have better predictive performance on a variety of tasks.
 \end{abstract}
 
 \section{Introduction}
