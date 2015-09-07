@@ -16,7 +16,7 @@ fp_params = {'fp_length':fp_length,
 vanilla_net_params = {'layer_sizes':[fp_length, 5], 'normalize': False, 'L2_reg': 0.0}
 
 def morg_fp_func():
-    loss, _, parser = build_morgan_deep_net(fp_length, 1, **vanilla_net_params)
+    loss, _, parser = build_morgan_deep_net(fp_length, 1, vanilla_net_params)
     return lambda weights: loss(weights, smiles, targets), parser
 
 def test_morg_net_gradient():
