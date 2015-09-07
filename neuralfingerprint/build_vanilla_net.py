@@ -107,3 +107,14 @@ def build_morgan_deep_net(fp_length, fp_depth, net_params):
     empty_parser = WeightsParser()
     morgan_fp_func = build_morgan_fingerprint_fun(fp_length, fp_depth)
     return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, 0)
+
+def build_mean_predictor(loss_func):
+    parser = WeightsParser()
+    parser.add_weights('mean', (1,))
+    def loss_fun(weights, smiles, targets):
+        mean = parser.get(weights, 'mean')
+        return loss_func(np.full(targets.shape, mean), targets)
+    def pred_fun(weights, smiles):
+        mean = parser.get(weights, 'mean')
+        return np.full((len(smiles),), mean)
+    return loss_fun, pred_fun, parser
