@@ -46,7 +46,7 @@
 \makeatother
 
 %\title{Neural Molecular Fingerprints}
-\title{Learning Molecular Fingerprints\\ through Convolutional Networks on Graphs}
+\title{Convolutional Networks on Graphs \\for Learning Molecular Fingerprints}
 
 \author{
 David Duvenaud$^\dagger$, Dougal Maclaurin\thanks{Equal contribution.} , Jorge Aguilera-Iparraguirre \\ {\bf Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}\\
@@ -78,11 +78,11 @@ The lower layers of this network is convolutional in the sense that the same loc
 After several such layers, a global pooling step combines features from all the atoms in the molecule.
 %Figure \ref{fig:architecture sketch} shows a sketch of the network architecture.
 
-Neural fingerprints offer several advantages over fixed fingerprints:
+Neural graph fingerprints offer several advantages over fixed fingerprints:
 \begin{itemize}
 \item {\bf Predictive performance.}
 By using data adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performance than fixed fingerprints.
-We compare the effectiveness of neural fingerprints against standard fingerprints at predicting toxicity, solubility, drug efficacy, and organic photovoltaic efficiency.
+We compare the effectiveness of neural graph fingerprints against standard fingerprints at predicting toxicity, solubility, drug efficacy, and organic photovoltaic efficiency.
 \item {\bf Parsimony.}
 Fixed fingerprints must be extremely large to encode all possible substructures without overlap.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000, after having removed rarely-occurring features.
@@ -90,7 +90,7 @@ Differentiable fingerprints can be optimized to encode only relevant features, r
 %In our tests, hyperparameter optimization usually chose fingerprint lengths of 20-50 for neural fingerprints, and near the maximum length (2048) for fixed fingerprints.
 \item {\bf Interpretability.}
 Standard fingerprints encode each fragment differently (up to random collisions), with no notion of similarity between fragments.
-Each feature of a neural fingerprint can be activated by similar but distinct molecular fragments, making the feature representation more meaningful.
+Each feature of a neural graph fingerprint can be activated by similar but distinct molecular fragments, making the feature representation more meaningful.
 \end{itemize}
 
 \begin{figure}
@@ -98,7 +98,7 @@ Each feature of a neural fingerprint can be activated by similar but distinct mo
 \hspace{5em}
 \raisebox{3mm}{\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 17mm]{figures/3d-nets/net1}}}
 \vspace{-1mm}
-\caption{\emph{Left}: A visual representation of the computational graph of both standard circular fingerprints and neural fingerprints.
+\caption{\emph{Left}: A visual representation of the computational graph of both standard circular fingerprints and neural graph fingerprints.
 First, at bottom, a graph is constructed matching the topology of the molecule being fingerprinted, in which edges represent bonds.
 At each layer, information flows between neighbors in the graph.
 Finally, each node in the graph turns on one bit in the fixed-length fingerprint vector.
@@ -159,7 +159,7 @@ In the interests of simplicity and scalability, we chose summation.
 %In some cases, this second approach requires more layers to distinguish
 
 Algorithms \ref{alg:ecfp} and \ref{alg:neural} summarize these two algorithms and highlight their differences.
-Given a fingerprint length $L$, and $F$ features at each layer, the parameters of neural fingerprints consist of a separate output weight matrix of size $F \times L$ for each layer, as well as a set of hidden-to-hidden weight matrices of size $F \times F$ at each layer, one for each possible number of bonds an atom can have (up to 5 in organic molecules).
+Given a fingerprint length $L$, and $F$ features at each layer, the parameters of neural graph fingerprints consist of a separate output weight matrix of size $F \times L$ for each layer, as well as a set of hidden-to-hidden weight matrices of size $F \times F$ at each layer, one for each possible number of bonds an atom can have (up to 5 in organic molecules).
 
 \algrenewcommand\algorithmicindent{1.3em}%
 \begin{figure*}[t]
@@ -189,7 +189,7 @@ Given a fingerprint length $L$, and $F$ features at each layer, the parameters o
 \hfill
 \begin{minipage}[t]{0.49\columnwidth}
 \begin{algorithm}[H]
-\caption{Neural fingerprints} 
+\caption{Neural graph fingerprints} 
 \label{alg:neural} 
 \begin{algorithmic}[1]
 \State \textbf{Input:} {molecule, radius $R$, {\color{myfavblue} hidden weights $H_1^1 \dots H_R^5$, output weights $W_1 \dots W_R$}}
@@ -212,7 +212,7 @@ Given a fingerprint length $L$, and $F$ features at each layer, the parameters o
 \end{algorithm}
 \end{minipage}
 \hfill
-\caption{Pseudocode of circular fingerprints (\emph{left}) and neural fingerprints (\emph{right}).
+\caption{Pseudocode of circular fingerprints (\emph{left}) and neural graph fingerprints (\emph{right}).
 Differences are highlighted in blue.
 Every non-differentiable operation is replaced with a differentiable analog.}
 \end{figure*}
@@ -223,7 +223,7 @@ Every non-differentiable operation is replaced with a differentiable analog.}
 
 %\subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
 \label{sec:random is equivalent}
-Circular fingerprints can be interpreted as a special case of neural fingerprints having large random weights.
+Circular fingerprints can be interpreted as a special case of neural graph fingerprints having large random weights.
 %To demonstrate that neural fingerprints are a generalization of circular fingerprints, in this section we give evidence that circular fingerprints are similar to neural fingerprints having large, randomly-initialized parameter vectors.
 This is reasonable to expect, since in the limit of large input weights, \texttt{tanh} nonlinearities approach step functions, which when concatenated resemble a hash function.
 Also, in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
@@ -233,9 +233,9 @@ Also, in the limit of large input weights, the \texttt{softmax} operator approac
 \includegraphics[width=0.48\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/92-distance/morg_conv_corr.pdf}
 \raisebox{1.5mm}{\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-25-delaney/43-random-vs-depth/figures/all_rmsestest_rmse.pdf}}
  %}
-\caption{\emph{Left:} Comparison of pairwise distances between molecules, measured using circular fingerprints and neural fingerprints with large random weights.
-\emph{Right}: Predictive performance of circular fingerprints (red), neural fingerprints with fixed large random weights (green) and neural fingerprints with fixed small random weights (blue).
-The performance of neural fingerprints with large random weights closely matches the performance of circular fingerprints.}
+\caption{\emph{Left:} Comparison of pairwise distances between molecules, measured using circular fingerprints and neural graph fingerprints with large random weights.
+\emph{Right}: Predictive performance of circular fingerprints (red), neural graph fingerprints with fixed large random weights (green) and neural graph fingerprints with fixed small random weights (blue).
+The performance of neural graph fingerprints with large random weights closely matches the performance of circular fingerprints.}
 \label{fig:fingerprint similarity}
 \end{figure}
 
@@ -257,22 +257,26 @@ In contrast, the performance of neural fingerprints with small random weights fo
 This suggests the possibility that even for untrained neural weights, their relatively smooth activation helps generalization.
 
 \subsection{Examining learned features}
-To demonstrate that neural fingerprints are interpretable, we show examples of classes of substructures which activate individual features in a fingerprint.
+To demonstrate that neural graph fingerprints are interpretable, we show examples of classes of substructures which activate individual features in a fingerprint.
 Circular fingerprint features can each only be activated by a single fragment of a single radius, except for accidental collisions.
-In contrast, neural fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.
+In contrast, neural graph fingerprints can be activated by variations of the same structure, making them more parsimonious and interpretable.
 
 \paragraph{Solubility features}
-%
-\newcommand{\molfeature}[3]{\includegraphics[width=#3, clip, trim = 2mm 3mm 2mm 3mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}}%
+Figure \ref{fig:learned features solubility} shows the fragments that maximally activate the most predictive features of a fingerprint.
+The fingerprint network was trained as inputs to a linear model predicting solubility, as measured in \citep{delaney_data_2004}.
+%Shown are the two fingerprint features with the strongest predictive weights.
+The top fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
+The bottom fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
+
+\newcommand{\molfeature}[3]{\includegraphics[width=#3, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}\vspace{-1em}}%
 \begin{figure}[h]%
-\vspace{-3em}
+\vspace{-1em}
 \begin{tabular}{>{\centering}m{1.1in} >{\centering}m{3.1cm} >{\centering}m{3.1cm} >{\centering\arraybackslash}m{3.1cm}}
 Fragments most activated by pro-solubility feature & \molfeature{15}{0}{3.3cm} & \molfeature{15}{3}{3.3cm} & \molfeature{15}{2}{2.5cm}\\
 \midrule
 %\hline
 Fragments most activated by anti-solubility feature & \molfeature{18}{4}{3.3cm} & \molfeature{18}{1}{3.3cm} & \molfeature{18}{2}{3.3cm}
 \end{tabular}
-\vspace{-4mm}
 \caption{Examining fingerprints optimized for predicting solubility.
 Shown here are representative samples of molecular fragments (highlighted in blue) which most activate different features of the  fingerprint.
 \emph{Top row:} The feature having the strongest predictive weight for solubility.
@@ -281,12 +285,6 @@ Shown here are representative samples of molecular fragments (highlighted in blu
 }
 \label{fig:learned features solubility}
 \end{figure}
-%
-Figure \ref{fig:learned features solubility} shows the fragments that maximally activate the most predictive features of a fingerprint.
-The fingerprint network was trained as inputs to a linear model predicting solubility, as measured in \citep{delaney_data_2004}.
-%Shown are the two fingerprint features with the strongest predictive weights.
-The top fingerprint has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
-The bottom fingerprint, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
 \paragraph{Toxicity features}
 We trained the same model architecture to predict toxicity, as measured in two different datasets in \citet{tox21}.
@@ -322,7 +320,7 @@ In contrast, our vizualizations are generated automatically, without the need to
 
 \subsection{Predictive Performance}
 
-We ran several experiments to compare the predictive performance of neural fingerprints to that of the standard state-of-the-art setup:  circular fingerprints fed into a fully-connected neural network.
+We ran several experiments to compare the predictive performance of neural graph fingerprints to that of the standard state-of-the-art setup: circular fingerprints fed into a fully-connected neural network.
 
 \paragraph{Experimental setup}
 Our pipeline takes as input the SMILES~\citep{weininger1988smiles} string encoding of each molecule, which is then converted into a graph using RDKit~\citep{rdkit}.
@@ -335,7 +333,7 @@ The bond features were a concatenation of whether the bond type was single, doub
 
 Training used batch normalization~\citep{ioffe2015batch}.
 %Because batch normalization consistently led to better validation errors on both models, we eventually made it mandatory.
-We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint net and the fully-connected nets.
+We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint network layers and the fully-connected network layers.
 \texttt{relu} had a slight but consistent performance advantage on the validation set.
 We also experimented with dropconnect~\citep{wan2013regularization}, a variant of dropout in which weights are randomly set to zero instead of hidden units, but found that it led to worse validation error in general.
 Each experiment optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
@@ -347,7 +345,7 @@ The following hyperparameters were optimized: log learning rate, log of Adam's $
 Additionally, the size of the hidden feature vector in the convolutional neural fingerprint networks was optimized.
 
 \paragraph{Datasets}
-We compared the performance of standard circular fingerprints against our neural fingerprints on a variety of domains:
+We compared the performance of standard circular fingerprints against neural graph fingerprints on a variety of domains:
 %
 \begin{itemize}
 \item {\bf Solubility:} The aqueous solubility of 1144 molecules as measured by \cite{delaney_data_2004}.
