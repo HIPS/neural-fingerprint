@@ -23,7 +23,7 @@ def load_data(filename, sizes, input_name, target_name):
 
 def list_concat(lists):
     return list(it.chain(*lists))
-
+    
 def load_data_slices(filename, slice_lists, input_name, target_name):
     stops = [s.stop for s in list_concat(slice_lists)]
     if not all(stops):
@@ -31,8 +31,8 @@ def load_data_slices(filename, slice_lists, input_name, target_name):
 
     data = read_csv(filename, max(stops), input_name, target_name)
 
-    return [(list_concat([data[0][s] for s in slices]),
-             list_concat([data[1][s] for s in slices]))
+    return [(np.concatenate([data[0][s] for s in slices], axis=0),
+             np.concatenate([data[1][s] for s in slices], axis=0))
             for slices in slice_lists]
 
 def get_output_file(rel_path):
