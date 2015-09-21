@@ -1,14 +1,14 @@
 import autograd.numpy as np
 from rdkit import Chem
-from util import one_of_k_encoding
+from util import one_of_k_encoding, one_of_k_encoding_unk
 
 def atom_features(atom):
-    return np.array(one_of_k_encoding(atom.GetSymbol(),
+    return np.array(one_of_k_encoding_unk(atom.GetSymbol(),
                                       ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na',
                                        'Ca', 'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb',
                                        'Sb', 'Sn', 'Ag', 'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H',    # H?
                                        'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In', 'Mn', 'Zr',
-                                       'Cr', 'Pt', 'Hg', 'Pb']) +
+                                       'Cr', 'Pt', 'Hg', 'Pb', 'Unknown']) +
                     one_of_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5]) +
                     one_of_k_encoding(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
                     one_of_k_encoding(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5]) +
