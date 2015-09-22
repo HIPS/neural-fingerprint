@@ -10,8 +10,8 @@ def atom_features(atom):
                                        'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In', 'Mn', 'Zr',
                                        'Cr', 'Pt', 'Hg', 'Pb', 'Unknown']) +
                     one_of_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5]) +
-                    one_of_k_encoding(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
-                    one_of_k_encoding(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5]) +
+                    one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
+                    one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5]) +
                     [atom.GetIsAromatic()])
 
 def bond_features(bond):
