@@ -19,7 +19,16 @@ def load_data(filename, sizes, input_name, target_name):
         stop = start + size
         slices.append(slice(start, stop))
         start = stop
-    return load_data_slices(filename, slices, input_name, target_name)
+    return load_data_slices_nolist(filename, slices, input_name, target_name)
+
+def load_data_slices_nolist(filename, slices, input_name, target_name):
+    stops = [s.stop for s in slices]
+    if not all(stops):
+        raise Exception("Slices can't be open-ended")
+
+    data = read_csv(filename, max(stops), input_name, target_name)
+    return [(data[0][s], data[1][s]) for s in slices]
+
 
 def list_concat(lists):
     return list(it.chain(*lists))
