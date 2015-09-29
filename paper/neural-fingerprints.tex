@@ -82,7 +82,8 @@ Neural graph fingerprints offer several advantages over fixed fingerprints:
 \begin{itemize}
 \item {\bf Predictive performance.}
 By using data adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performance than fixed fingerprints.
-We compare the effectiveness of neural graph fingerprints against standard fingerprints at predicting toxicity, solubility, drug efficacy, and organic photovoltaic efficiency.
+We compare the effectiveness of neural graph fingerprints against standard fingerprints at predicting %toxicity,
+solubility, drug efficacy, and organic photovoltaic efficiency.
 \item {\bf Parsimony.}
 Fixed fingerprints must be extremely large to encode all possible substructures without overlap.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000, after having removed rarely-occurring features.
@@ -336,12 +337,12 @@ Training used batch normalization~\citep{ioffe2015batch}.
 We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint network layers and the fully-connected network layers.
 \texttt{relu} had a slight but consistent performance advantage on the validation set.
 We also experimented with dropconnect~\citep{wan2013regularization}, a variant of dropout in which weights are randomly set to zero instead of hidden units, but found that it led to worse validation error in general.
-Each experiment optimized for 1000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
+Each experiment optimized for 10000 minibatches of size 100 using the Adam algorithm~\citep{Adam14}, a variant of RMSprop that includes momentum.
 
-\paragraph{Bayesian Optimization}
-To optimize hyperparameters, we used Whetlab, a commercial implementation of Bayesian optimization~\citep{snoek2012practical}.
-The hyperparameters of both methods were optimized using 200 trials for each experiment.
-The following hyperparameters were optimized: log learning rate, log of Adam's $\beta_1$ and $\beta_2$ parameters, log of the initial weight scale, the log $L_2$ penalty, fingerprint length, fingerprint depth (up to 6), and the size of the hidden layer in the fully-connected network.
+\paragraph{Hyperparameter Optimization}
+To optimize hyperparameters, we used random search.
+The hyperparameters of all methods were optimized using 50 trials for each cross-validation fold.
+The following hyperparameters were optimized: log learning rate, log of the initial weight scale, the log $L_2$ penalty, fingerprint length, fingerprint depth (up to 6), and the size of the hidden layer in the fully-connected network.
 Additionally, the size of the hidden feature vector in the convolutional neural fingerprint networks was optimized.
 
 \paragraph{Datasets}
@@ -350,34 +351,48 @@ We compared the performance of standard circular fingerprints against neural gra
 \begin{itemize}
 \item {\bf Solubility:} The aqueous solubility of 1144 molecules as measured by \cite{delaney_data_2004}.
 \item{\bf Drug efficacy:} The half-maximal effective concentration (EC$_{50}$) {\it in vitro} of 20,000 molecules against a sulfide-resistant strain of {\it P. falciparum}, as measured by \citet{gamo2010thousands}.
-\item {\bf Toxicity:} The Tox21 challenge~\citet{tox21} released several assays measuring the toxicity of thousands of compounds.
-We measured performance on the MMP stress response panel, whose predictive target was a binary response.
+We ran our methods on a subset of 10,000 of these molecules.
+%\item {\bf Toxicity:} The Tox21 challenge~\citet{tox21} released several assays measuring the toxicity of thousands of compounds.
+%We measured performance on the MMP stress response panel, whose predictive target was a binary response.
 \item {\bf Organic photovoltaic efficiency:} The Harvard Clean Energy Project~\citet{hachmann2011harvard} has run millions of molecules through a DFT simulation to estimate the photovoltaic efficiency of organic molecules.
 Each simulation requires several CPU hours, meaning that accurately predicting outcome of the simulation can greatly speed up the virtual screening process.
+We used a subset of 20,000 molecules from this dataset.
 \end{itemize}
 %
-To examine the applicability of neural fingerprints to the relatively small size of datasets commonly encountered, we subsampled 1000 points from each dataset.
+%To examine the applicability of neural fingerprints to the relatively small size of datasets commonly encountered, we subsampled 1000 points from each dataset.
+
 
 \paragraph{Predictive accuracy}
+We compared the performance of circular fingerprints and neural graph fingerprints under two conditions:
+First, with a linear layer on top of the predictions, and second, with a one-hidden-layer neural network.
 Results are summarized in Table~\ref{table:main results}.
 %
 \begin{table}
 \begin{center}
-\begin{tabular}{ll|cc}
-Predicted property                                  & Metric & Circular fingerprints        & Neural fingerprints   \\
+\begin{tabular}{r|lll}
+%Predicted property                                        & Predict Mean       &   Circular fingerprints  & Circular fingerprints & Neural fingerprints & Neural fingerprints \\
+%                                                          &                    &  with lin. reg.          &  with neural net      &  with lin. reg.     &  with neural net    \\
+%\midrule
+%Solubility (log Mol/L)          \citet{delaney_data_2004} & 4.29 $\pm$ 0.40    & 1.84 $\pm$ 0.08          & 1.40 $\pm$ 0.15       & 0.74 $\pm$ 0.09     & 0.53 $\pm$ 0.07 \\
+%Drug efficacy (EC$_{50}$ in nM) \citet{gamo2010thousands} & 1.47 $\pm$ 0.07    & 1.13 $\pm$ 0.03          & 1.24 $\pm$ 0.03       & 1.16 $\pm$ 0.03     & 1.17 $\pm$ 0.03 \\
+%Photovoltaic efficiency (\%)  \citet{hachmann2011harvard} & 6.40 $\pm$ 0.09    & 2.62 $\pm$ 0.07          & 2.04 $\pm$ 0.07       & 2.71 $\pm$ 0.13     & 1.44 $\pm$ 0.11
+Dataset                      &   Solubility \citet{delaney_data_2004} & Drug efficacy \citet{gamo2010thousands} & Photovoltaic efficiency \citet{hachmann2011harvard} \\
+Units                        &   log Mol/L                            & EC$_{50}$ in nM                        & percent \\
 \midrule
-Solubility (log Mol/L)           \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.02 & \bf{0.72} $\pm$ 0.02 \\
-Drug efficacy (EC$_{50}$ in nM)  \citet{gamo2010thousands}   &   RMSE & \bf{1.17} $\pm$ 0.05 & \bf{1.15} $\pm$ 0.05 \\
-Toxicity (Binary)                \citet{tox21}               &   NLL  & 0.44 $\pm$ 0.02  & \bf{0.37} $\pm$ 0.02 \\
-Photovoltaic efficiency (\%)     \citet{hachmann2011harvard} &  RMSE  & 1.96 $\pm$ 0.10  & \bf{1.68} $\pm$ 0.05
+Predict mean                 & 4.29 $\pm$ 0.40        & 1.47 $\pm$ 0.07         & 6.40 $\pm$ 0.09 \\
+Circular FPs + linear layer  & 1.84 $\pm$ 0.08        & \bf{1.13} $\pm$ 0.03    & 2.62 $\pm$ 0.07 \\
+Circular FPs + neural net    & 1.40 $\pm$ 0.15        & 1.24 $\pm$ 0.03         & 2.04 $\pm$ 0.07 \\ 
+Neural FPs + linear layer    & 0.74 $\pm$ 0.09        & \bf{1.16} $\pm$ 0.03    & 2.71 $\pm$ 0.13 \\  
+Neural FPs + neural net      & \bf{0.53} $\pm$ 0.07   & \bf{1.17} $\pm$ 0.03    & \bf{1.44} $\pm$ 0.11
 \end{tabular}
 \label{table:main results}
 \caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.
-For the binary classification task, we measured negative log predictive likelihood (NLL).}
+%For the binary classification task, we measured negative log predictive likelihood (NLL).
+}
 \end{center}
 \end{table}
 %
-In all experiments, the neural fingerprints matches or beats the accuracy of circular fingerprints.
+In all experiments, the neural graph fingerprints match or beat the accuracy of circular fingerprints, and the methods with a neural network on top of the fingerprints typically outperformed the linear layers.
 
 \paragraph{Software}
 Automatic differentiation (AD) software packages such as Theano~\citep{Bastien-Theano-2012} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
@@ -481,7 +496,7 @@ Data-driven features have already replaced hand-crafted features in speech recog
 Carrying out the same task for virtual screening, drug design, and materials design is a natural next step.
 
 \subsection*{Acknowledgments}
-We thank  Samsung Advanced Institute of Technology for their support.
+We thank Edward Pyzer-Knapp and Samsung Advanced Institute of Technology for their support.
 
 \bibliography{references.bib}
 \bibliographystyle{plain}%include/icml2015}
