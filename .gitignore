@@ -2,7 +2,7 @@
 *.lprof
 
 # Figures
-*.pdf
+# *.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -87,7 +87,29 @@ paper/*.mtc
 paper/*.mtc1
 paper/*.out
 paper/*.synctex.gz
-paper/*.pdf
 paper/*.brf
 
-
+talks/*.aux
+talks/*.glo
+talks/*.idx
+talks/*.log
+talks/*.toc
+talks/*.ist
+talks/*.acn
+talks/*.acr
+talks/*.alg
+talks/*.bbl
+talks/*.blg
+talks/*.dvi
+talks/*.glg
+talks/*.gls
+talks/*.ilg
+talks/*.ind
+talks/*.lof
+talks/*.lot
+talks/*.maf
+talks/*.mtc
+talks/*.mtc1
+talks/*.out
+talks/*.synctex.gz
+talks/*.brf

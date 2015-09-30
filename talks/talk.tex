@@ -122,8 +122,9 @@ Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}
 \hspace{-1cm}\begin{minipage}[t]{0.53\columnwidth}
 \begin{algorithm}[H]
 \caption*{Circular fingerprints} 
-\begin{algorithmic}[1]
+\label{alg:ecfp} 
 \scriptsize%
+\begin{algorithmic}[1]
 \State \textbf{Input:} {molecule, radius $R$, fingerprint length $S$}
 \State \textbf{Initialize:} {fingerprint vector $\vf \leftarrow \vzero_S$}
 \For {each atom $a$ in molecule} 
@@ -132,7 +133,7 @@ Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}
 \For {$L = 1$ to $R$} \Comment {for each layer}
 	\For {each atom $a$ in molecule}
 		\State $\vr_{1} \dots \vr_{N} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a \vr_{1} \dots, \vr_{N}]$ \Comment {concatenate}
+		\State $\vv \leftarrow [\vr_a, \vr_{1}, \dots, \vr_{N}]$ \Comment {concatenate}
 		\State $\vr_a \leftarrow \textnormal{hash}(\vv)$ \Comment {hash function}
 		\State $i \leftarrow \textnormal{mod}(r_a, S)$ \Comment {convert to index}		
 		\State $\vf_{i} \leftarrow 1$ \Comment {Write 1 at index}
@@ -143,13 +144,13 @@ Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}
 \end{algorithm}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.55\columnwidth}
+\begin{minipage}[t]{0.49\columnwidth}
 \begin{algorithm}[H]
-\caption*{Neural fingerprints} 
+\caption*{Neural graph fingerprints} 
 \label{alg:neural} 
-\begin{algorithmic}[1]
 \scriptsize%
-\State \textbf{Input:} {molecule, radius $R$, {\color{myfavblue} hidden weights $H_1 \dots H_R$, output weights $W_1 \dots W_R$}}
+\begin{algorithmic}[1]
+\State \textbf{Input:} {molecule, radius $R$, {\color{myfavblue} weights $H_1^1 \dots H_R^5$, output weights $W_1 \dots W_R$}}
 \State \textbf{Initialize:} {fingerprint vector $\vf \leftarrow \vzero_S$}
 \For {each atom $a$ in molecule} 
 	\State $\vr_a \leftarrow g(a)$ \Comment {lookup atom features}
@@ -157,11 +158,11 @@ Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams}
 \For {$L = 1$ to $R$} \Comment {for each layer}
     \For {each atom $a$ in molecule}
 		\State $\vr_{1} \dots \vr_{N} = \textnormal{neighbors}(a)$
-		\State $\vv \leftarrow [\vr_a \vr_{1}, \dots \vr_{N}]$ \Comment {concatenate}
+		\State $\vv \leftarrow {\color{myfavblue} \vr_a + \sum_{i=1}^{_{N}} \vr_{i}}$ \Comment{{\color{myfavblue}sum}}
 		%\State $\vr_a \leftarrow {\color{myfavblue} \vf_{\theta_L}}(v)$ \Comment {{\color{myfavblue} smooth function}}
-		\State $\vr_a \leftarrow {\color{myfavblue} \sigma(H_L \times \vv)}$ \Comment {{\color{myfavblue} smooth function}}
-		\State $\vi \leftarrow {\color{myfavblue} \textnormal{softmax}(W_L \times \vr_a)}$ \Comment {{\color{myfavblue} sparsify}}
-		\State $\vf \leftarrow {\color{myfavblue} \vf + \vi}$ \Comment {{\color{myfavblue}add to fingerprint}}
+		\State $\vr_a \leftarrow {\color{myfavblue} \sigma(\vv H_L^N)}$ \Comment{{\color{myfavblue} smooth function}}
+		\State $\vi \leftarrow {\color{myfavblue} \textnormal{softmax}(\vr_a W_L)}$ \Comment{{\color{myfavblue} sparsify}}
+		\State $\vf \leftarrow {\color{myfavblue} \vf + \vi}$ \Comment{{\color{myfavblue}add to fingerprint}}
     \EndFor
 \EndFor
 \State \textbf{Return:} { {\color{myfavblue} real-valued} vector $\vf$}
@@ -183,7 +184,7 @@ Every non-differentiable operation is replaced with a differentiable analog.
 \end{itemize}
 \end{column}
 \begin{column}{5cm}
-\hspace{-1cm}\includegraphics<1>[width=6cm]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/91-try-again/morg_conv_corr.pdf}
+\hspace{-1cm}\includegraphics<1>[width=6cm]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/92-distance/morg_conv_corr.pdf}
 \includegraphics<2>[width=6cm]{../../DeepMoleculesData/experiments/2015-05-25-delaney/43-random-vs-depth/figures/all_rmsestest_rmse.pdf}
 \end{column}
 \end{columns}}
@@ -191,21 +192,25 @@ Every non-differentiable operation is replaced with a differentiable analog.
 \frame[plain]{\frametitle{Performance}
 \begin{columns}
 \scriptsize
-\begin{tabular}{lll|cc}
-Predicted property              & Dataset                     & Metric & Circular        & Neural   \\
+\begin{tabular}{r|lll}
+Dataset                      &   Solubility & Drug efficacy  & Photovoltaic efficiency \\
+Units                        &   log Mol/L                            & EC$_{50}$ in nM                        & percent \\
 \midrule
-Solubility (log Mol/L)          & \citet{delaney_data_2004}   &   RMSE & 1.04 $\pm$ 0.02 & \bf{0.72} $\pm$ 0.02 \\
-Drug efficacy (EC$_{50}$ in nM) & \citet{gamo2010thousands}   &   RMSE & \bf{1.17} $\pm$ 0.05 & \bf{1.15} $\pm$ 0.05 \\
-Toxicity (Binary)               & \citet{tox21}               &   NLL  & 0.44 $\pm$ 0.02  & \bf{0.37} $\pm$ 0.02 \\
-Photovoltaic efficiency (\%)    & \citet{hachmann2011harvard} &  RMSE  & 1.96 $\pm$ 0.10  & \bf{1.68} $\pm$ 0.05
+Predict mean                 & 4.29 $\pm$ 0.40        & 1.47 $\pm$ 0.07         & 6.40 $\pm$ 0.09 \\
+Circular FPs + linear layer  & 1.84 $\pm$ 0.08        & \bf{1.13} $\pm$ 0.03    & 2.62 $\pm$ 0.07 \\
+Circular FPs + neural net    & 1.40 $\pm$ 0.15        & 1.24 $\pm$ 0.03         & 2.04 $\pm$ 0.07 \\ 
+Neural FPs + linear layer    & 0.74 $\pm$ 0.09        & \bf{1.16} $\pm$ 0.03    & 2.71 $\pm$ 0.13 \\  
+Neural FPs + neural net      & \bf{0.53} $\pm$ 0.07   & \bf{1.17} $\pm$ 0.03    & \bf{1.44} $\pm$ 0.11
 \end{tabular}
+%\label{table:main results}
+%\caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{columns}
 
 \vspace{1cm}
 
 \begin{itemize}
-\item Still need to include other benchmarks and baselines
-\item Play with depth of neural net on top (used one hidden layer here)
+%\item Still need to include other benchmarks and baselines
+\item Could also try varying depth of neural net on top (used one hidden layer here)
 \end{itemize}
 }
 
