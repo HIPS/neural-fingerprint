@@ -393,10 +393,10 @@ In all experiments, the neural graph fingerprints match or beat the accuracy of 
 
 \paragraph{Software}
 Automatic differentiation (AD) software packages such as Theano~\citep{Bastien-Theano-2012} significantly speed up development time by providing gradients automatically, but can only handle limited control structures and indexing.
-Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python called Autograd (\url{github.com/HIPS/autograd)}.
+Since we required relatively complex control flow and indexing in order to implement variants of Algorithm \ref{alg:neural}, we used a more flexible automatic differentiation package for Python called Autograd (\href{http://github.com/HIPS/autograd}{\texttt{github.com/HIPS/autograd}}).
 This package handles standard Numpy~\citep{oliphant2007python} code, and can differentiate code containing while loops, branches, and indexing.
 
-Code for computing neural fingerprints and producing visualizations is available at \url{github.com/HIPS/neural-fingerprint}.
+Code for computing neural fingerprints and producing visualizations is available at \href{http://github.com/HIPS/neural-fingerprint}{\texttt{github.com/HIPS/neural-fingerprint}}.
 
 \section{Limitations}
 %In this section we detail some limitations of the neural fingerprint architecture used in this paper.
