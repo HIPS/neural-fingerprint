@@ -1,7 +1,7 @@
-Neural Molecular Fingerprints
+Neural Graph Fingerprints
 =============
 
-<img src="https://github.com/HIPS/DeepMolecules/blob/master/paper/figures/3d-nets/net1.png" width="600">
+<img src="https://github.com/HIPS/DeepMolecules/blob/master/paper/figures/3d-nets/net1.png" width="300">
 
 This software package implements convolutional nets which can take molecular graphs of arbitrary size as input.
 These are useful for predicting the properties of novel molecules, and are designed to be a drop-in replacement for Morgan or ECFP fingerprints.
@@ -23,7 +23,7 @@ This package requires:
 
 ## Examples
 
-This packages has a regression example and a visualization example, in the [/examples] directory.
+This package includes a [regression example](examples/regression.py) and a [visualization example](examples/vizualization.py) in the examples directory.
 
 ## Authors
 
