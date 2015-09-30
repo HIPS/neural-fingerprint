@@ -316,7 +316,7 @@ Shown here are representative samples of molecular fragments (highlighted in red
 % by \citet{unterthiner2015toxicity}, by searching for molecules that most activated neurons in a deep neural network on top of fixed circular fingerprints.
 %However, given fixed fingerprints, it's not clear how to automatically determine which fragments are relevant to the output.
 %Similar visualizations were constructed by \citet{unterthiner2015toxicity} in a semi-manual way: in order to determine which fragments of molecules were predictive of toxicity, they searched over a list of substructures already known to be toxic (toxicophores) to find the substructure most correlated with a given neuron.
-Similar visualizations were constructed by \citet{unterthiner2015toxicity} in a semi-manual way: in order to determine which fragments of a molecule activated a given neuron, they searched over a hand-made list of substructures and chose the one most correlated with a given neuron.
+\citet{unterthiner2015toxicity} constructed similar vizualizations, but in a semi-manual way: to determine which toxic fragments activated a given neuron, they searched over a hand-made list of toxic substructures and chose the one most correlated with a given neuron.
 In contrast, our vizualizations are generated automatically, without the need to restrict the range of possible answers beforehand.
 
 \subsection{Predictive Performance}
@@ -332,6 +332,7 @@ In our convolutional networks, the initial atom and bond features were chosen to
 Initial atom features concatenated a one-hot encoding of the atom's element, its degree, the number of attached hydrogen atoms, and the implicit valence, and an aromaticity indicator.
 The bond features were a concatenation of whether the bond type was single, double, triple, or aromatic, whether the bond was conjugated, and whether the bond was part of a ring.
 
+\paragraph{Training and Architecture}
 Training used batch normalization~\citep{ioffe2015batch}.
 %Because batch normalization consistently led to better validation errors on both models, we eventually made it mandatory.
 We also experimented with \texttt{tanh} vs \texttt{relu} activation functions for both the neural fingerprint network layers and the fully-connected network layers.
@@ -350,32 +351,23 @@ We compared the performance of standard circular fingerprints against neural gra
 %
 \begin{itemize}
 \item {\bf Solubility:} The aqueous solubility of 1144 molecules as measured by \cite{delaney_data_2004}.
-\item{\bf Drug efficacy:} The half-maximal effective concentration (EC$_{50}$) {\it in vitro} of 20,000 molecules against a sulfide-resistant strain of {\it P. falciparum}, as measured by \citet{gamo2010thousands}.
-We ran our methods on a subset of 10,000 of these molecules.
-%\item {\bf Toxicity:} The Tox21 challenge~\citet{tox21} released several assays measuring the toxicity of thousands of compounds.
-%We measured performance on the MMP stress response panel, whose predictive target was a binary response.
-\item {\bf Organic photovoltaic efficiency:} The Harvard Clean Energy Project~\citet{hachmann2011harvard} has run millions of molecules through a DFT simulation to estimate the photovoltaic efficiency of organic molecules.
-Each simulation requires several CPU hours, meaning that accurately predicting outcome of the simulation can greatly speed up the virtual screening process.
+\item{\bf Drug efficacy:} The half-maximal effective concentration (EC$_{50}$) {\it in vitro} of 10,000 molecules against a sulfide-resistant strain of {\it P. falciparum}, the parasite that causes malaria, as measured by \citet{gamo2010thousands}.
+\item {\bf Organic photovoltaic efficiency:} The Harvard Clean Energy Project~\citet{hachmann2011harvard} uses expensive DFT simulations to estimate the photovoltaic efficiency of organic molecules.
+%Each simulation requires several CPU hours, meaning that accurately predicting outcome of the simulation can greatly speed up the virtual screening process.
 We used a subset of 20,000 molecules from this dataset.
 \end{itemize}
-%
-%To examine the applicability of neural fingerprints to the relatively small size of datasets commonly encountered, we subsampled 1000 points from each dataset.
 
 
 \paragraph{Predictive accuracy}
 We compared the performance of circular fingerprints and neural graph fingerprints under two conditions:
-First, with a linear layer on top of the predictions, and second, with a one-hidden-layer neural network.
+In the first condition, predictions were made by a linear layer using the fingerprints as input.
+In the second condition, predictions were made by a one-hidden-layer neural network using the fingerprints as input.
+The neural graph fingerprints were simultaneously optimized during training by propagating through the linear and neur
 Results are summarized in Table~\ref{table:main results}.
 %
 \begin{table}
 \begin{center}
 \begin{tabular}{r|lll}
-%Predicted property                                        & Predict Mean       &   Circular fingerprints  & Circular fingerprints & Neural fingerprints & Neural fingerprints \\
-%                                                          &                    &  with lin. reg.          &  with neural net      &  with lin. reg.     &  with neural net    \\
-%\midrule
-%Solubility (log Mol/L)          \citet{delaney_data_2004} & 4.29 $\pm$ 0.40    & 1.84 $\pm$ 0.08          & 1.40 $\pm$ 0.15       & 0.74 $\pm$ 0.09     & 0.53 $\pm$ 0.07 \\
-%Drug efficacy (EC$_{50}$ in nM) \citet{gamo2010thousands} & 1.47 $\pm$ 0.07    & 1.13 $\pm$ 0.03          & 1.24 $\pm$ 0.03       & 1.16 $\pm$ 0.03     & 1.17 $\pm$ 0.03 \\
-%Photovoltaic efficiency (\%)  \citet{hachmann2011harvard} & 6.40 $\pm$ 0.09    & 2.62 $\pm$ 0.07          & 2.04 $\pm$ 0.07       & 2.71 $\pm$ 0.13     & 1.44 $\pm$ 0.11
 Dataset                      &   Solubility \citet{delaney_data_2004} & Drug efficacy \citet{gamo2010thousands} & Photovoltaic efficiency \citet{hachmann2011harvard} \\
 Units                        &   log Mol/L                            & EC$_{50}$ in nM                        & percent \\
 \midrule
@@ -386,9 +378,7 @@ Neural FPs + linear layer    & 0.74 $\pm$ 0.09        & \bf{1.16} $\pm$ 0.03    
 Neural FPs + neural net      & \bf{0.53} $\pm$ 0.07   & \bf{1.17} $\pm$ 0.03    & \bf{1.44} $\pm$ 0.11
 \end{tabular}
 \label{table:main results}
-\caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.
-%For the binary classification task, we measured negative log predictive likelihood (NLL).
-}
+\caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{center}
 \end{table}
 %
@@ -489,15 +479,15 @@ The neural fingerprint, when viewed in this light, resembles an unrolled message
 
 \section{Conclusion}
 We generalized existing hand-crafted molecular features to allow their optimization for diverse tasks.
-By making each operation in the feature pipeline differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints.
-We examined the interpretability and predictive performance of these new fingerprints.
+By making each operation in the feature pipeline differentiable, we can use standard neural-network training methods to scalably optimize the parameters of these neural molecular fingerprints end-to-end.
+We demonstrated the interpretability and predictive performance of these new fingerprints.
 
 Data-driven features have already replaced hand-crafted features in speech recognition, machine vision, and natural-language processing.
 Carrying out the same task for virtual screening, drug design, and materials design is a natural next step.
 
 \subsection*{Acknowledgments}
-We thank Edward Pyzer-Knapp and Samsung Advanced Institute of Technology for their support.
+We thank Edward Pyzer-Knapp, Jennifer Wei, and Samsung Advanced Institute of Technology for their support.
 
 \bibliography{references.bib}
-\bibliographystyle{plain}%include/icml2015}
+\bibliographystyle{plain}
 \end{document}
