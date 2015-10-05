@@ -8,7 +8,7 @@ These are useful for predicting the properties of novel molecules, and are desig
 
 The paper describing the algorithm used is:
 
-*Learning Molecular Fingerprints with Convolutional Networks on Graphs*
+[Convolutional Networks on Graphs for Learning Molecular Fingerprints](http://arxiv.org/pdf/1509.09292.pdf)
 
 by
 
