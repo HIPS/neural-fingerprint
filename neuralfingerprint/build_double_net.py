@@ -1,6 +1,7 @@
 from util import memoize, WeightsParser
 from rdkit_utils import smiles_to_fps
 from build_convnet import build_convnet_fingerprint_fun
+from build_vanilla_net import build_fingerprint_deep_net
 
 def build_double_morgan_fingerprint_fun(fp_length=512, fp_radius=4):
 
@@ -15,6 +16,12 @@ def build_double_morgan_fingerprint_fun(fp_length=512, fp_radius=4):
         return smiles_to_fps(smiles_tuple, fp_length, fp_radius)
 
     return fingerprints_from_smiles
+
+
+def build_double_morgan_deep_net(fp_length, fp_depth, net_params):
+    empty_parser = WeightsParser()
+    morgan_fp_func = build_double_morgan_fingerprint_fun(fp_length, fp_depth)
+    return build_fingerprint_deep_net(net_params, morgan_fp_func, empty_parser, 0)
 
 
 def build_double_convnet_fingerprint_fun(**kwargs):
@@ -32,3 +39,10 @@ def build_double_convnet_fingerprint_fun(**kwargs):
     combined_parser.add_weights('weights2', len(parser2))
 
     return double_fingerprint_fun, combined_parser
+
+
+def build_double_conv_deep_net(conv_params, net_params, fp_l2_penalty=0.0):
+    """Returns loss_fun(all_weights, smiles, targets), pred_fun, combined_parser."""
+    conv_fp_func, conv_parser = build_double_convnet_fingerprint_fun(**conv_params)
+    return build_fingerprint_deep_net(net_params, conv_fp_func, conv_parser, fp_l2_penalty)
+
