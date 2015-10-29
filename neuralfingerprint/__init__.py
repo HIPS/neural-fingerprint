@@ -7,4 +7,5 @@ from build_vanilla_net import build_morgan_deep_net, build_morgan_fingerprint_fu
      build_standard_net, binary_classification_nll, mean_squared_error, relu, \
      build_mean_predictor, categorical_nll
 from mol_graph import degrees
-from build_double_net import build_double_convnet_fingerprint_fun, build_double_morgan_fingerprint_fun
+from build_double_net import build_double_convnet_fingerprint_fun, build_double_morgan_fingerprint_fun, \
+                             build_double_conv_deep_net, build_double_morgan_deep_net
