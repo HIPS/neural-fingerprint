@@ -57,41 +57,44 @@ Harvard University}
 \maketitle
 
 \begin{abstract}
-Predicting properties of molecules requires functions that take graphs as inputs.
-Molecular graphs are usually preprocessed using hash-based functions to produce fixed-size fingerprint vectors, which are used as features for making predictions.
-We introduce a convolutional neural network that operates directly on graphs, allowing end-to-end learning of the feature pipeline.
-This architecture generalizes standard molecular fingerprints.
+%Predicting properties of molecules requires functions that take graphs as inputs.
+%Functions that take graphs as inputs can be used to predict properties of molecules. 
+%Constructing functions 
+%Molecular graphs are usually preprocessed using hash-based functions to produce fixed-size fingerprint vectors, which are used as features for making predictions.
+We introduce a convolutional neural network that operates directly on graphs.
+These networks allow end-to-end learning of prediction pipelines whose inputs are graphs of arbitrary size and shape.
+The architecture we present generalizes standard molecular feature extraction methods based on circular fingerprints.
 We show that these data-driven features are more interpretable, and have better predictive performance on a variety of tasks.
 \end{abstract}
 
 \section{Introduction}
-Recent work in materials design has applied neural networks to virtual screening, where the task is to predict the properties of novel molecules by generalizing from examples.
+Recent work in materials design used neural networks to predict the properties of novel molecules by generalizing from examples.
 One difficulty with this task is that the input to the predictor, a molecule, can be of arbitrary size and shape.
-Most machine learning pipelines can only handle inputs of a fixed size.
+Currently, most machine learning pipelines can only handle inputs of a fixed size.
 The current state of the art is to use off-the-shelf fingerprint software to compute fixed-dimensional feature vectors, and use those features as inputs to a fully-connected deep neural network or other standard machine learning method.
 This formula was followed by \citet{unterthinerdeep, dahl2014multi, ramsundar2015massively}.
-During training, the molecular fingerprints were treated as fixed.
+During training, the molecular fingerprint vectors were treated as fixed.
 
-In this paper, we replace the bottom layer of this stack -- the fixed molecular fingerprints -- with a differentiable neural network whose input is a graph representing the original molecule.
+In this paper, we replace the bottom layer of this stack -- the function that computes molecular fingerprint vectors -- with a differentiable neural network whose input is a graph representing the original molecule.
 In this graph, vertices represent individual atoms and edges represent bonds.
 The lower layers of this network is convolutional in the sense that the same local filter is applied to each atom and its neighborhood.
 After several such layers, a global pooling step combines features from all the atoms in the molecule.
 %Figure \ref{fig:architecture sketch} shows a sketch of the network architecture.
 
-Neural graph fingerprints offer several advantages over fixed fingerprints:
+These neural graph fingerprints offer several advantages over fixed fingerprints:
 \begin{itemize}
 \item {\bf Predictive performance.}
 By using data adapting to the task at hand, machine-optimized fingerprints can provide substantially better predictive performance than fixed fingerprints.
-We compare the effectiveness of neural graph fingerprints against standard fingerprints at predicting %toxicity,
-solubility, drug efficacy, and organic photovoltaic efficiency.
+We show that neural graph fingerprints match or beat the predictive performance of standard fingerprints on 
+solubility, drug efficacy, and organic photovoltaic efficiency datasets.
 \item {\bf Parsimony.}
 Fixed fingerprints must be extremely large to encode all possible substructures without overlap.
 For example, \cite{unterthinerdeep} used a fingerprint vector of size 43,000, after having removed rarely-occurring features.
 Differentiable fingerprints can be optimized to encode only relevant features, reducing downstream computation and regularization requirements.
 %In our tests, hyperparameter optimization usually chose fingerprint lengths of 20-50 for neural fingerprints, and near the maximum length (2048) for fixed fingerprints.
 \item {\bf Interpretability.}
-Standard fingerprints encode each fragment differently (up to random collisions), with no notion of similarity between fragments.
-Each feature of a neural graph fingerprint can be activated by similar but distinct molecular fragments, making the feature representation more meaningful.
+Standard fingerprints encode each possible fragment completely distinctly, with no notion of similarity between fragments.
+In contrast, each feature of a neural graph fingerprint can be activated by similar but distinct molecular fragments, making the feature representation more meaningful.
 \end{itemize}
 
 \begin{figure}
@@ -100,18 +103,18 @@ Each feature of a neural graph fingerprint can be activated by similar but disti
 \raisebox{3mm}{\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 17mm]{figures/3d-nets/net1}}}
 \vspace{-1mm}
 \caption{\emph{Left}: A visual representation of the computational graph of both standard circular fingerprints and neural graph fingerprints.
-First, at bottom, a graph is constructed matching the topology of the molecule being fingerprinted, in which edges represent bonds.
+First, a graph is constructed matching the topology of the molecule being fingerprinted, in which nodes represent atoms, and edges represent bonds.
 At each layer, information flows between neighbors in the graph.
 Finally, each node in the graph turns on one bit in the fixed-length fingerprint vector.
-This is a simplified sketch -- in reality, each layer writes to the fingerprint.
-\emph{Right}: A more detailed graph also including the bond information used in each operation.}
+%This is a simplified sketch -- in reality, each layer writes to the fingerprint.
+\emph{Right}: A more detailed sketch including the bond information used in each operation.}
 \label{fig:architecture sketch}
 \end{figure}
 
 \section{Circular fingerprints}
 \vspace{-3mm}
 The state of the art in molecular fingerprints are extended-connectivity circular fingerprints (ECFP)~\citep{ECFP2010}.
-Circular fingerprints~\citep{glem2006circular} are a refinement of the Morgan algorithm~\citep{morgan1965generation}, designed to identify which substructures are present in a molecule in a way that is invariant to atom-relabeling.
+Circular fingerprints~\citep{glem2006circular} are a refinement of the Morgan algorithm~\citep{morgan1965generation}, designed to encode which substructures are present in a molecule in a way that is invariant to atom-relabeling.
 
 Circular fingerprints generate each layer's features by applying a fixed hash function to the concatenated features of the neighborhood in the previous layer.
 The results of these hashes are then treated as integer indices, where a 1 is written to the fingerprint vector at the index given by the feature vector at each node in the graph.
@@ -129,7 +132,7 @@ Circular fingerprints are analogous to convolutional networks in that they apply
 \section{Creating a differentiable fingerprint}
 \vspace{-3mm}
 The space of possible network architectures is large.
-In the spirit of starting from a known-good configuration, we chose an architecture analogous to existing fingerprints.
+In the spirit of starting from a known-good configuration, we designed a differentiable generalization of circular fingerprints.
 This section describes our replacement of each discrete operation in circular fingerprints with a differentiable analog.
 
 \paragraph{Hashing}
@@ -137,11 +140,11 @@ The purpose of the hash functions applied at each layer of circular fingerprints
 This ensures that any change in a fragment, no matter how small, will lead to a different fingerprint index being activated.
 We replace the hash operation with a single layer of a neural network.
 %, mapping from the concatenation of the features of an atom and its neighbors to a new feature vector for that atom.
-Using a smooth function allows the activations to be similar when the local molecular structure varies in minor ways.
+Using a smooth function allows the activations to be similar when the local molecular structure varies in unimportant ways.
 
 \paragraph{Indexing}
-Circular fingerprints use an indexing operation to combine each atom's feature vector into a fingerprint of the whole molecule.
-Each atom sets a single bit of the fingerprint to one, at an index determined by the hash of its feature vector.
+Circular fingerprints use an indexing operation to combine all the nodes' feature vectors into a single fingerprint of the whole molecule.
+Each node sets a single bit of the fingerprint to one, at an index determined by the hash of its feature vector.
 This pooling-like operation converts an arbitrary-sized graph into a fixed-sized vector.
 For small molecules and a large fingerprint length, the fingerprints are always sparse.
 We use the \texttt{softmax} operation as a differentiable analog of indexing.
@@ -154,10 +157,16 @@ This operation is analogous to the pooling operation in standard convolutional n
 \paragraph{Canonicalization}
 Circular fingerprints are identical regardless of the ordering of atoms in each neighborhood.
 This invariance is achieved by sorting the neighboring atoms according to their features, and bond features.
-We experimented with this sorting scheme, and also with applying the local feature transform on all possible permutation of the local neighborhood.
+We experimented with this sorting scheme, and also with applying the local feature transform on all possible permutations of the local neighborhood.
 An alternative to canonicalization is to apply a permutation-invariant function, such as summation.
 In the interests of simplicity and scalability, we chose summation.
 %In some cases, this second approach requires more layers to distinguish
+
+\label{sec:random is equivalent}
+Circular fingerprints can be interpreted as a special case of neural graph fingerprints having large random weights.
+%To demonstrate that neural fingerprints are a generalization of circular fingerprints, in this section we give evidence that circular fingerprints are similar to neural fingerprints having large, randomly-initialized parameter vectors.
+This is because, in the limit of large input weights, \texttt{tanh} nonlinearities approach step functions, which when concatenated form a simple hash function.
+Also, in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
 
 Algorithms \ref{alg:ecfp} and \ref{alg:neural} summarize these two algorithms and highlight their differences.
 Given a fingerprint length $L$, and $F$ features at each layer, the parameters of neural graph fingerprints consist of a separate output weight matrix of size $F \times L$ for each layer, as well as a set of hidden-to-hidden weight matrices of size $F \times F$ at each layer, one for each possible number of bonds an atom can have (up to 5 in organic molecules).
@@ -223,11 +232,6 @@ Every non-differentiable operation is replaced with a differentiable analog.}
 \label{sec:experiments}
 
 %\subsection{Randomly initialized neural fingerprints are similar to circular fingerprints}
-\label{sec:random is equivalent}
-Circular fingerprints can be interpreted as a special case of neural graph fingerprints having large random weights.
-%To demonstrate that neural fingerprints are a generalization of circular fingerprints, in this section we give evidence that circular fingerprints are similar to neural fingerprints having large, randomly-initialized parameter vectors.
-This is reasonable to expect, since in the limit of large input weights, \texttt{tanh} nonlinearities approach step functions, which when concatenated resemble a hash function.
-Also, in the limit of large input weights, the \texttt{softmax} operator approaches a one-hot-coded \texttt{argmax} operator, which is analogous to an indexing operation.
 
 \begin{figure}[h]
 %\centerline{
@@ -251,11 +255,11 @@ Distance was measured using a continuous generalization of the Tanimoto (a.k.a.\
 There is a correlation of $r = 0.823$ between the distances.
 The line of points on the far left shows that for some pairs of molecules, binary ECFP fingerprints have exactly zero overlap.
 
-Figure~\ref{fig:fingerprint similarity} (right) shows that the predictive performance of random neural fingerprints is similar to that of circular fingerprints.
-Shown are average predictive performance on the same dataset using linear regression on top of fingerprints.
-Both curves follow a similar trajectory, suggesting that randomly initialized neural fingerprints are similar to circular fingerprints.
+Figure~\ref{fig:fingerprint similarity} (right) shows that the predictive performance of neural fingerprints with large random weights is similar to that of circular fingerprints.
+Shown are average predictive performance on the same dataset, using linear regression on top of fingerprints.
+Both curves follow a similar trajectory, suggesting that neural fingerprints with large random weights behave similarly to circular fingerprints.
 In contrast, the performance of neural fingerprints with small random weights follows a different curve, and is substantially better.
-This suggests the possibility that even for untrained neural weights, their relatively smooth activation helps generalization.
+This suggests the possibility that even for untrained neural weights, the relatively smooth activation of neural fingerprints helps generalization.
 
 \subsection{Examining learned features}
 To demonstrate that neural graph fingerprints are interpretable, we show examples of classes of substructures which activate individual features in a fingerprint.
@@ -379,16 +383,17 @@ Dataset                      &   Solubility \citet{delaney_data_2004} & Drug eff
 Units                        &   log Mol/L                            & EC$_{50}$ in nM                        & percent \\
 \midrule
 Predict mean                 & 4.29 $\pm$ 0.40        & 1.47 $\pm$ 0.07         & 6.40 $\pm$ 0.09 \\
-Circular FPs + linear layer  & 1.84 $\pm$ 0.08        & \bf{1.13} $\pm$ 0.03    & 2.62 $\pm$ 0.07 \\
-Circular FPs + neural net    & 1.40 $\pm$ 0.15        & 1.24 $\pm$ 0.03         & 2.04 $\pm$ 0.07 \\ 
-Neural FPs + linear layer    & 0.74 $\pm$ 0.09        & \bf{1.16} $\pm$ 0.03    & 2.71 $\pm$ 0.13 \\  
-Neural FPs + neural net      & \bf{0.53} $\pm$ 0.07   & \bf{1.17} $\pm$ 0.03    & \bf{1.44} $\pm$ 0.11
+Circular FPs + linear layer  & 1.71 $\pm$ 0.13        & \bf{1.13} $\pm$ 0.03    & 2.63 $\pm$ 0.09 \\
+Circular FPs + neural net    & 1.40 $\pm$ 0.13        & 1.36 $\pm$ 0.10         & 2.00 $\pm$ 0.09 \\ 
+Neural FPs + linear layer    & 0.77 $\pm$ 0.11        & \bf{1.15} $\pm$ 0.02    & 2.58 $\pm$ 0.18 \\  
+Neural FPs + neural net      & \bf{0.52} $\pm$ 0.07   & \bf{1.16} $\pm$ 0.03    & \bf{1.43} $\pm$ 0.09
 \end{tabular}
 \label{table:main results}
 \caption{Mean predictive accuracy of neural fingerprints compared to standard circular fingerprints.}
 \end{center}
 \end{table}
 %
+
 In all experiments, the neural graph fingerprints match or beat the accuracy of circular fingerprints, and the methods with a neural network on top of the fingerprints typically outperformed the linear layers.
 
 \paragraph{Software}
