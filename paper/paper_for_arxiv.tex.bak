@@ -98,7 +98,7 @@ In contrast, each feature of a neural graph fingerprint can be activated by simi
 \end{itemize}
 
 \begin{figure}
-\centerline{\includegraphics[width=0.35\textwidth, clip, trim=4mm 12mm 4mm 4mm]{../../DeepMoleculesData/experiments/2015-06-01-fig1/1/fingerprint_computation_schematic.pdf}
+\centerline{\includegraphics[width=0.35\textwidth, clip, trim=4mm 12mm 4mm 4mm]{fig_1.pdf}
 \hspace{5em}
 \raisebox{3mm}{\includegraphics[width=0.4\textwidth, clip, trim=4mm 4mm 4mm 17mm]{figures/3d-nets/net1}}}
 \vspace{-1mm}
@@ -236,8 +236,8 @@ Every non-differentiable operation is replaced with a differentiable analog.}
 We ran two experiments to demonstrate that neural fingerprints with large random weights behave similarly to circular fingerprints.
 \begin{figure}[h]
 %\centerline{
-\includegraphics[width=0.48\textwidth]{../../DeepMoleculesData/experiments/2015-05-04-compare-fingerprints/92-distance/morg_conv_corr.pdf}
-\raisebox{1.5mm}{\includegraphics[width=0.5\textwidth]{../../DeepMoleculesData/experiments/2015-05-25-delaney/43-random-vs-depth/figures/all_rmsestest_rmse.pdf}}
+\includegraphics[width=0.48\textwidth]{fig_2.pdf}
+\raisebox{1.5mm}{\includegraphics[width=0.5\textwidth]{fig_3.pdf}}
  %}
 \caption{\emph{Left:} Comparison of pairwise distances between molecules, measured using circular fingerprints and neural graph fingerprints with large random weights.
 \emph{Right}: Predictive performance of circular fingerprints (red), neural graph fingerprints with fixed large random weights (green) and neural graph fingerprints with fixed small random weights (blue).
@@ -274,21 +274,21 @@ The fingerprint network was trained as inputs to a linear model predicting solub
 The feature shown in the top row has a positive predictive relationship with solubility, and is most activated by fragments containing a hydrophilic R-OH group, a standard indicator of solubility.
 The feature shown in the bottom row, strongly predictive of insolubility, is activated by non-polar repeated ring structures.
 
-\newcommand{\molfeature}[3]{\includegraphics[width=#3, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_#1_highlight_#2.pdf}\vspace{-1em}}%
+\newcommand{\molfeature}[3]{\includegraphics[width=#3, clip, trim = 2mm 3mm 2mm 6mm]{fig_4.pdf}\vspace{-1em}}%
 \begin{figure}[h]%
 \vspace{-1em}
 \begin{tabular}{>{\centering}m{1.1in} >{\centering}m{3.1cm} >{\centering}m{3.1cm} >{\centering\arraybackslash}m{3.1cm}}
 Fragments most activated by pro-solubility feature & 
 %\molfeature{15}{0}{3.3cm} & \molfeature{15}{3}{3.3cm} & \molfeature{15}{2}{2.5cm}\\
-\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_15_highlight_0.pdf}\vspace{-1em} &
-\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_15_highlight_3.pdf}\vspace{-1em} &
-\includegraphics[width=2.5cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_15_highlight_2.pdf}\vspace{-1em} \\
+\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_5.pdf}\vspace{-1em} &
+\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_6.pdf}\vspace{-1em} &
+\includegraphics[width=2.5cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_7.pdf}\vspace{-1em} \\
 \midrule
 Fragments most activated by anti-solubility feature & 
 %\molfeature{18}{4}{3.3cm} & \molfeature{18}{1}{3.3cm} & \molfeature{18}{2}{3.3cm}
-\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_18_highlight_4.pdf}\vspace{-1em} &
-\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_18_highlight_1.pdf}\vspace{-1em} &
-\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{../../DeepMoleculesData/experiments/2015-05-30-visualize-fps/1/figures/fp_18_highlight_2.pdf}\vspace{-1em} \\
+\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_8.pdf}\vspace{-1em} &
+\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_9.pdf}\vspace{-1em} &
+\includegraphics[width=3.3cm, clip, trim = 2mm 3mm 2mm 6mm]{fig_10.pdf}\vspace{-1em} \\
 \end{tabular}
 \caption{Examining fingerprints optimized for predicting solubility.
 Shown here are representative examples of molecular fragments (highlighted in blue) which most activate different features of the fingerprint.

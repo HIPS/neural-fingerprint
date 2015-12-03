@@ -24,7 +24,7 @@ model_params = dict(fp_length = 512,   # Usually neural fps need far fewer dimen
                     fp_depth = 4,      # The depth of the network equals the fingerprint radius.
                     conv_width = 20,   # Only the neural fps need this parameter.
                     h1_size = 100,     # Size of hidden layer of network on top of fps.
-                    L2_reg = -2)
+                    L2_reg = np.exp(-2))
 train_params = dict(num_iters = 10,
                     batch_size = 100,
                     init_scale = np.exp(-4),

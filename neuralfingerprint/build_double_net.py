@@ -39,7 +39,7 @@ def build_double_convnet_fingerprint_fun(**kwargs):
         return zip(fp1, fp2)
 
     combined_parser = WeightsParser()
-    combined_parser.add_weights('weights1', len(parser1))
+      combined_parser.add_weights('weights1', len(parser1))
     combined_parser.add_weights('weights2', len(parser2))
 
     return double_fingerprint_fun, combined_parser
