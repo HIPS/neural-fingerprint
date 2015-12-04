@@ -62,7 +62,7 @@
 %%% Title
 \begin{minipage}[c][9cm][c]{0.76\textwidth}
   \begin{center}
-    {\sffamily \VeryHuge \textbf{Convolutional Networks on Graphs\\ for Learning Molecular Fingerprints}}\\[10mm]
+    {\sffamily \VeryHuge \textbf{Convolutional Networks on Graphs\\[4mm] for Learning Molecular Fingerprints}}\\[10mm]
     {\huge\sffamily \Huge David Duvenaud*, Dougal Maclaurin*, Jorge Aguilera-Iparraguirre \\ Rafael G\'omez-Bombarelli, Timothy Hirzel, Al\'an Aspuru-Guzik, Ryan P. Adams\\[7.5mm]
     %\texttt{\{ti242, dkd23, zoubin\}@cam.ac.uk}
     }
@@ -93,14 +93,13 @@
 
 \begin{multicols}{3}
 
-\mysection{Problem}
+\mysection{How to do regression on graphs?}
 
 %\vspace{-0.5in}
 
 \begin{tabular}{cc}
 \begin{minipage}[c]{0.45\columnwidth}
 \begin{itemize}
-  \item How to regression on graphs?
   \item Input can be any size or shape
   \item Hard to turn into fixed-length vector
   \item In our case, graphs represent molecules
@@ -149,7 +148,7 @@ Can be efficiently computed using local operations:
 
 \vspace{0.5in}
 
-Currently state-of-the-art for large-scale regression and classification.
+Was state-of-the-art for large-scale regression and classification.
 
 
 
@@ -163,7 +162,7 @@ Currently state-of-the-art for large-scale regression and classification.
 \begin{tabular}{ccc}
 \begin{minipage}[c]{0.45\columnwidth}
 
-How to make graph fingerprints differentiable?
+How to make circular fingerprints differentiable?
 Replacing ops:
 \vspace{0.5in}
 
