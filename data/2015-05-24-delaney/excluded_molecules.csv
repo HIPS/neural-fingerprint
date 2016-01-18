@@ -1,0 +1,17 @@
+Compound ID,ESOL predicted log solubility in mols per litre,Minimum Degree,Molecular Weight,Number of H-Bond Donors,Number of Rings,Number of Rotatable Bonds,Polar Surface Area,measured log solubility in mols per litre,smiles
+DDE,-6.553,1,318.0300000000001,0,2,2,0.0,-6.9,ClC(Cl)=C(c1ccc(Cl)cc1)c2ccc(Cl)cc2
+Nitramine,-4.479,1,322.243,1,1,5,115.54000000000002,-3.5610000000000004,CCN(CC)c1c(cc(c(N)c1N(=O)=O)C(F)(F)F)N(=O)=O
+Endrin,-4.533,1,380.913,0,5,0,12.53,-6.18,ClC4=C(Cl)C5(Cl)C3C1CC(C2OC12)C3C4(Cl)C5(Cl)Cl
+Chlorotoluron,-3.048,1,212.67999999999998,1,1,1,32.34,-3.46,CN(C)C(=O)Nc1ccc(C)c(Cl)c1
+Maltose,1.071,1,342.297,8,2,4,189.52999999999997,0.358,OCC1OC(OC2C(O)C(O)C(O)OC2CO)C(O)C(O)C1O
+"2,4-PCB",-5.142,1,223.102,0,2,1,0.0,-5.25,Clc1ccc(cc1)c2ccccc2Cl 
+Salicylamide,-1.942,1,137.13799999999998,2,1,1,63.32000000000001,-1.8359999999999999,NC(=O)c1ccccc1O
+"2,4,5-PCB",-5.7620000000000005,1,257.547,0,2,1,0.0,-6.27,Clc1ccc(cc1)c2cc(Cl)ccc2Cl 
+3-Methyl-2-pentanol,-1.381,1,102.17699999999999,1,0,3,20.23,-0.72,CCC(C)CCO
+Fluorometuron,-3.065,1,232.20499999999996,1,1,1,32.34,-3.32,CN(C)C(=O)Nc1cccc(c1)C(F)(F)F
+trichlormethiazide,-2.98,1,380.66200000000003,3,2,2,118.35999999999999,-2.68,NS(=O)(=O)c2cc1c(NC(NS1(=O)=O)C(Cl)Cl)cc2Cl 
+"p,p'-Biphenyldiamine ",-2.613,1,184.242,2,2,1,52.04,-2.7,Nc1ccc(cc1)c2ccc(N)cc2
+"2,3,4'-PCB",-5.686,1,257.547,0,2,1,0.0,-6.26,Clc1ccc(cc1)c2cccc(Cl)c2Cl 
+Ethofumesate,-3.1839999999999997,1,286.34900000000005,0,2,4,61.830000000000005,-3.42,CCOC2Oc1ccc(OS(C)(=O)=O)cc1C2(C)C
+RTI 7,-3.6630000000000003,1,255.29199999999997,0,3,2,20.310000000000002,-3.535,C2c1ccccc1N(CCF)C(=O)c3ccccc23 
+Ethyl-p-aminobenzoate,-2.383,1,165.19199999999998,1,1,2,52.32,-2.1,CCOC(=O)c1ccc(N)cc1
