@@ -16,21 +16,19 @@ from autograd import grad
 
 task_params = {'target_name' : 'measured log solubility in mols per litre',
                'data_file'   : 'delaney.csv'}
-N_train = 80
+N_train = 800
 N_val   = 20
 N_test  = 20
 
-model_params = dict(fp_length = 512,   # Usually neural fps need far fewer dimensions than morgan.
-                    fp_depth = 4,      # The depth of the network equals the fingerprint radius.
-                    conv_width = 20,   # Only the neural fps need this parameter.
-                    h1_size = 100,     # Size of hidden layer of network on top of fps.
-                    L2_reg = np.exp(-2))
-train_params = dict(num_iters = 10,
-                    batch_size = 100,
-                    init_scale = np.exp(-4),
-                    step_size = np.exp(-6),
-                    b1 = np.exp(-3),   # Parameter for Adam optimizer.
-                    b2 = np.exp(-2))   # Parameter for Adam optimizer.
+model_params = dict(fp_length=50,    # Usually neural fps need far fewer dimensions than morgan.
+                    fp_depth=4,      # The depth of the network equals the fingerprint radius.
+                    conv_width=20,   # Only the neural fps need this parameter.
+                    h1_size=100,     # Size of hidden layer of network on top of fps.
+                    L2_reg=np.exp(-2))
+train_params = dict(num_iters=100,
+                    batch_size=100,
+                    init_scale=np.exp(-4),
+                    step_size=np.exp(-6))
 
 # Define the architecture of the network that sits on top of the fingerprints.
 vanilla_net_params = dict(
@@ -43,15 +41,17 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, t
     print "Total number of weights in the network:", num_weights
     init_weights = npr.RandomState(seed).randn(num_weights) * train_params['init_scale']
 
+    num_print_examples = 100
     train_targets, undo_norm = normalize_array(train_raw_targets)
     training_curve = []
     def callback(weights, iter):
         if iter % 10 == 0:
             print "max of weights", np.max(np.abs(weights))
-            train_preds = undo_norm(pred_fun(weights, train_smiles))
-            cur_loss = loss_fun(weights, train_smiles, train_targets)
+            train_preds = undo_norm(pred_fun(weights, train_smiles[:num_print_examples]))
+            cur_loss = loss_fun(weights, train_smiles[:num_print_examples], train_targets[:num_print_examples])
             training_curve.append(cur_loss)
-            print "Iteration", iter, "loss", cur_loss, "train RMSE", rmse(train_preds, train_raw_targets),
+            print "Iteration", iter, "loss", cur_loss,\
+                  "train RMSE", rmse(train_preds, train_raw_targets[:num_print_examples]),
             if validation_smiles is not None:
                 validation_preds = undo_norm(pred_fun(weights, validation_smiles))
                 print "Validation RMSE", iter, ":", rmse(validation_preds, validation_raw_targets),
@@ -63,8 +63,7 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, t
 
     # Optimize weights.
     trained_weights = adam(grad_fun_with_data, init_weights, callback=callback,
-                           num_iters=train_params['num_iters'], step_size=train_params['step_size'],
-                           b1=train_params['b1'], b2=train_params['b2'])
+                           num_iters=train_params['num_iters'], step_size=train_params['step_size'])
 
     def predict_func(new_smiles):
         """Returns to the original units that the raw targets were in."""
