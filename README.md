@@ -33,3 +33,9 @@ We'd also love to hear about your experiences with this package in general.
 Drop us an email!
 
 We want to thank Jennifer Wei for helpful contributions and advice, and Analog Devices International and Samsung Advanced Institute of Technology for their generous support.
+
+## Related packages
+
+A Tensorflow implementation of a closely-related algorithm can be found at [https://github.com/momeara/DeepSEA](https://github.com/momeara/DeepSEA)
+
+
