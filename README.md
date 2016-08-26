@@ -23,7 +23,7 @@ This package requires:
 
 ## Examples
 
-This package includes a [regression example](examples/regression.py) and a [visualization example](examples/vizualization.py) in the examples directory.
+This package includes a [regression example](examples/regression.py) and a [visualization example](examples/visualization.py) in the examples directory.
 
 ## Authors
 
