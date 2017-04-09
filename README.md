@@ -27,7 +27,7 @@ This package includes a [regression example](examples/regression.py) and a [visu
 
 ## Authors
 
-This software was primarily written by [David Duvenaud](http://people.seas.harvard.edu/~dduvenaud/), [Dougal Maclaurin](mailto:maclaurin@physics.harvard.edu), and [Ryan P. Adams](http://www.seas.harvard.edu/directory/rpa).
+This software was primarily written by [David Duvenaud](https://www.cs.toronto.edu/~duvenaud/), [Dougal Maclaurin](https://dougalmaclaurin.com/), and [Ryan P. Adams](http://www.seas.harvard.edu/directory/~rpa).
 Please feel free to submit any bugs or feature requests.
 We'd also love to hear about your experiences with this package in general.
 Drop us an email!
