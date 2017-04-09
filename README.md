@@ -23,7 +23,7 @@ This package requires:
 
 ## Examples
 
-This package includes a [regression example](examples/regression.py) and a [visualization example](examples/vizualization.py) in the examples directory.
+This package includes a [regression example](examples/regression.py) and a [visualization example](examples/visualization.py) in the examples directory.
 
 ## Authors
 
@@ -34,8 +34,9 @@ Drop us an email!
 
 We want to thank Jennifer Wei for helpful contributions and advice, and Analog Devices International and Samsung Advanced Institute of Technology for their generous support.
 
-## Related packages
+## TensorFlow and Theano implementations
 
 A Tensorflow implementation of a closely-related algorithm can be found at [https://github.com/momeara/DeepSEA](https://github.com/momeara/DeepSEA)
 
+and a Theano implementation can be found at [https://github.com/debbiemarkslab/neural-fingerprint-theano](https://github.com/debbiemarkslab/neural-fingerprint-theano)
 
